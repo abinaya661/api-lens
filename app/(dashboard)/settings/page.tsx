@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { PageHeader } from '@/components/shared';
-import { User, Settings2, CreditCard, Bell, KeySquare } from 'lucide-react';
+import { User, Settings2, CreditCard } from 'lucide-react';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'billing'>('profile');
@@ -146,7 +146,7 @@ export default function SettingsPage() {
                 </div>
                 <h3 className="text-lg font-medium text-white mb-2">Billing & Subscription</h3>
                 <p className="text-sm text-zinc-500 max-w-md mx-auto mb-6">
-                  You are currently on the Free Trial. To upgrade your account and view billing history, you'll be redirected to our secure payment portal.
+                  You are currently on the Free Trial. To upgrade your account and view billing history, you&apos;ll be redirected to our secure payment portal.
                 </p>
                 <button className="px-6 py-2.5 bg-white text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-200 transition">
                   Manage Subscription
