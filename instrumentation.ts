@@ -1,6 +1,21 @@
+import * as Sentry from '@sentry/nextjs';
+
 export async function register() {
-  // Validate all env vars at startup — crashes with a clear message if any are missing
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    await import('./lib/env')
+    Sentry.init({
+      dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+      tracesSampleRate: 1.0,
+      environment: process.env.NODE_ENV,
+      enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
+    });
+  }
+
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    Sentry.init({
+      dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+      tracesSampleRate: 1.0,
+      environment: process.env.NODE_ENV,
+      enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
+    });
   }
 }
