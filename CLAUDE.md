@@ -1,32 +1,60 @@
-# API Lens — Engineering Reference
-# Claude Code reads this file at the start of every session.
-# Read it completely before writing any code.
+# API Lens — Engineering Reference v1
+# Claude Code reads this file automatically at the start of every session.
+# Read this completely before writing any code.
 
 ---
 
 ## Product
 
-API Lens is a $4.99 USD/month SaaS that helps anyone using multiple AI API keys manage them, track real spending, set budgets, and prevent surprise bills. Web-first. No mobile in v1.
+API Lens is a $4.99 USD/month SaaS that helps developers, startups, and agencies
+track all their AI API spending in one place. Automatic sync every 15 minutes.
+No manual entry. No custom platforms. 14 supported providers at launch.
 
-**Two core tracking modes:**
+**Two tracking modes:**
 - Global tracker `/dashboard` — all keys + all platforms combined
 - Project tracker `/projects/[id]` — per-project costs, independent budgets and alerts
 
-**Platforms supported at launch:** OpenAI · Anthropic · Gemini · AWS · Azure · Mistral · Cohere · Custom
+**Onboarding advice shown during key addition:**
+"For clean per-project tracking, create a separate API key per project
+in your provider dashboard. Each key is tracked independently."
+
+---
+
+## The 14 Supported Platforms
+
+| Platform | Auto-sync | Delay | Unit | Pattern |
+|---|---|---|---|---|
+| OpenAI | Yes | 5 min | Tokens | 2 |
+| Anthropic | Yes | Real-time | Tokens | 2 |
+| Mistral | Yes | 1 hour | Tokens | 2 |
+| Cohere | Yes | Daily | Tokens | 2 |
+| OpenRouter | Yes | Daily | Tokens | 1 |
+| Google Gemini | Yes | 3 hours | Tokens | 4 |
+| Google Vertex AI | Yes | 24-48 hours | Tokens | 4 |
+| Azure OpenAI | Yes | 1 hour | Tokens | 4 |
+| AWS Bedrock | Yes | Daily | Tokens | 4 |
+| ElevenLabs | Yes | Real-time | Characters | 3 |
+| Deepgram | Yes | Real-time | Minutes | 3 |
+| AssemblyAI | Yes | Real-time | Minutes | 3 |
+| Replicate | Yes | Real-time | Compute seconds | 3 |
+| Fal AI | Yes | Real-time | Images | 3 |
+
+No manual logging. No custom platforms. These are NOT in v1.
 
 ---
 
 ## Stack
 
 ```
-Next.js 15 App Router    TypeScript strict mode
-Tailwind CSS v4          shadcn/ui New York zinc
-Supabase                 Razorpay
-Resend                   Recharts
-React Hook Form + Zod    TanStack Table v8
-TanStack Query v5        Zustand
-Framer Motion            Lucide React
-next-themes              Syne + JetBrains Mono
+Next.js 15 App Router     TypeScript strict mode
+Tailwind CSS v4           shadcn/ui New York zinc
+Supabase                  Razorpay
+Resend                    Recharts
+React Hook Form + Zod     TanStack Table v8
+TanStack Query v5         Zustand
+Framer Motion             Lucide React
+next-themes               Sentry
+Fonts: Syne + JetBrains Mono via next/font/google
 ```
 
 ---
@@ -34,25 +62,28 @@ next-themes              Syne + JetBrains Mono
 ## Design tokens
 
 ```css
---bg-base:        #09111f;
---bg-card:        #0c1a2e;
---bg-sidebar:     #060d18;
---bg-elevated:    #0f2040;
---border:         #1e3a5f;
---border-subtle:  #152a45;
---brand:          #4f46e5;
---brand-hover:    #4338ca;
---success:        #10b981;
---danger:         #ef4444;
---warning:        #f59e0b;
---text-primary:   #e2e8f0;
---text-secondary: #94a3b8;
---text-muted:     #4a6380;
+--bg-base:        #09111f;   /* Page background */
+--bg-card:        #0c1a2e;   /* Cards, panels */
+--bg-sidebar:     #060d18;   /* Sidebar */
+--bg-elevated:    #0f2040;   /* Modals, dropdowns */
+--border:         #1e3a5f;   /* Standard borders */
+--border-subtle:  #152a45;   /* Subtle dividers */
+--brand:          #4f46e5;   /* Primary actions */
+--brand-hover:    #4338ca;   /* Hover state */
+--success:        #10b981;   /* Positive states */
+--danger:         #ef4444;   /* Errors, destructive */
+--warning:        #f59e0b;   /* Warnings */
+--text-primary:   #e2e8f0;   /* Main text */
+--text-secondary: #94a3b8;   /* Supporting text */
+--text-muted:     #4a6380;   /* Muted / placeholder */
 ```
 
-Fonts: Syne (UI text) + JetBrains Mono (keys, numbers, code). Both via next/font/google.
-All numbers: tabular-nums CSS class always.
-Default: dark mode. Both dark and light modes fully implemented.
+Fonts: Syne (UI text) + JetBrains Mono (keys, numbers, code).
+All numbers: `tabular-nums` CSS class always.
+Default: dark mode. Both modes fully implemented via next-themes.
+
+Chart colours (colourblind-safe, use in this order):
+Blue #3b82f6 | Orange #f97316 | Purple #8b5cf6 | Teal #14b8a6 | Yellow #eab308 | Pink #ec4899
 
 ---
 
@@ -68,48 +99,55 @@ Default: dark mode. Both dark and light modes fully implemented.
     layout.tsx
 
   /(app)
-    layout.tsx                   ← sidebar + topbar shell
-    /dashboard/page.tsx          ← global tracker
+    layout.tsx
+    /onboarding/page.tsx         ← 3 steps: role → project → first key
+    /dashboard/page.tsx
     /projects
-      page.tsx                   ← all projects list
-      /[id]/page.tsx             ← single project tracker
+      page.tsx
+      /[id]/page.tsx
     /keys
-      page.tsx                   ← all keys list
-      /[id]/page.tsx             ← key detail
-    /costs/page.tsx              ← cost analytics
-    /estimator/page.tsx          ← cost calculator
-    /budgets/page.tsx            ← budget management
-    /alerts/page.tsx             ← notifications
-    /reports/page.tsx            ← monthly reports
+      page.tsx
+      /[id]/page.tsx             ← key detail + sync status + last synced
+    /costs/page.tsx
+    /estimator/page.tsx
+    /budgets/page.tsx
+    /alerts/page.tsx
+    /reports/page.tsx
     /settings
       /profile/page.tsx
       /security/page.tsx
       /notifications/page.tsx
       /billing/page.tsx
-      /team/page.tsx
+      /team/page.tsx             ← "coming soon" placeholder only
 
   /(marketing)
-    /page.tsx                    ← landing page
+    /page.tsx
     /pricing/page.tsx
     /security/page.tsx
 
   /api
     /webhooks/razorpay/route.ts
-    /cron/sync-usage/route.ts
-    /cron/check-budgets/route.ts
-    /cron/price-alerts/route.ts
-    /cron/monthly-report/route.ts
-    /cron/waste-detection/route.ts
+    /cron
+      /sync-and-check/route.ts   ← every 15 min
+      /daily-tasks/route.ts      ← daily 7am UTC
+    /platforms
+      /route.ts                  ← GET all 14 platforms
+      /[id]/route.ts             ← GET single platform
+      /detect/route.ts           ← POST {apiKey} → which platform?
 
 /components
-  /ui/                           ← shadcn/ui — never edit directly
+  /ui/                           ← shadcn/ui — NEVER edit these directly
   /app
     /layout
-      sidebar.tsx
+      sidebar.tsx                ← shows company_name below logo if set
       topbar.tsx
       app-shell.tsx
       mobile-nav.tsx
       command-palette.tsx
+    /onboarding
+      role-step.tsx
+      project-step.tsx
+      key-step.tsx
     /dashboard
       kpi-cards.tsx
       spend-chart.tsx
@@ -118,20 +156,21 @@ Default: dark mode. Both dark and light modes fully implemented.
       key-health-grid.tsx
       recent-alerts-panel.tsx
       demo-banner.tsx
-    /projects
-      project-card.tsx
-      project-list.tsx
-      project-detail.tsx
-      create-project-dialog.tsx
-      assign-keys-dialog.tsx
-      compare-view.tsx
     /keys
       key-list.tsx
-      key-card.tsx
       key-detail.tsx
       add-key-dialog.tsx
       masked-key.tsx
       key-status-badge.tsx
+      provider-logo.tsx
+      key-intelligence-panel.tsx
+      encryption-badge.tsx
+      encryption-animation.tsx
+    /projects
+      project-card.tsx
+      create-project-dialog.tsx
+      assign-keys-dialog.tsx
+      compare-view.tsx
     /costs
       cost-table.tsx
       cost-trend-chart.tsx
@@ -159,30 +198,27 @@ Default: dark mode. Both dark and light modes fully implemented.
       stat-card.tsx
       page-header.tsx
       confirm-dialog.tsx
-      provider-logo.tsx
+      last-synced.tsx            ← "Last synced X minutes ago" display
 
 /lib
-  env.ts                         ← Zod env validation — runs at startup
+  env.ts
   /supabase
-    client.ts                    ← browser client
-    server.ts                    ← server client
-    admin.ts                     ← service role (cron + webhooks only)
+    client.ts
+    server.ts
+    admin.ts
   /encryption
-    index.ts                     ← AES-256-GCM encrypt/decrypt
+    index.ts
   /platforms
-    index.ts                     ← unified registry
-    openai.ts
-    anthropic.ts
-    gemini.ts
-    aws.ts
-    azure.ts
-    mistral.ts
-    cohere.ts
-    custom.ts
+    index.ts
+    registry.ts
+    /adapters
+      pattern1-openai-compatible.ts
+      pattern2-custom-token.ts
+      pattern3-per-unit.ts
+      pattern4-cloud-billing.ts
   /razorpay
     client.ts
     helpers.ts
-    webhooks.ts
     plans.ts
   /email
     client.ts
@@ -204,6 +240,9 @@ Default: dark mode. Both dark and light modes fully implemented.
     cost.ts
     anomaly.ts
     waste.ts
+    budget-check.ts
+    price-check.ts
+    monthly-report.ts
     cn.ts
 
 /hooks
@@ -213,6 +252,7 @@ Default: dark mode. Both dark and light modes fully implemented.
   use-budgets.ts
   use-alerts.ts
   use-subscription.ts
+  use-platforms.ts
 
 /stores
   ui-store.ts
@@ -224,131 +264,178 @@ Default: dark mode. Both dark and light modes fully implemented.
 
 /styles
   globals.css
-
-/public
-  /logos
-
-/skills                          ← expert code patterns — read before each session
-  SKILLS_INDEX.md
-  SKILL_01_ARCHITECTURE.md
-  SKILL_02_DATABASE.md
-  SKILL_03_SECURITY.md
-  SKILL_04_FRONTEND.md
-  SKILL_05_PAYMENTS.md
-  SKILL_06_DEVOPS.md
-  SKILL_07_AI_PLATFORMS.md
 ```
 
 ---
 
 ## Database tables
 
-profiles · subscriptions · projects · api_keys · project_keys
+profiles · subscriptions · platforms · projects · api_keys · project_keys ·
 usage_records · budgets · alerts · price_snapshots · saved_estimates
 
-Full SQL in SCHEMA.md. RLS on every table — no exceptions.
+Full SQL in SCHEMA.md. RLS on every table. No exceptions.
 
 ---
 
-## Skills reference
+## Cost tracking design rule — non-negotiable
 
-All code patterns written by 7 domain experts live in the /skills/ folder.
-Read skills/SKILLS_INDEX.md first to find which files cover your current session.
-Never read all skill files at once — only read the ones listed for your session.
+`cost_usd` is ALWAYS calculated and stored at sync time.
+All dashboard queries sum `cost_usd`. No conditional logic based on `unit_type`.
+`unit_type` and `unit_count` are for display context on the key detail page only.
 
+This means:
+- Budgets work identically for OpenAI tokens AND ElevenLabs characters
+- Charts work identically for all 14 platforms
+- Alert thresholds work identically for all 14 platforms
+- Zero branching logic in queries
+
+---
+
+## Cron jobs — exactly 2
+
+```json
+{
+  "crons": [
+    { "path": "/api/cron/sync-and-check", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/daily-tasks",    "schedule": "0 7 * * *" }
+  ]
+}
 ```
-skills/SKILLS_INDEX.md           ← start here — maps every session to skill files
-skills/SKILL_01_ARCHITECTURE.md  ← FSA — Next.js, TypeScript, Server Actions, conventions
-skills/SKILL_02_DATABASE.md      ← DBE — PostgreSQL, queries, RLS, indexes, upsert
-skills/SKILL_03_SECURITY.md      ← SEC — AES-256-GCM encryption, auth, env validation
-skills/SKILL_04_FRONTEND.md      ← FEX — components, skeletons, empty states, TanStack Query
-skills/SKILL_05_PAYMENTS.md      ← PAY — Razorpay plans, webhook handler, subscription states
-skills/SKILL_06_DEVOPS.md        ← DVO — Vercel config, cron jobs, scale, infra
-skills/SKILL_07_AI_PLATFORMS.md  ← AIX — platform interface, cost calculation, format utilities
-```
+
+**sync-and-check (every 15 min):**
+- Batch 1: Pattern 2 keys (OpenAI, Anthropic, Mistral, Cohere)
+- Batch 2: Pattern 3 keys (ElevenLabs, Deepgram, AssemblyAI, Replicate, Fal)
+- Batch 3: Pattern 4 keys (Gemini, Vertex AI, Azure, Bedrock)
+- After all batches: run checkBudget() for all users
+- Each batch independent — one batch failing does not stop others
+- Per-key timeout: 30 seconds. Per-batch timeout: 60 seconds.
+
+**daily-tasks (7am UTC daily):**
+- Step 1: OpenRouter credit diff (Pattern 1 — only syncs daily)
+- Step 2: price change detection
+- Step 3: waste detection (keys unused 30+ days)
+- Step 4: rotation reminders (keys 80+ days old)
+- Step 5: monthly report — only runs on 1st of month (checked inside route)
 
 ---
 
-## Pricing data (March 2026)
+## Security rules — all absolute, no exceptions
 
-### OpenAI
-gpt-4o: $2.50/$10.00 per MTok · gpt-4o-mini: $0.15/$0.60 · o3: $2.00/$8.00 · o4-mini: $1.10/$4.40
-
-### Anthropic
-claude-opus-4-6: $5.00/$25.00 · claude-sonnet-4-6: $3.00/$15.00 · claude-haiku-4-5: $1.00/$5.00 · claude-haiku-3: $0.25/$1.25
-
-### Gemini
-gemini-2.5-pro: $1.25/$10.00 · gemini-2.5-flash: $0.30/$2.50 · gemini-2.5-flash-lite: $0.10/$0.40
-
-### AWS Bedrock
-meta.llama4-maverick: $0.18/$0.90 · amazon.titan-text-express: $0.20/$0.60
-
-### Azure OpenAI
-gpt-4o: $2.50/$10.00 · gpt-4o-mini: $0.15/$0.60
-
-### Mistral
-mistral-large: $2.00/$6.00 · mistral-medium: $0.40/$1.20 · mistral-small: $0.10/$0.30 · codestral: $0.30/$0.90
-
-### Cohere
-command-r-plus: $2.50/$10.00 · command-r: $0.15/$0.60 · embed-english-v3: $0.10/$0.00
-
----
-
-## Razorpay billing
-
-Monthly plan: ₹41,500 paise (₹415) displayed as ~$4.99 USD
-Annual plan: ₹4,14,900 paise (₹4,149) displayed as ~$49.99 USD
-Trial: 7 days, payment method required upfront
-
-Webhook events: subscription.activated · subscription.charged · subscription.halted · subscription.cancelled · payment.failed
-
----
-
-## Security rules — absolute
-
-1. AES-256-GCM encryption on every stored API key
+1. AES-256-GCM encryption on every stored API key (exact code in SKILL_03)
 2. Never store or log plaintext keys
-3. Show only last 4 characters in UI (sk-...4f8b)
-4. Decrypt only immediately before platform API call
-5. RLS on every Supabase table
-6. Razorpay webhook verified with HMAC-SHA256
-7. All env vars validated with Zod at startup — crash with clear message if missing
-8. Rate limits: 5 login attempts/15min, 20 key creations/hour/user
+3. Show only last 4 characters in UI (e.g. sk-...4f8b)
+4. Decrypt only immediately before provider API call
+5. RLS on every Supabase table — no exceptions ever
+6. Razorpay webhook verified with HMAC-SHA256 timingSafeEqual
+7. All env vars validated with Zod at startup (in /lib/env.ts)
+8. Rate limits: 5 login attempts/15min per IP, 20 key creations/hour/user
+9. Never log decrypted key in any error message under any circumstances
+10. Email verification enabled in Supabase Auth settings
+11. Sentry for error tracking — SENTRY_DSN and NEXT_PUBLIC_SENTRY_DSN required
 
 ---
 
 ## Coding rules
 
-1. TypeScript strict — zero `any` types — treat as build error
-2. Server Components by default — `'use client'` only for DOM/browser APIs
-3. Server Actions for mutations — not client-side API calls
-4. API routes only for webhooks and cron jobs
-5. Zod validates 100% of user input before any DB write
+1. TypeScript strict — zero `any` types — treat as compile error
+2. Server Components by default — `'use client'` only when required
+3. Server Actions for all mutations
+4. API routes only for webhooks, cron jobs, and platform metadata endpoints
+5. Zod validates 100% of user input before any database write
 6. Every async function: typed try/catch, typed return value
-7. Every list/table: loading skeleton + illustrated empty state + error state
-8. `cn()` from /lib/utils/cn.ts for all conditional classes
+7. Every list/table: loading skeleton + empty state + error state
+8. `cn()` for all conditional classes
 9. Named exports everywhere except page.tsx and layout.tsx
-10. File names: kebab-case. Component names: PascalCase
+10. File names: kebab-case. Component names: PascalCase.
+
+---
+
+## "Last synced" display rule
+
+Every page or section that shows usage data must display:
+"Last synced X minutes ago" (or "just now" if < 1 minute)
+
+This is calculated from `api_keys.last_used` (updated on every successful sync).
+Use the `<LastSynced />` component in /components/app/shared/last-synced.tsx.
+
+---
+
+## Keyboard shortcuts
+
+- `⌘K` / `Ctrl+K` — command palette (only keyboard shortcut)
+- Do NOT use `⌘N` — conflicts with browser new window
+- Do NOT use `⌘P` — conflicts with browser print
+
+---
+
+## Timezone handling
+
+All database aggregations use UTC timestamps.
+Display converts to profiles.timezone using the format utilities.
+Never hardcode timezone anywhere. Always read from profiles.timezone.
+
+---
+
+## Staging environment
+
+Two Supabase projects:
+- Production: connected to vercel production
+- Staging: connected to vercel preview deployments
+
+Two separate ENCRYPTION_KEY values — never share keys between environments.
+
+---
+
+## Environment variables required
+
+```
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+ENCRYPTION_KEY              (64 hex chars = 32 bytes for AES-256)
+RAZORPAY_KEY_ID
+RAZORPAY_KEY_SECRET
+RAZORPAY_WEBHOOK_SECRET
+RAZORPAY_PLAN_MONTHLY       (plan_xxx format)
+RAZORPAY_PLAN_ANNUAL        (plan_xxx format)
+RESEND_API_KEY              (re_ prefix)
+RESEND_FROM_EMAIL
+NEXT_PUBLIC_APP_URL
+CRON_SECRET                 (min 32 chars)
+SENTRY_DSN
+NEXT_PUBLIC_SENTRY_DSN
+```
+
+---
+
+## Skill files
+
+```
+SKILL_01_ARCHITECTURE.md  — Next.js, TypeScript, Server Actions, conventions
+SKILL_02_DATABASE.md      — PostgreSQL, queries, RLS, indexes, optimisation
+SKILL_03_SECURITY.md      — AES-256-GCM, auth, env validation, security rules
+SKILL_04_FRONTEND.md      — Components, skeletons, TanStack Query, responsive
+SKILL_05_PAYMENTS.md      — Razorpay plans, webhook handler, subscription states
+SKILL_06_DEVOPS.md        — Vercel config, cron routes, staging, scale
+SKILL_07_AI_PLATFORMS.md  — Cost calculation, format utilities, unit types
+```
 
 ---
 
 ## Build order
 
-Session 1: Scaffold + Auth
-Session 2: Encryption + Key CRUD
-Session 3: OpenAI Usage Data
-Session 4: Global Dashboard
-Session 5: Project Tracker
-Session 6: Budgets + Alerts
-Session 7: Cost Estimator
-Session 8: All 7 Named Platforms
-Session 9: Custom Platforms
+Session 1:  Scaffold + Auth                         ← COMPLETE
+Session 2:  Encryption + Key CRUD + Onboarding
+Session 3:  OpenAI Usage Data (Pattern 2 adapter)
+Session 4:  Global Dashboard
+Session 5:  Project Tracker
+Session 6:  Budgets + Alerts
+Session 7:  Cost Estimator
+Session 8:  All 4 Adapter Patterns fully implemented
+Session 9:  Key Detail Page + Auto-Detection polish
 Session 10: Razorpay Billing
-Session 11: Advanced Alerts
-Session 12: Settings + Reports
+Session 11: Advanced Alerts + Cron hardening
+Session 12: Settings + Reports + Security page
 Session 13: Landing Page
-Session 14: Polish
-Session 15: Pre-launch
-
-See BUILD_SESSIONS.md for the exact prompt to paste for each session.
-See skills/SKILLS_INDEX.md for which skill files to read per session.
+Session 14: Polish + Accessibility (WCAG 2.1 AA)
+Session 15: Pre-launch + Integration tests

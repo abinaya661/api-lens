@@ -1,28 +1,28 @@
 # Skill 01 — Project Architecture & Conventions
 # Expert: FSA — Senior Full-Stack Architect (15 years)
+# Read this for: Server Actions, TypeScript config, export conventions, cn()
 
-After 15 years of building production systems, the decisions made in
-the first week either save you or haunt you forever. Architecture is
-not something you fix later. You fix it now, when the cost is zero.
+After 15 years of building production systems, the decisions made in the first
+week either save you or haunt you forever. Architecture is not something you
+fix later. You fix it now, when the cost is zero.
 
 ---
 
 ## Why Next.js 15 App Router
 
-The App Router uses React Server Components. Data is fetched on the
-server before HTML is sent — users see real content immediately, not
-a loading spinner. For a dashboard where every page has data, this is
-not optional. It is the correct choice.
+The App Router uses React Server Components. Data is fetched on the server
+before HTML is sent — users see real content immediately, not a loading spinner.
+For a dashboard where every page has data, this is not optional. It is correct.
 
-We do not use a separate backend. Server Actions give us type-safe
-server-side mutations without an extra API layer. API routes are only
-for webhooks and cron jobs — external services that call us.
+We do not use a separate backend. Server Actions give us type-safe server-side
+mutations without an extra API layer. API routes are only for webhooks,
+cron jobs, and platform metadata — external things that call us or need a GET.
 
 ---
 
 ## TypeScript Configuration
 
-// tsconfig.json — these settings are non-negotiable
+```json
 {
   "compilerOptions": {
     "strict": true,
@@ -31,16 +31,18 @@ for webhooks and cron jobs — external services that call us.
     "exactOptionalPropertyTypes": true
   }
 }
+```
 
-noUncheckedIndexedAccess is the one most developers miss.
-Without it: arr[0] has type T even if the array is empty.
-With it: arr[0] correctly has type T | undefined, forcing you to handle the empty case.
+`noUncheckedIndexedAccess` is the one most developers miss.
+- Without it: `arr[0]` has type `T` even if the array is empty
+- With it: `arr[0]` correctly has type `T | undefined`, forcing you to handle it
 This catches an entire class of runtime errors at compile time.
 
 ---
 
 ## The Server Action Pattern — use this exactly
 
+```typescript
 'use server'
 import { createClient }   from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
@@ -56,7 +58,7 @@ const CreateProjectSchema = z.object({
 
 // Step 2: Discriminated union return type.
 // ok: true/false works perfectly with useFormState.
-// It is immediately obvious at the call site whether the action succeeded.
+// Immediately obvious at the call site whether the action succeeded.
 type ActionResult<T> =
   | { ok: true;  data: T }
   | { ok: false; error: string; field?: string }
@@ -107,11 +109,13 @@ export async function createProject(
     return { ok: false, error: 'Something went wrong. Please try again.' }
   }
 }
+```
 
 ---
 
 ## The cn() Utility — why not template literals
 
+```typescript
 // /lib/utils/cn.ts
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge }               from 'tailwind-merge'
@@ -124,17 +128,76 @@ import { twMerge }               from 'tailwind-merge'
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+```
+
+---
+
+## Supabase Client — which one to use where
+
+```
+/lib/supabase/client.ts   → 'use client' components and hooks
+/lib/supabase/server.ts   → Server Components and Server Actions
+/lib/supabase/admin.ts    → Cron jobs and webhook handlers ONLY
+                             Uses service role key — bypasses RLS
+                             Never import in any component or hook
+```
 
 ---
 
 ## Export Conventions
 
-Named exports everywhere except page.tsx and layout.tsx.
-Reason: named exports are refactoring-safe. IDEs can reliably
-rename them across files. Default exports cannot be reliably renamed.
+Named exports everywhere except `page.tsx` and `layout.tsx`.
+
+Reason: named exports are refactoring-safe. IDEs can reliably rename them
+across files. Default exports cannot be reliably renamed.
 Next.js requires default exports only for page.tsx and layout.tsx.
 
-File names: kebab-case (user-profile.tsx)
-Component names: PascalCase (UserProfile)
-Function names: camelCase (getUserProfile)
-Constants: SCREAMING_SNAKE_CASE (MAX_RETRY_COUNT)
+```
+File names:       kebab-case        (user-profile.tsx)
+Component names:  PascalCase        (UserProfile)
+Function names:   camelCase         (getUserProfile)
+Constants:        SCREAMING_SNAKE   (MAX_RETRY_COUNT)
+Types/Interfaces: PascalCase        (UserProfile, ApiKey)
+```
+
+---
+
+## Middleware Pattern
+
+```typescript
+// middleware.ts
+import { createServerClient }  from '@supabase/ssr'
+import { NextResponse }        from 'next/server'
+import type { NextRequest }    from 'next/server'
+
+export async function middleware(request: NextRequest) {
+  // 1. Create Supabase client with cookie handling
+  // 2. Get session
+  // 3. If no session and path starts with /(app): redirect to /login
+  // 4. If session and path is /onboarding: check profiles.onboarded
+  //    If onboarded=true: redirect to /dashboard
+  // 5. If session and not onboarded and not on /onboarding: redirect to /onboarding
+  // 6. If session and path starts with /(auth): redirect to /dashboard
+}
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api).*)'],
+}
+```
+
+---
+
+## Environment Variable Access
+
+Always import from `/lib/env.ts`, never use `process.env` directly in components.
+The env module validates at startup — if a required variable is missing,
+the app crashes with a clear error message rather than silently failing.
+
+```typescript
+// Correct:
+import { env } from '@/lib/env'
+const url = env.NEXT_PUBLIC_SUPABASE_URL
+
+// Wrong — no validation, no type safety:
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+```

@@ -12,143 +12,120 @@ are designed to be maintainable as the market evolves rapidly.
 // /lib/platforms/index.ts
 // Without this: every feature that touches platform APIs needs to know
 // about every platform. Adding a new platform means changing 10 files.
-// With this: adding a new platform means creating ONE new file.
+// With this: adding a new platform means creating ONE new adapter file.
 
 export type PlatformId =
-  | 'openai' | 'anthropic' | 'gemini' | 'aws'
-  | 'azure'  | 'mistral'   | 'cohere' | 'custom'
+  | 'openai' | 'anthropic' | 'mistral' | 'cohere'
+  | 'openrouter'
+  | 'gemini' | 'vertex_ai' | 'azure_openai' | 'bedrock'
+  | 'elevenlabs' | 'deepgram' | 'assemblyai' | 'replicate' | 'fal'
 
 // Normalised shape — all platforms produce this.
 // OpenAI calls them "prompt_tokens" and "completion_tokens".
 // Anthropic calls them "input_tokens" and "output_tokens".
 // We normalise everything. Application code never needs to know the difference.
 export interface UsageRecord {
-  date:         string  // YYYY-MM-DD
+  date:         string   // YYYY-MM-DD
   model:        string
-  inputTokens:  number
-  outputTokens: number
-  totalTokens:  number  // stored for convenience — input + output
-  costUsd:      number  // pre-calculated at sync time
+  inputTokens:  number   // 0 for non-token platforms
+  outputTokens: number   // 0 for non-token platforms
+  totalTokens:  number   // 0 for non-token platforms
+  unitType:     UnitType
+  unitCount:    number   // the actual billable units
+  costUsd:      number   // ALWAYS calculated, never 0 unless genuinely free
   requestCount: number
 }
+
+export type UnitType =
+  | 'tokens'          // OpenAI, Anthropic, Mistral, Cohere, Gemini, Vertex, Azure, Bedrock, OpenRouter
+  | 'characters'      // ElevenLabs
+  | 'minutes'         // Deepgram, AssemblyAI
+  | 'images'          // Fal AI
+  | 'compute_seconds' // Replicate
 
 export interface ModelInfo {
   id:                  string
   name:                string
-  inputPricePerMtok:   number  // USD per million input tokens
-  outputPricePerMtok:  number  // USD per million output tokens
+  inputPricePerMtok:   number  // USD per million input tokens (or per million units for non-token)
+  outputPricePerMtok:  number  // USD per million output tokens (0 for non-token platforms)
   batchDiscount?:      number  // 0.5 = 50% off for batch API
   cacheDiscount?:      number  // 0.1 = 90% off for prompt cache reads
   contextWindow?:      number
+  unitType:            UnitType
 }
 
-// Every platform file must export these three:
+// Every platform adapter file exports these:
 export async function fetchUsage(
+  provider:     string,
   decryptedKey: string,
-  startDate:    string,
-  endDate:      string,
-  options?:     Record<string, string>
+  startDate:    string,   // YYYY-MM-DD
+  endDate:      string,   // YYYY-MM-DD
+  options?:     { endpointUrl?: string }
 ): Promise<UsageRecord[]>
 
 export async function validateKey(
+  provider:     string,
   decryptedKey: string,
   endpointUrl?: string
 ): Promise<{ valid: boolean; error?: string }>
 
-export const platformInfo: PlatformInfo
-
 ---
 
-## Platform API Quick Reference
+## Cost Tracking Design Rule — absolute
 
-OpenAI:
-  Usage:    GET https://api.openai.com/v1/organization/usage/completions
-  Auth:     Authorization: Bearer {ADMIN_KEY}
-  Params:   start_time (unix), end_time (unix), group_by=["model"]
-  Note:     Requires Organisation Admin Key — NOT a regular project key
-  Validate: GET https://api.openai.com/v1/models
+cost_usd is ALWAYS calculated and stored at sync time.
+All dashboard queries sum cost_usd. No conditional logic based on unit_type.
+unit_type is only used for display on the key detail page.
 
-Anthropic:
-  Usage:    GET https://api.anthropic.com/v1/organizations/usage_report
-  Auth:     x-api-key: {ADMIN_KEY}, anthropic-version: 2023-06-01
-  Params:   start_date (YYYY-MM-DD), end_date, group_by=model
-  Validate: POST https://api.anthropic.com/v1/messages (minimal request)
-
-Google Gemini:
-  Tokens:   Cloud Monitoring — aiplatform.googleapis.com/prediction/online/token_count
-  Cost:     BigQuery billing export (24-48h delay)
-  Auth:     Service Account with roles/monitoring.viewer + roles/bigquery.dataViewer
-  Note:     Most complex integration — include setup guide in add-key dialog
-
-AWS Bedrock:
-  Tokens:   CloudWatch — Namespace: AWS/Bedrock, Metrics: InputTokenCount, OutputTokenCount
-  Cost:     Cost Explorer — SERVICE = "Amazon Bedrock"
-  Auth:     IAM with ce:GetCostAndUsage + cloudwatch:GetMetricData only
-  Note:     Needs AWS region selector in key form
-
-Azure OpenAI:
-  Usage:    Azure Monitor Metrics — TokenTransaction metric
-  Auth:     Azure API key from Azure Portal
-  Note:     Endpoint URL required per resource — show endpoint URL field
-
-Mistral:
-  Usage:    GET https://api.mistral.ai/v1/usage/history
-  Auth:     Authorization: Bearer {API_KEY}
-  Validate: GET https://api.mistral.ai/v1/models
-
-Cohere:
-  Usage:    GET https://api.cohere.com/v1/usage
-  Auth:     Authorization: Bearer {API_KEY}
-  Validate: GET https://api.cohere.com/v1/models
-
-Custom:
-  No API — manual cost entry only
-  validateKey() always returns { valid: true }
-  User logs usage manually via "Log Usage" button
-
----
-
-## Error Handling Rules for All Platforms
-
-401/403 → key invalid or expired → set is_valid = false on api_keys row, create alert
-429     → rate limited → log warning, retry next cycle, do NOT mark key invalid
-5xx     → provider error → log warning, retry next cycle
-Timeout → log warning, retry next cycle
-Never log the decrypted API key in any error message under any circumstances.
+Why: if we stored only token/unit counts and calculated on each query,
+a pricing change would retroactively change all historical costs.
+A user would see their February spend change when March prices update.
+Pre-calculating at sync time means each record shows the actual cost
+at the time the units were used — accurate and immutable.
 
 ---
 
 ## Cost Calculation — complete implementation
 
 // /lib/utils/cost.ts
-// We pre-calculate cost_usd at sync time, not at query time.
-// Why: if we stored only token counts and calculated on each query,
-// a pricing change would retroactively change all historical costs.
-// A user would see their February spend change when March prices update.
-// Pre-calculating at sync time means each record shows the actual cost
-// at the time the tokens were used — accurate and immutable.
 
 export function calculateCostUsd(
-  inputTokens:   number,
-  outputTokens:  number,
-  inputPerMtok:  number,
-  outputPerMtok: number,
-  options?: { batchDiscount?: number; cacheReadTokens?: number; cacheReadDiscount?: number }
+  inputUnits:    number,    // tokens, characters, minutes, images, compute_seconds
+  outputUnits:   number,    // 0 for non-token platforms
+  inputPerMunit: number,    // price per million units (or per unit for some platforms)
+  outputPerMunit: number,
+  options?: {
+    batchDiscount?:    number   // 0.5 = 50% off
+    cacheReadUnits?:   number
+    cacheReadDiscount?: number  // 0.1 = 90% off for cache reads
+  }
 ): number {
-  let inputCost  = (inputTokens  / 1_000_000) * inputPerMtok
-  let outputCost = (outputTokens / 1_000_000) * outputPerMtok
+  let inputCost  = (inputUnits  / 1_000_000) * inputPerMunit
+  let outputCost = (outputUnits / 1_000_000) * outputPerMunit
 
-  // Cache read tokens charged at significant discount (e.g. 10% of input price).
+  // Cache read units charged at significant discount (e.g. 10% of input price).
   // Anthropic charges cache_read_input_tokens at 0.1x normal input price.
-  if (options?.cacheReadTokens && options?.cacheReadDiscount) {
-    const fullPrice      = (options.cacheReadTokens / 1_000_000) * inputPerMtok
+  if (options?.cacheReadUnits && options?.cacheReadDiscount !== undefined) {
+    const fullPrice      = (options.cacheReadUnits / 1_000_000) * inputPerMunit
     const discountedCost = fullPrice * options.cacheReadDiscount
     inputCost            = inputCost - fullPrice + discountedCost
   }
 
   const subtotal = inputCost + outputCost
   const discount = options?.batchDiscount ?? 0
-  return Math.round(subtotal * (1 - discount) * 1_000_000_00) / 1_000_000_00
+  // Round to 8 decimal places — matches cost_usd column precision
+  return Math.round(subtotal * (1 - discount) * 100_000_000) / 100_000_000
+}
+
+// For non-token platforms where pricing is per-unit (not per-million):
+// ElevenLabs: price per 1M characters
+// Deepgram/AssemblyAI: price per minute (NOT per million minutes)
+// Replicate: price per compute second (NOT per million)
+// Fal: price per image (NOT per million)
+//
+// For Deepgram/AssemblyAI/Replicate/Fal: use direct multiplication, not per-million:
+export function calculatePerUnitCost(unitCount: number, pricePerUnit: number): number {
+  return Math.round(unitCount * pricePerUnit * 100_000_000) / 100_000_000
 }
 
 export function estimateMonthlyUsd(params: {
@@ -176,12 +153,12 @@ export function estimateMonthlyUsd(params: {
 export function calculateModelSwapSavings(
   currentMonthlyUsd:   number,
   targetModel:         ModelInfo,
-  monthlyInputTokens:  number,
-  monthlyOutputTokens: number
+  monthlyInputUnits:   number,
+  monthlyOutputUnits:  number
 ): { savingsUsd: number; savingsPercent: number; targetMonthlyUsd: number } {
   const targetMonthlyUsd = calculateCostUsd(
-    monthlyInputTokens,
-    monthlyOutputTokens,
+    monthlyInputUnits,
+    monthlyOutputUnits,
     targetModel.inputPricePerMtok,
     targetModel.outputPricePerMtok
   )
@@ -225,6 +202,17 @@ export function formatTokens(n: number): string {
   return n.toLocaleString('en-US')
 }
 
+// Display unit counts with the right label for each platform
+export function formatUnits(unitCount: number, unitType: UnitType): string {
+  switch (unitType) {
+    case 'tokens':          return `${formatTokens(unitCount)} tokens`
+    case 'characters':      return `${formatTokens(unitCount)} chars`
+    case 'minutes':         return `${unitCount.toFixed(1)} min`
+    case 'images':          return `${unitCount.toLocaleString()} images`
+    case 'compute_seconds': return `${unitCount.toFixed(1)}s compute`
+  }
+}
+
 export function formatRelativeTime(date: string | Date): string {
   const diff  = Date.now() - new Date(date).getTime()
   const mins  = Math.floor(diff / 60_000)
@@ -240,7 +228,58 @@ export function formatRelativeTime(date: string | Date): string {
   // en-IN locale: "16 Mar 2026" — correct for Indian developers.
 }
 
+// Used for "Last synced X" indicator shown on all data views
+export function formatLastSynced(date: string | Date): string {
+  const diff = Date.now() - new Date(date).getTime()
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 1)   return 'just now'
+  if (mins < 60)  return `${mins} minute${mins === 1 ? '' : 's'} ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  return formatRelativeTime(date)
+}
+
 export function budgetProgressPercent(spent: number, budget: number): number {
   if (budget <= 0) return 0
   return Math.min(100, Math.round((spent / budget) * 100))
 }
+
+export function budgetProgressColour(percent: number): string {
+  if (percent >= 100) return '#ef4444'  // danger
+  if (percent >= 90)  return '#ef4444'  // danger
+  if (percent >= 75)  return '#f59e0b'  // warning
+  return '#10b981'                       // success
+}
+
+---
+
+## Error Handling Rules for All Platform Adapters
+
+// These rules apply to every adapter in /lib/platforms/adapters/
+
+401 / 403 → key invalid or expired
+  → set is_valid = false on api_keys row
+  → increment consecutive_failures
+  → create key_invalid alert
+  → do NOT retry
+
+429 → rate limited by provider
+  → log warning
+  → skip this cycle
+  → do NOT mark key invalid
+  → do NOT increment consecutive_failures for rate limits
+
+5xx → provider server error
+  → increment consecutive_failures
+  → skip this cycle (Razorpay will retry next cron run)
+  → do NOT mark key invalid
+
+Timeout → per-key timeout is 30 seconds
+  → increment consecutive_failures
+  → skip this cycle
+
+3+ consecutive failures → create sync_failed alert + send email
+
+// NEVER EVER log the decrypted API key in any error message.
+// Even in development. Even in tests. Never.
+// If you need to debug a key issue: log the key_id and provider only.

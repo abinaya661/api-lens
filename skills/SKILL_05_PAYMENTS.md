@@ -25,7 +25,7 @@ and KYC is straightforward for Indian founders.
 export const PLANS = {
   monthly: {
     razorpayPlanId: process.env.RAZORPAY_PLAN_MONTHLY!,
-    amountPaise:    41_500,   // ₹415.00
+    amountPaise:    41_500,    // ₹415.00
     displayUsd:     '~$4.99',
     displayInr:     '₹415',
     interval:       'monthly' as const,
@@ -34,7 +34,7 @@ export const PLANS = {
   },
   annual: {
     razorpayPlanId: process.env.RAZORPAY_PLAN_ANNUAL!,
-    amountPaise:    4_14_900, // ₹4,149.00
+    amountPaise:    4_14_900,  // ₹4,149.00
     displayUsd:     '~$49.99',
     displayInr:     '₹4,149',
     interval:       'yearly' as const,
@@ -42,6 +42,8 @@ export const PLANS = {
     description:    'API Lens Pro — Annual (save 2 months)',
   },
 } as const
+
+export type PlanKey = keyof typeof PLANS
 
 ---
 
@@ -164,4 +166,113 @@ export async function POST(req: Request) {
   // Always return 200 for handled events.
   // Non-200 causes Razorpay to retry — potentially causing duplicate processing.
   return new Response('ok', { status: 200 })
+}
+
+---
+
+## Subscription State Machine
+
+// Valid transitions only:
+//
+// trial → pro           (subscription.activated after trial)
+// trial → expired       (trial ended, no payment)
+// pro   → cancelled     (user cancelled — still has access until period end)
+// pro   → paused        (subscription.halted — payment failures)
+// pro   → expired       (subscription.completed — natural end)
+// paused → pro          (subscription.activated — user paid again)
+// cancelled → pro       (user resubscribed)
+//
+// NEVER delete subscription rows. History is permanent.
+// NEVER remove access before current_period_end even if cancelled.
+
+---
+
+## Checking subscription status in Server Components
+
+// /lib/razorpay/helpers.ts
+import { createClient } from '@/lib/supabase/server'
+
+export type SubscriptionStatus = 'trial' | 'pro' | 'annual' | 'paused' | 'expired' | 'cancelled' | 'none'
+
+export async function getSubscriptionStatus(): Promise<{
+  status:           SubscriptionStatus
+  trialEndsAt:      string | null
+  currentPeriodEnd: string | null
+  cancelAtPeriodEnd: boolean
+}> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { status: 'none', trialEndsAt: null, currentPeriodEnd: null, cancelAtPeriodEnd: false }
+
+  const { data } = await supabase
+    .from('subscriptions')
+    .select('plan,trial_ends_at,current_period_end,cancel_at_period_end')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!data) return { status: 'none', trialEndsAt: null, currentPeriodEnd: null, cancelAtPeriodEnd: false }
+
+  return {
+    status:            data.plan as SubscriptionStatus,
+    trialEndsAt:       data.trial_ends_at,
+    currentPeriodEnd:  data.current_period_end,
+    cancelAtPeriodEnd: data.cancel_at_period_end,
+  }
+}
+
+export function hasActiveAccess(status: SubscriptionStatus): boolean {
+  return status === 'trial' || status === 'pro' || status === 'annual'
+}
+
+---
+
+## Trial expiry emails — send via Resend
+
+// Send at:
+//   trial_ends_at - 3 days  → "Your trial ends in 3 days"
+//   trial_ends_at - 1 day   → "Your trial ends tomorrow"
+//   trial_ends_at            → "Your trial has ended"
+//
+// Check daily in /api/cron/daily-tasks route.
+// Use the trial-ending.tsx and trial-expired.tsx email templates.
+// Never send more than one email per day per user per type.
+// Track sent emails by checking is_emailed on alert records.
+
+---
+
+## Razorpay hosted checkout flow
+
+// Never build a custom payment form. Always use Razorpay hosted checkout.
+// Card data NEVER touches our servers — Razorpay handles PCI compliance.
+//
+// Flow:
+// 1. User clicks "Start Trial" or "Subscribe"
+// 2. Server Action creates a Razorpay subscription via API
+// 3. Returns subscription ID and payment link
+// 4. Client redirects to Razorpay hosted checkout URL
+// 5. Razorpay sends webhook events to /api/webhooks/razorpay
+// 6. Webhook updates subscriptions table
+// 7. User redirected back to /settings/billing with ?success=1
+
+import Razorpay from 'razorpay'
+
+const razorpay = new Razorpay({
+  key_id:     process.env.RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+})
+
+export async function createSubscription(planKey: PlanKey, userId: string) {
+  const plan = PLANS[planKey]
+  const subscription = await razorpay.subscriptions.create({
+    plan_id:       plan.razorpayPlanId,
+    total_count:   planKey === 'annual' ? 1 : 12,
+    trial_enabled: true,
+    notify_info: {
+      notify_phone: '',
+      notify_email: '',  // filled from user profile
+    },
+    notes: { user_id: userId },
+  })
+  return subscription
 }
