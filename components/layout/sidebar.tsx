@@ -12,6 +12,7 @@ import {
   FileText,
   Calculator,
   Settings,
+  CreditCard,
   ChevronLeft,
   ChevronRight,
   Sparkles,
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/reports', label: 'Reports', icon: FileText },
   { href: '/estimator', label: 'Estimator', icon: Calculator },
   { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/subscription', label: 'Subscription', icon: CreditCard },
 ];
 
 export function Sidebar() {

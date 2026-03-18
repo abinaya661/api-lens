@@ -9,6 +9,7 @@ import {
   Key,
   Bell,
   Settings,
+  CreditCard,
 } from 'lucide-react';
 
 const mobileNavItems = [
@@ -17,6 +18,7 @@ const mobileNavItems = [
   { href: '/keys', label: 'Keys', icon: Key },
   { href: '/alerts', label: 'Alerts', icon: Bell },
   { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/subscription', label: 'Plan', icon: CreditCard },
 ];
 
 export function MobileNav() {

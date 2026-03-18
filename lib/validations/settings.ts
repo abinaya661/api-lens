@@ -5,6 +5,7 @@ export const updateProfileSchema = z.object({
   company_name: z.string().max(100).nullable().optional(),
   timezone: z.string().optional(),
   currency: z.enum(['USD', 'EUR', 'GBP']).optional(),
+  onboarded: z.boolean().optional(),
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

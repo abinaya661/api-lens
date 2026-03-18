@@ -12,6 +12,8 @@ const publicRoutes = [
   '/estimator',
   '/api/estimator',
   '/api/webhooks',
+  '/api/cron',
+  '/api/platforms',
 ];
 
 function isPublicRoute(pathname: string): boolean {
