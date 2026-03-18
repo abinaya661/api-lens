@@ -11,25 +11,27 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'API Lens — AI Cost Dashboard',
+    default: 'API Lens — Track Your AI API Spending',
     template: '%s | API Lens',
   },
-  description:
-    'Monitor, budget, and attribute AI API costs across OpenAI, Anthropic, Gemini, Bedrock, Mistral, Cohere, and Azure OpenAI — all in one dashboard.',
-  keywords: [
-    'AI API costs',
-    'OpenAI billing',
-    'Anthropic costs',
-    'API monitoring',
-    'AI budget tracker',
-  ],
+  description: 'Monitor and optimize your AI API costs across OpenAI, Anthropic, Gemini, Mistral, and 10+ providers. Real-time spending dashboards, budget alerts, and usage analytics.',
+  keywords: ['AI API', 'cost tracking', 'API spending', 'OpenAI costs', 'Anthropic billing', 'AI budget', 'API monitoring'],
   authors: [{ name: 'API Lens' }],
   openGraph: {
-    title: 'API Lens — AI Cost Dashboard',
-    description:
-      'One dashboard to monitor, budget, and attribute AI API costs across all providers.',
+    title: 'API Lens — Track Your AI API Spending',
+    description: 'Monitor and optimize your AI API costs across 14+ providers.',
+    url: 'https://apilens.dev',
+    siteName: 'API Lens',
     type: 'website',
-    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'API Lens — Track Your AI API Spending',
+    description: 'Monitor and optimize your AI API costs across 14+ providers.',
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 

@@ -14,6 +14,7 @@ const publicRoutes = [
   '/api/webhooks',
   '/api/cron',
   '/api/platforms',
+  '/api/health',
 ];
 
 function isPublicRoute(pathname: string): boolean {
