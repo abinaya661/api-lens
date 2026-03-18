@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { addKeySchema, updateKeySchema, type AddKeyInput, type UpdateKeyInput } from '@/lib/validations/key';
 import { encryptCredentials } from '@/lib/encryption';
+import { checkRateLimit, authRateLimit } from '@/lib/ratelimit';
 import type { ApiKey } from '@/types/database';
 
 interface ActionResult<T = unknown> {
@@ -58,6 +59,12 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: 'Not authenticated' };
 
+    // Rate limit: 20 key creations per hour per user
+    const rateCheck = await checkRateLimit(authRateLimit, `key-create:${user.id}`);
+    if (!rateCheck.success) {
+      return { data: null, error: 'Rate limit exceeded. Please try again later.' };
+    }
+
     const { api_key, provider, nickname, project_id, endpoint_url, notes } = parsed.data;
 
     // Encrypt the API key
@@ -70,7 +77,7 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
         user_id: user.id,
         provider,
         nickname,
-        encrypted_key: encrypted,
+        encrypted_key: JSON.stringify(encrypted),
         key_hint: keyHint,
         endpoint_url: endpoint_url || null,
         notes: notes ?? null,
