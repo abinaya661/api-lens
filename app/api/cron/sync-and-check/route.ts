@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { syncAllKeys, checkBudgets } from '@/lib/platforms/sync-engine';
 
 export const runtime = 'nodejs';
-export const maxDuration = 120; // 2 minutes max
+export const maxDuration = 120;
 
 function verifyCronSecret(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
@@ -20,27 +20,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = createAdminClient();
     const startTime = Date.now();
 
-    // Phase 3 will implement:
-    // Batch 1: Pattern 2 keys (OpenAI, Anthropic, Mistral, Cohere)
-    // Batch 2: Pattern 3 keys (ElevenLabs, Deepgram, AssemblyAI, Replicate, Fal)
-    // Batch 3: Pattern 4 keys (Gemini, Vertex AI, Azure, Bedrock)
-    // After all batches: run checkBudget() for all users
+    // Step 1: Sync all active keys
+    const syncStats = await syncAllKeys();
 
-    // For now, just log that cron ran successfully
-    const { count } = await supabase
-      .from('api_keys')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', true);
+    // Step 2: Check budgets and create alerts
+    const budgetResult = await checkBudgets();
 
     const duration = Date.now() - startTime;
 
     return NextResponse.json({
       success: true,
-      message: 'Sync-and-check cron executed (stub)',
-      active_keys: count ?? 0,
+      sync: syncStats,
+      budgets: budgetResult,
       duration_ms: duration,
       timestamp: new Date().toISOString(),
     });
