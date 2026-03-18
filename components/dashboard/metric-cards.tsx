@@ -1,46 +1,45 @@
 'use client';
 
 import { StatCard } from '@/components/shared';
-import { type DashboardStats } from '@/lib/mock-data';
-import { CreditCard, TrendingUp, Key, Coins } from 'lucide-react';
+import { CreditCard, TrendingUp, Key, Activity } from 'lucide-react';
 
 interface MetricCardsProps {
-  stats: DashboardStats;
+  totalSpend: number;
+  projectedSpend: number;
+  activeKeyCount: number;
+  budgetRemainingPct: number | null;
 }
 
-export function MetricCards({ stats }: MetricCardsProps) {
+export function MetricCards({ totalSpend, projectedSpend, activeKeyCount, budgetRemainingPct }: MetricCardsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
-        title="Total Spend (30d)"
-        value={stats.totalSpend}
+        title="Spend This Month"
+        value={totalSpend}
         format="currency"
         icon={<CreditCard className="w-4 h-4" />}
-        trend={{ value: stats.spendTrend, label: 'vs previous 30d' }}
-        subtitle="vs previous 30d"
+        subtitle="Current month total"
       />
       <StatCard
         title="Projected Spend"
-        value={stats.projectedSpend}
+        value={projectedSpend}
         format="currency"
         icon={<TrendingUp className="w-4 h-4" />}
-        trend={{ value: stats.projectedTrend, label: 'vs last month' }}
-        subtitle="End of month"
+        subtitle="End of month estimate"
       />
       <StatCard
         title="Active API Keys"
-        value={stats.activeKeys}
+        value={activeKeyCount}
         format="number"
         icon={<Key className="w-4 h-4" />}
-        subtitle="Across 4 providers"
+        subtitle="Currently monitored"
       />
       <StatCard
-        title="Blended Token Rate"
-        value={stats.blendedRate}
-        format="currency"
-        icon={<Coins className="w-4 h-4" />}
-        trend={{ value: stats.rateTrend, label: 'efficiency' }}
-        subtitle="Avg per 1k tokens"
+        title="Budget Used"
+        value={budgetRemainingPct !== null ? (100 - budgetRemainingPct) : 0}
+        format="percentage"
+        icon={<Activity className="w-4 h-4" />}
+        subtitle={budgetRemainingPct !== null ? 'Of monthly budget' : 'No budget set'}
       />
     </div>
   );

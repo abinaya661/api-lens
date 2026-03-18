@@ -3,9 +3,9 @@
 // ============================================
 
 import type {
-  Company, Project, ApiKey, Budget, Alert,
-  UsageRecord, CostEstimate, ModelPricing,
-  Subscription, CustomCostEntry, BudgetScope,
+  Profile, Project, ApiKey, Budget, Alert,
+  UsageRecord, PriceSnapshot, SavedEstimate,
+  Subscription, BudgetScope,
 } from './database';
 import type { Provider, KeyHealth } from './providers';
 
@@ -157,7 +157,7 @@ export interface EstimatorComparison {
 // --- Reports ---
 export interface MonthlyReport {
   id: string;
-  company_id: string;
+  user_id: string;
   month: string; // YYYY-MM
   total_spend: number;
   previous_month_spend: number;

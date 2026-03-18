@@ -42,12 +42,20 @@ const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 function getEnv(): Env {
-  // In development, allow missing optional vars
   const parsed = envSchema.safeParse(process.env);
   if (!parsed.success) {
     const missing = parsed.error.issues.map((i) => i.path.join('.')).join(', ');
+
+    // In production, fail hard on missing env vars
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        `Missing required environment variables: ${missing}. ` +
+        'Application cannot start without these configured.'
+      );
+    }
+
+    // In development, warn but allow partial env
     console.warn(`⚠️  Missing env vars: ${missing}`);
-    // Return partial env in dev to avoid crashes
     return process.env as unknown as Env;
   }
   return parsed.data;

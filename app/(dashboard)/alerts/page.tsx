@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { PageHeader } from '@/components/shared';
-import { mockAlerts, type MockAlert, type AlertSeverity } from '@/lib/mock-data-budgets';
+import { PageHeader, EmptyState, ErrorState, SkeletonTable } from '@/components/shared';
+import { useAlerts, useMarkAlertRead, useMarkAllAlertsRead } from '@/hooks/use-alerts';
 import { timeAgo } from '@/lib/utils';
+import type { AlertSeverity } from '@/types/database';
 import {
   Bell,
   AlertTriangle,
@@ -20,24 +21,36 @@ const SEVERITY_CONFIG: Record<AlertSeverity, { icon: typeof Info; color: string;
 };
 
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState<MockAlert[]>(mockAlerts);
-  const [filter, setFilter] = useState<'all' | 'unread' | 'acknowledged'>('all');
+  const { data: alerts, isLoading, error, refetch } = useAlerts();
+  const markReadMutation = useMarkAlertRead();
+  const markAllReadMutation = useMarkAllAlertsRead();
 
-  const unreadCount = alerts.filter((a) => !a.acknowledged).length;
+  const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
 
-  function acknowledge(id: string) {
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, acknowledged: true } : a)),
+  if (isLoading) {
+    return (
+      <div className="animate-fade-in">
+        <PageHeader title="Alerts" description="Budget thresholds, spend spikes, and key health notifications." />
+        <SkeletonTable rows={4} />
+      </div>
     );
   }
 
-  function acknowledgeAll() {
-    setAlerts((prev) => prev.map((a) => ({ ...a, acknowledged: true })));
+  if (error) {
+    return (
+      <div className="animate-fade-in">
+        <PageHeader title="Alerts" description="Budget thresholds, spend spikes, and key health notifications." />
+        <ErrorState message={error.message} onRetry={() => refetch()} />
+      </div>
+    );
   }
 
-  const filteredAlerts = alerts.filter((a) => {
-    if (filter === 'unread') return !a.acknowledged;
-    if (filter === 'acknowledged') return a.acknowledged;
+  const allAlerts = alerts ?? [];
+  const unreadCount = allAlerts.filter((a) => !a.is_read).length;
+
+  const filteredAlerts = allAlerts.filter((a) => {
+    if (filter === 'unread') return !a.is_read;
+    if (filter === 'read') return a.is_read;
     return true;
   });
 
@@ -48,44 +61,34 @@ export default function AlertsPage() {
         description="Budget thresholds, spend spikes, and key health notifications."
         actions={
           unreadCount > 0 ? (
-            <button
-              onClick={acknowledgeAll}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
-            >
-              <CheckCheck className="w-4 h-4" />
-              Mark all read
+            <button onClick={() => markAllReadMutation.mutate()}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors">
+              <CheckCheck className="w-4 h-4" /> Mark all read
             </button>
           ) : undefined
         }
       />
 
-      {/* Filter tabs */}
       <div className="flex gap-1 mb-6 p-1 bg-zinc-900/50 border border-zinc-800 rounded-lg w-fit">
-        {(['all', 'unread', 'acknowledged'] as const).map((tab) => {
-          const count = alerts.filter((a) => tab === 'all' ? true : tab === 'unread' ? !a.acknowledged : a.acknowledged).length;
+        {(['all', 'unread', 'read'] as const).map((tab) => {
+          const count = allAlerts.filter((a) => tab === 'all' ? true : tab === 'unread' ? !a.is_read : a.is_read).length;
           return (
-            <button
-              key={tab}
-              onClick={() => setFilter(tab)}
+            <button key={tab} onClick={() => setFilter(tab)}
               className={`px-4 py-1.5 text-xs font-medium rounded-md capitalize transition-all ${
-                filter === tab
-                  ? 'bg-zinc-800 text-white shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
+                filter === tab ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>
               {tab} ({count})
             </button>
           );
         })}
       </div>
 
-      {/* Alert List */}
       <div className="space-y-3">
         {filteredAlerts.length === 0 && (
-          <div className="text-center py-16 text-zinc-500">
-            <Bell className="w-10 h-10 mx-auto mb-3 text-zinc-700" />
-            <p className="text-sm">No alerts to show.</p>
-          </div>
+          <EmptyState
+            icon={<Bell className="w-10 h-10" />}
+            title="No alerts"
+            description={filter === 'all' ? 'No alerts yet. They will appear when budget thresholds are triggered.' : `No ${filter} alerts.`}
+          />
         )}
 
         {filteredAlerts.map((alert) => {
@@ -93,47 +96,27 @@ export default function AlertsPage() {
           const SevIcon = sev.icon;
 
           return (
-            <div
-              key={alert.id}
-              className={`glass-card p-5 border transition-all ${
-                !alert.acknowledged ? sev.border : 'border-zinc-800/50 opacity-60'
-              }`}
-            >
+            <div key={alert.id} className={`glass-card p-5 border transition-all ${!alert.is_read ? sev.border : 'border-zinc-800/50 opacity-60'}`}>
               <div className="flex items-start gap-4">
                 <div className={`flex items-center justify-center w-10 h-10 rounded-lg shrink-0 ${sev.bg}`}>
                   <SevIcon className={`w-5 h-5 ${sev.color}`} />
                 </div>
-
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className={`text-sm font-semibold ${!alert.acknowledged ? 'text-zinc-100' : 'text-zinc-400'}`}>
-                        {alert.title}
-                      </h3>
-                      <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
-                        {alert.message}
-                      </p>
+                      <h3 className={`text-sm font-semibold ${!alert.is_read ? 'text-zinc-100' : 'text-zinc-400'}`}>{alert.title}</h3>
+                      <p className="text-xs text-zinc-500 mt-1 leading-relaxed">{alert.message}</p>
                     </div>
-
-                    {!alert.acknowledged && (
-                      <button
-                        onClick={() => acknowledge(alert.id)}
-                        className="shrink-0 p-1.5 rounded-md text-zinc-500 hover:text-green-400 hover:bg-green-500/10 transition-colors"
-                        title="Acknowledge"
-                      >
+                    {!alert.is_read && (
+                      <button onClick={() => markReadMutation.mutate(alert.id)} className="shrink-0 p-1.5 rounded-md text-zinc-500 hover:text-green-400 hover:bg-green-500/10 transition-colors" title="Mark as read">
                         <Check className="w-4 h-4" />
                       </button>
                     )}
                   </div>
-
                   <div className="flex items-center gap-3 mt-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${sev.bg} ${sev.color}`}>
-                      {alert.severity}
-                    </span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${sev.bg} ${sev.color}`}>{alert.severity}</span>
                     <span className="text-xs text-zinc-600">{timeAgo(alert.created_at)}</span>
-                    {alert.scope_label && (
-                      <span className="text-xs text-zinc-600">· {alert.scope_label}</span>
-                    )}
+                    {alert.scope_name && <span className="text-xs text-zinc-600">· {alert.scope_name}</span>}
                   </div>
                 </div>
               </div>

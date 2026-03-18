@@ -21,7 +21,7 @@ export default function LandingPage() {
               Sign In
             </Link>
             <Link
-              href="/login?signup=true"
+              href="/signup"
               className="px-4 py-2 text-sm font-medium rounded-lg bg-white text-black hover:bg-zinc-200 transition-colors"
             >
               Start Free Trial
@@ -55,7 +55,7 @@ export default function LandingPage() {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/login?signup=true"
+                href="/signup"
                 className="w-full sm:w-auto px-8 py-4 rounded-xl bg-brand-600 text-white font-medium hover:bg-brand-700 transition-all flex items-center justify-center gap-2 group"
               >
                 Start your 7-day free trial

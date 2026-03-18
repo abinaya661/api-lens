@@ -1,89 +1,104 @@
 'use client';
 
-import { useState } from 'react';
-import { PageHeader } from '@/components/shared';
+import { useState, useEffect } from 'react';
+import { PageHeader, ErrorState, SkeletonCard } from '@/components/shared';
+import { useProfile, useUpdateProfile } from '@/hooks/use-profile';
 import { User, Settings2, CreditCard } from 'lucide-react';
 
 export default function SettingsPage() {
+  const { data: profile, isLoading, error, refetch } = useProfile();
+  const updateMutation = useUpdateProfile();
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'billing'>('profile');
+
+  const [fullName, setFullName] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [timezone, setTimezone] = useState('UTC');
+  const [currency, setCurrency] = useState<'USD' | 'EUR' | 'GBP'>('USD');
+
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || '');
+      setCompanyName(profile.company_name || '');
+      setTimezone(profile.timezone || 'UTC');
+      setCurrency((profile.currency as 'USD' | 'EUR' | 'GBP') || 'USD');
+    }
+  }, [profile]);
+
+  function handleSaveProfile() {
+    updateMutation.mutate({
+      full_name: fullName || undefined,
+      company_name: companyName || null,
+    });
+  }
+
+  function handleSavePreferences() {
+    updateMutation.mutate({ timezone, currency });
+  }
+
+  if (isLoading) {
+    return (
+      <div className="animate-fade-in space-y-6">
+        <PageHeader title="Settings" description="Manage your account, preferences, and billing information." />
+        <SkeletonCard />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="animate-fade-in space-y-6">
+        <PageHeader title="Settings" description="Manage your account, preferences, and billing information." />
+        <ErrorState message={error.message} onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in space-y-6">
-      <PageHeader
-        title="Settings"
-        description="Manage your account, preferences, and billing information."
-      />
+      <PageHeader title="Settings" description="Manage your account, preferences, and billing information." />
 
       <div className="flex flex-col md:flex-row gap-8">
-        {/* Sidebar Nav */}
         <div className="w-full md:w-64 shrink-0">
           <nav className="flex flex-col gap-1">
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'profile'
-                  ? 'bg-zinc-800 text-white'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-              }`}
-            >
-              <User className="w-4 h-4" />
-              Profile
-            </button>
-            <button
-              onClick={() => setActiveTab('preferences')}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'preferences'
-                  ? 'bg-zinc-800 text-white'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-              }`}
-            >
-              <Settings2 className="w-4 h-4" />
-              Preferences
-            </button>
-            <button
-              onClick={() => setActiveTab('billing')}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'billing'
-                  ? 'bg-zinc-800 text-white'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-              }`}
-            >
-              <CreditCard className="w-4 h-4" />
-              Billing & Plan
-            </button>
+            {([
+              { key: 'profile' as const, icon: User, label: 'Profile' },
+              { key: 'preferences' as const, icon: Settings2, label: 'Preferences' },
+              { key: 'billing' as const, icon: CreditCard, label: 'Billing & Plan' },
+            ]).map(({ key, icon: Icon, label }) => (
+              <button key={key} onClick={() => setActiveTab(key)}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === key ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}`}>
+                <Icon className="w-4 h-4" /> {label}
+              </button>
+            ))}
           </nav>
         </div>
 
-        {/* Content Area */}
         <div className="flex-1 max-w-3xl">
           {activeTab === 'profile' && (
             <div className="space-y-6 animate-fade-in">
               <div className="glass-card p-6 space-y-6">
                 <div>
                   <h3 className="text-lg font-medium text-white mb-1">Personal Information</h3>
-                  <p className="text-sm text-zinc-500">Update your photo and personal details here.</p>
+                  <p className="text-sm text-zinc-500">Update your personal details here.</p>
                 </div>
                 <hr className="border-zinc-800" />
-                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-400 mb-2">First Name</label>
-                    <input type="text" defaultValue="Demo" className="w-full px-4 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white focus:ring-2 focus:ring-brand-500/40" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-400 mb-2">Last Name</label>
-                    <input type="text" defaultValue="User" className="w-full px-4 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white focus:ring-2 focus:ring-brand-500/40" />
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-zinc-400 mb-2">Full Name</label>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white focus:ring-2 focus:ring-brand-500/40" />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-zinc-400 mb-2">Email Address</label>
-                    <input type="email" defaultValue="demo@example.com" disabled className="w-full px-4 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed" />
-                    <p className="text-xs text-zinc-500 mt-2">Email changes require re-verification.</p>
+                    <label className="block text-sm font-medium text-zinc-400 mb-2">Company Name</label>
+                    <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white focus:ring-2 focus:ring-brand-500/40" />
                   </div>
                 </div>
-
                 <div className="flex justify-end pt-4">
-                  <button className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition">
-                    Save Changes
+                  <button onClick={handleSaveProfile} disabled={updateMutation.isPending}
+                    className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition">
+                    {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </div>
@@ -98,41 +113,43 @@ export default function SettingsPage() {
                   <p className="text-sm text-zinc-500">Customize how API Lens looks and behaves.</p>
                 </div>
                 <hr className="border-zinc-800" />
-                
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-medium text-zinc-200">Theme</h4>
-                      <p className="text-xs text-zinc-500 mt-1">Select your preferred color scheme.</p>
-                    </div>
-                    <select className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-300">
-                      <option>Dark Mode (Default)</option>
-                      <option>Light Mode</option>
-                      <option>System Default</option>
-                    </select>
-                  </div>
-
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-medium text-zinc-200">Currency Display</h4>
                       <p className="text-xs text-zinc-500 mt-1">Base currency for dashboard displays.</p>
                     </div>
-                    <select className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-300">
-                      <option>USD ($)</option>
-                      <option>EUR (€)</option>
-                      <option>GBP (£)</option>
+                    <select value={currency} onChange={(e) => setCurrency(e.target.value as typeof currency)}
+                      className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-300">
+                      <option value="USD">USD ($)</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
                     </select>
                   </div>
-
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium text-zinc-200">Email Notifications</h4>
-                      <p className="text-xs text-zinc-500 mt-1">Receive daily digest of AI spend.</p>
+                      <h4 className="text-sm font-medium text-zinc-200">Timezone</h4>
+                      <p className="text-xs text-zinc-500 mt-1">Used for date groupings in reports.</p>
                     </div>
-                    <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-brand-600">
-                      <span className="translate-x-6 inline-block h-4 w-4 rounded-full bg-white transition" />
-                    </button>
+                    <select value={timezone} onChange={(e) => setTimezone(e.target.value)}
+                      className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-300">
+                      <option value="UTC">UTC</option>
+                      <option value="America/New_York">Eastern (US)</option>
+                      <option value="America/Chicago">Central (US)</option>
+                      <option value="America/Denver">Mountain (US)</option>
+                      <option value="America/Los_Angeles">Pacific (US)</option>
+                      <option value="Europe/London">London</option>
+                      <option value="Europe/Berlin">Berlin</option>
+                      <option value="Asia/Tokyo">Tokyo</option>
+                      <option value="Asia/Kolkata">India (IST)</option>
+                    </select>
                   </div>
+                </div>
+                <div className="flex justify-end pt-4">
+                  <button onClick={handleSavePreferences} disabled={updateMutation.isPending}
+                    className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition">
+                    {updateMutation.isPending ? 'Saving...' : 'Save Preferences'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -146,9 +163,9 @@ export default function SettingsPage() {
                 </div>
                 <h3 className="text-lg font-medium text-white mb-2">Billing & Subscription</h3>
                 <p className="text-sm text-zinc-500 max-w-md mx-auto mb-6">
-                  You are currently on the Free Trial. To upgrade your account and view billing history, you&apos;ll be redirected to our secure payment portal.
+                  You are currently on the Free Trial. Razorpay billing integration coming in Phase 4.
                 </p>
-                <button className="px-6 py-2.5 bg-white text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-200 transition">
+                <button className="px-6 py-2.5 bg-white text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-200 transition" disabled>
                   Manage Subscription
                 </button>
               </div>

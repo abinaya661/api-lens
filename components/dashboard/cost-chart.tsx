@@ -9,36 +9,27 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts';
-import { type DailySpend } from '@/lib/mock-data';
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from 'react';
 
-interface CostChartProps {
-  data: DailySpend[];
-  provider?: string | null; // null = all providers combined
+interface DailySpendItem {
+  date: string;
+  amount: number;
 }
 
-const PROVIDER_COLORS: Record<string, string> = {
-  openai: '#10a37f', // green
-  anthropic: '#d97757', // orange/coral
-  gemini: '#1a73e8', // blue
-  mistral: '#f54e42', // red
-  cohere: '#39594d', // dark green
-  bedrock: '#ff9900', // aws orange
-  azure_openai: '#0078d4', // ms blue
-};
+interface CostChartProps {
+  data: DailySpendItem[];
+}
 
-export function CostChart({ data, provider }: CostChartProps) {
-  // If no specific provider is selected, we map the 'total' field and use the brand blue color.
-  // Otherwise, we map the specific provider's field and use their brand color.
+export function CostChart({ data }: CostChartProps) {
   const chartData = useMemo(() => {
     return data.map((day) => ({
       date: day.date,
-      value: provider ? day[provider as keyof DailySpend] : day.total,
+      value: day.amount,
     }));
-  }, [data, provider]);
+  }, [data]);
 
-  const color = provider ? PROVIDER_COLORS[provider] || '#3b82f6' : '#3b82f6';
+  const color = '#3b82f6';
 
   return (
     <div className="glass-card p-6 h-[400px] flex flex-col group animate-fade-in">
