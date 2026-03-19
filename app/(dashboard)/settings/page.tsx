@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { PageHeader, ErrorState, SkeletonCard } from '@/components/shared';
 import { useProfile, useUpdateProfile } from '@/hooks/use-profile';
-import { User, Settings2, CreditCard } from 'lucide-react';
+import { User, Settings2, CreditCard, Bell, ArrowRight } from 'lucide-react';
 
 export default function SettingsPage() {
   const { data: profile, isLoading, error, refetch } = useProfile();
@@ -56,6 +57,37 @@ export default function SettingsPage() {
   return (
     <div className="animate-fade-in space-y-6">
       <PageHeader title="Settings" description="Manage your account, preferences, and billing information." />
+
+      {/* ── Quick-nav to sub-pages ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Link
+          href="/settings/billing"
+          className="glass-card p-5 flex items-center gap-4 hover:bg-zinc-800/60 transition-colors group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center shrink-0 border border-brand-500/20">
+            <CreditCard className="w-5 h-5 text-brand-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white">Billing &amp; Subscription</p>
+            <p className="text-xs text-zinc-500 mt-0.5">Plan status, cancellation, promo codes</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors shrink-0" />
+        </Link>
+
+        <Link
+          href="/settings/notifications"
+          className="glass-card p-5 flex items-center gap-4 hover:bg-zinc-800/60 transition-colors group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center shrink-0 border border-brand-500/20">
+            <Bell className="w-5 h-5 text-brand-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white">Notifications</p>
+            <p className="text-xs text-zinc-500 mt-0.5">Email alerts, reports, reminders</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors shrink-0" />
+        </Link>
+      </div>
 
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-64 shrink-0">

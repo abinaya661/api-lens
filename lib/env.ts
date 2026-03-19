@@ -5,7 +5,10 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  SUPABASE_VAULT_MASTER_KEY_ID: z.string().min(1),
+
+  // Encryption & Cron
+  ENCRYPTION_KEY: z.string().min(64),
+  CRON_SECRET: z.string().min(32),
 
   // Razorpay
   RAZORPAY_KEY_ID: z.string().min(1),
@@ -18,25 +21,12 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().min(1),
   RESEND_FROM_EMAIL: z.string().email(),
 
-  // Trigger.dev
-  TRIGGER_API_KEY: z.string().min(1),
-  TRIGGER_API_URL: z.string().url(),
+  // Upstash Redis (optional)
+  UPSTASH_REDIS_REST_URL: z.string().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
 
-  // Sentry
-  NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
-  SENTRY_AUTH_TOKEN: z.string().optional(),
-
-  // PostHog
-  NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
-  NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
-
-  // Upstash Redis
-  UPSTASH_REDIS_REST_URL: z.string().url(),
-  UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
-
-  // App
-  NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
-  CRON_SECRET: z.string().min(1),
+  // Public
+  NEXT_PUBLIC_RAZORPAY_KEY_ID: z.string().min(1),
 });
 
 export type Env = z.infer<typeof envSchema>;

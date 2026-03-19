@@ -3,14 +3,14 @@
 // ============================================
 
 export function getMonthlyPlanId(): string {
-  const planId = process.env.RAZORPAY_PLAN_MONTHLY;
-  if (!planId) throw new Error('RAZORPAY_PLAN_MONTHLY not configured');
+  const planId = process.env.RAZORPAY_PLAN_MONTHLY_ID;
+  if (!planId) throw new Error('RAZORPAY_PLAN_MONTHLY_ID not configured');
   return planId;
 }
 
 export function getAnnualPlanId(): string {
-  const planId = process.env.RAZORPAY_PLAN_ANNUAL;
-  if (!planId) throw new Error('RAZORPAY_PLAN_ANNUAL not configured');
+  const planId = process.env.RAZORPAY_PLAN_ANNUAL_ID;
+  if (!planId) throw new Error('RAZORPAY_PLAN_ANNUAL_ID not configured');
   return planId;
 }
 
