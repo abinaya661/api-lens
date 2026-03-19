@@ -12,7 +12,8 @@
       "Bash(rm -rf lib/razorpay/)",
       "Bash(rm -f app/api/webhooks/razorpay/route.ts)",
       "Bash(pnpm build:*)",
-      "Bash(pnpm test:*)"
+      "Bash(pnpm test:*)",
+      "Bash(vercel whoami:*)"
     ]
   }
 }

@@ -5,6 +5,11 @@
 import type { Provider, ProviderSyncResult } from '@/types';
 import { validateOpenAIKey, fetchOpenAIUsage } from './openai';
 import { validateAnthropicKey, fetchAnthropicUsage } from './anthropic';
+import { validateMistralKey, fetchMistralUsage } from './mistral';
+import { validateCohereKey, fetchCohereUsage } from './cohere';
+import { validateAzureOpenAI, fetchAzureOpenAIUsage } from './azure_openai';
+import { validateGemini, fetchGeminiUsage } from './gemini';
+import { validateBedrock, fetchBedrockUsage } from './bedrock';
 
 export interface ProviderModule {
   validate: (credentials: Record<string, string>) => Promise<{ valid: boolean; error?: string }>;
@@ -20,8 +25,26 @@ const providers: Partial<Record<Provider, ProviderModule>> = {
     validate: (creds) => validateAnthropicKey(creds.api_key ?? ''),
     fetchUsage: (creds, keyId, since) => fetchAnthropicUsage(creds.api_key ?? '', keyId, since),
   },
-  // TODO: Add remaining providers (gemini, bedrock, mistral, cohere, azure_openai)
-  // Each follows the same pattern: validate() + fetchUsage()
+  mistral: {
+    validate: (creds) => validateMistralKey(creds.api_key ?? ''),
+    fetchUsage: (creds, keyId, since) => fetchMistralUsage(creds.api_key ?? '', keyId, since),
+  },
+  cohere: {
+    validate: (creds) => validateCohereKey(creds.api_key ?? ''),
+    fetchUsage: (creds, keyId, since) => fetchCohereUsage(creds.api_key ?? '', keyId, since),
+  },
+  azure_openai: {
+    validate: (creds) => validateAzureOpenAI(creds.api_key ?? '', creds.endpoint ?? '', creds.subscription_id ?? ''),
+    fetchUsage: (creds, keyId, since) => fetchAzureOpenAIUsage(creds.api_key ?? '', creds.endpoint ?? '', creds.subscription_id ?? '', keyId, since),
+  },
+  gemini: {
+    validate: (creds) => validateGemini(creds.service_account_json ?? '', creds.project_id ?? ''),
+    fetchUsage: (creds, keyId, since) => fetchGeminiUsage(creds.service_account_json ?? '', creds.project_id ?? '', keyId, since),
+  },
+  bedrock: {
+    validate: (creds) => validateBedrock(creds.aws_access_key_id ?? '', creds.aws_secret_access_key ?? '', creds.aws_region ?? ''),
+    fetchUsage: (creds, keyId, since) => fetchBedrockUsage(creds.aws_access_key_id ?? '', creds.aws_secret_access_key ?? '', creds.aws_region ?? '', keyId, since),
+  },
 };
 
 /**

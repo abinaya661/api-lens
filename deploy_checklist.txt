@@ -1,0 +1,438 @@
+
+API LENS
+Pre-Deployment Readiness Report v2
+Dodo Payments (MoR) • Deploy Checklist • Platform Recommendation
+March 19, 2026
+STATUS: NOT READY FOR PRODUCTION
+Overall Completion: ~50% | Payment Provider: Dodo Payments (Merchant of Record)
+
+1. Executive Summary
+The API Lens codebase has a solid UI shell across 8 dashboard pages, working Supabase Auth, security headers, Sentry instrumentation, and a CI pipeline. Server actions, TanStack Query hooks, and Resend email integration have been added.
+Several critical systems remain incomplete: the Trigger.dev sync pipeline is stub code, rate limiting is defined but not enforced, RLS policies are overly permissive, 5 provider adapters are missing, and the payment system needs to be rewired from Razorpay to Dodo Payments.
+Payment provider has been changed from Razorpay to Dodo Payments, which acts as a Merchant of Record. This eliminates the need for a multi-provider setup (Razorpay + Paddle) and handles global tax compliance (VAT, GST, sales tax) across 190+ countries automatically. Dodo also provides native discount/promo code management via API and dashboard.
+Component
+Status
+Details
+Backend Server Actions
+DONE
+All 7 action files with Zod validation
+Backend API Routes
+PARTIAL
+Cron routes exist; webhook route needs rewrite for Dodo
+Frontend Hooks & Providers
+DONE
+TanStack Query hooks, PostHog, QueryClient all mounted
+Frontend Pages
+PARTIAL
+5 of 8 main pages done; missing detail pages and marketing pages
+UI Components (shadcn)
+DONE
+12 components installed and functional
+Encryption (AES-256-GCM)
+DONE
+Envelope encryption with key derivation
+RLS Policies
+BLOCKER
+4 policies use 'with check (true)' — any user can insert fake data
+Rate Limiting
+NOT STARTED
+checkRateLimit() defined but never called
+Trigger.dev Sync Engine
+BLOCKER
+Entire pipeline is TODO stubs
+Provider Adapters
+PARTIAL
+2 of 7 (OpenAI, Anthropic). 5 missing.
+Dodo Payments
+NOT STARTED
+Razorpay SDK present but needs full replacement with Dodo
+Discount / Promo Codes
+NOT STARTED
+Will use Dodo native discount API (no custom DB needed)
+Resend Email
+DONE
+Client + templates implemented
+CI/CD Pipeline
+DONE
+GitHub Actions: lint → type-check → build → test
+handle_new_user() Trigger
+NOT STARTED
+Signup creates no company row
+Environment Config
+DONE
+.env.example complete, env.ts validates with Zod
+
+2. Critical Blockers — Must Fix Before Deploy
+ID
+Issue
+Impact
+Est. Effort
+BLOCKER-1
+Trigger.dev Sync Pipeline
+trigger/sync.ts is entirely TODO. Dashboard never auto-updates. Core value proposition broken.
+5–7 days
+BLOCKER-2
+handle_new_user() Trigger
+No company row on signup. RLS returns empty for new users. App appears blank.
+2–4 hours
+BLOCKER-3
+RLS Policy Fixes
+4 policies use 'with check (true)'. User A can insert/read User B data.
+4–6 hours
+BLOCKER-4
+Rate Limiting
+checkRateLimit() defined but never called. Zero brute-force protection.
+2–3 hours
+BLOCKER-5
+Missing Providers
+Only OpenAI and Anthropic. Gemini, Bedrock, Mistral, Cohere, Azure missing.
+3–5 days
+BLOCKER-6
+Payment Provider Swap
+Remove Razorpay entirely. Install and integrate Dodo Payments SDK, webhook, checkout.
+1–2 days
+
+3. Full Deploy Checklist
+3.1 Pre-Deploy: Code Completeness
+
+Item
+Status
+✅
+Server actions (keys, projects, budgets, alerts, dashboard, settings, subscription)
+DONE
+✅
+TanStack Query hooks wired to all server actions
+DONE
+✅
+QueryClientProvider + PostHogProvider mounted
+DONE
+✅
+shadcn/ui components installed (12 components)
+DONE
+✅
+Mock data files removed from codebase
+DONE
+❌
+Trigger.dev sync pipeline (hourly sync, manual sync, daily tasks)
+NOT STARTED
+❌
+handle_new_user() trigger in Supabase migrations
+NOT STARTED
+❌
+5 missing provider adapters (Gemini, Bedrock, Mistral, Cohere, Azure)
+NOT STARTED
+❌
+Rate limiting enforced on login + key creation + API routes
+NOT STARTED
+❌
+Dodo Payments: SDK installed, checkout session, webhook handler
+NOT STARTED
+❌
+Dodo Payments: Discount/promo code admin API
+NOT STARTED
+❌
+Missing pages: /keys/[id], /projects/[id], /reset-password, /pricing, /security
+NOT STARTED
+❌
+Remove Razorpay SDK and all Razorpay-related code
+NOT STARTED
+⚠️
+RLS policies audited and fixed
+PARTIAL
+3.2 Pre-Deploy: Security Audit
+
+Security Item
+Status
+✅
+AES-256-GCM envelope encryption for API keys
+DONE
+✅
+CRON_SECRET verification on cron routes (min 32 chars)
+DONE
+✅
+Security headers: HSTS, X-Frame-Options, CSP, Referrer-Policy
+DONE
+✅
+env.ts throws on validation failure in production
+DONE
+❌
+RLS: Replace 'with check (true)' with company_id ownership
+BLOCKER
+❌
+Rate limiting active on login, key creation, public routes
+NOT STARTED
+❌
+Dodo webhook signature verification (Standard Webhooks spec)
+NOT STARTED
+❌
+Verify no plaintext API keys in any response, log, or Sentry
+NOT STARTED
+❌
+2-user RLS test on every table
+NOT STARTED
+❌
+Brute-force protection: exponential delay after 5 failed logins
+NOT STARTED
+3.3 Pre-Deploy: Environment & Infrastructure
+
+Infrastructure Item
+Status
+✅
+Vercel project configured (preview + production)
+DONE
+✅
+.env.example complete with all required variables
+DONE
+✅
+CI pipeline: lint → type-check → build → tests
+DONE
+✅
+Sentry + PostHog SDKs installed and configured
+DONE
+✅
+vercel.json cron schedule configured
+DONE
+❌
+Dodo Payments account created + KYC completed
+NOT STARTED
+❌
+Dodo subscription products created (monthly + annual)
+NOT STARTED
+❌
+Production Supabase project (separate from dev)
+NOT STARTED
+❌
+Resend production domain verified
+NOT STARTED
+❌
+Trigger.dev deployed to production environment
+NOT STARTED
+❌
+All env vars set in Vercel production (Dodo keys, not Razorpay)
+NOT STARTED
+❌
+DNS + SSL verified for production domain
+NOT STARTED
+❌
+model_pricing table seeded with current prices
+NOT STARTED
+❌
+BetterStack uptime monitoring configured
+NOT STARTED
+3.4 Deploy Steps (Once Blockers Resolved)
+#
+Deploy Step
+1
+Run pnpm build locally — must pass with zero errors
+2
+Run test suite: pnpm test (unit) + pnpm test:e2e (Playwright)
+3
+Verify Razorpay fully removed: grep -r 'razorpay' returns zero matches
+4
+Deploy to Vercel staging and verify all routes render
+5
+Run smoke tests: signup → add key → Dodo checkout → discount code → alert
+6
+Verify Supabase prod schema matches dev (supabase db push)
+7
+Switch Dodo to live mode (update API key + webhook secret in Vercel)
+8
+Deploy to production (vercel --prod)
+9
+Monitor Sentry error rates for 30 minutes
+10
+Verify Dodo webhook processes: subscription.active, payment.completed, canceled
+11
+Confirm emails deliver via Resend
+3.5 Post-Deploy Verification
+#
+Post-Deploy Check
+1
+Sentry: zero new errors after 30 minutes
+2
+PostHog: signup, key_added, project_created events tracking
+3
+Trigger.dev: hourly sync cron fires successfully
+4
+Dodo: test subscription (trial → paid) in live mode
+5
+Dodo: discount code creation + deletion works via admin API
+6
+Resend: transactional emails delivered (check Resend dashboard)
+7
+BetterStack: all uptime monitors green
+8
+Monitor first 24 hours: error rates, signup funnel, sync success rate
+3.6 Rollback Triggers
+Rollback immediately if: Sentry error rate > 5%, sync fails for > 50% of keys, plaintext API key found, Dodo webhook not processing, or P95 response time > 3 seconds.
+Rollback command: Vercel Dashboard → Deployments → previous deployment → Promote to Production
+
+4. Payment Provider: Razorpay → Dodo Payments
+Dodo Payments replaces Razorpay as the sole payment provider. As a Merchant of Record, Dodo is the legal seller for all transactions. This means Dodo handles VAT, GST, and sales tax in 190+ countries automatically — API Lens does not need to register for tax in any jurisdiction.
+Factor
+Razorpay (old)
+Dodo Payments (new)
+Role
+Payment gateway only
+Merchant of Record (legal seller)
+India support
+Excellent (UPI, cards, wallets)
+Good (INR payments supported)
+International
+Limited (India focus)
+190+ countries, auto-currency
+Tax compliance
+You handle Indian GST
+Dodo handles all taxes globally
+Promo codes
+Coupons only (no trial extensions)
+Full discount API: %, fixed, cycle limits
+Pricing
+2% + tax (India)
+4% + 15¢ (subscriptions) / 4% + ₹4 (India)
+Webhook format
+Custom HMAC-SHA256
+Standard Webhooks spec
+Next.js SDK
+Basic
+Official SDK + Supabase starter kit
+Integration effort
+N/A (already partial)
+1–2 days (remove Razorpay + add Dodo)
+4.1 Migration Steps
+#
+Migration Step
+1
+pnpm remove razorpay
+2
+pnpm add dodopayments standardwebhooks
+3
+Delete lib/razorpay/ directory entirely
+4
+Delete app/api/webhooks/razorpay/route.ts
+5
+Create lib/dodo/client.ts (Dodo SDK init)
+6
+Rewrite app/api/subscription/create/route.ts (Dodo checkout session)
+7
+Create app/api/webhooks/dodo/route.ts (Standard Webhooks verification)
+8
+Create app/api/admin/discounts/route.ts (promo code CRUD)
+9
+Update lib/actions/subscription.ts (cancel via Dodo API)
+10
+Add Dodo migration: ALTER subscriptions table (add dodo_subscription_id, remove razorpay columns)
+11
+Remove all RAZORPAY_* env vars from Vercel
+12
+Add DODO_* env vars to Vercel
+13
+grep -r 'razorpay' — verify zero matches in entire codebase
+
+5. Remaining Backlog
+Priority
+Item
+Owner
+Effort
+Phase
+HIGH
+Missing pages: /keys/[id], /projects/[id]
+FE
+2–3 days
+Pre-launch
+HIGH
+Missing pages: /reset-password, /pricing, /security
+FE
+1–2 days
+Pre-launch
+HIGH
+Project comparison view (2–3 side by side)
+FE
+1 day
+Pre-launch
+HIGH
+Settings split into sub-routes
+FE
+1 day
+Pre-launch
+MEDIUM
+Cost estimator save-and-compare
+FE
+1 day
+Pre-launch
+MEDIUM
+Onboarding wizard refinement
+FE
+0.5 days
+Pre-launch
+MEDIUM
+Demo mode with realistic fake data
+FE + BE
+1 day
+Pre-launch
+MEDIUM
+Monthly report generation + PDF export
+BE
+2 days
+Pre-launch
+MEDIUM
+Key rotation + waste detection tasks
+BE
+1 day
+Pre-launch
+LOW
+Remove framer-motion (~150KB savings)
+FE
+0.5 hours
+Pre-launch
+LOW
+Accessibility audit + colourblind-safe charts
+FE
+1.5 days
+Pre-launch
+LOW
+E2E test suite (Playwright)
+QA
+2–3 days
+Pre-launch
+
+6. Deployment Platform Recommendation
+Given API Lens is a Next.js 15 app with Supabase, Trigger.dev, and Dodo Payments (MoR), targeting 10K–100K users:
+Phase 1 (MVP Launch, 0–10K users): Vercel
+Zero-config Next.js deployment, global CDN, built-in cron support, and the fastest path to production. At 10K users, costs stay at $60–150/month on Pro plan ($20/seat/month). Dodo Payments is provider-agnostic and works from any hosting platform.
+Phase 2 (Growth, 10K–100K users): Vercel + Railway Hybrid
+Keep Next.js frontend on Vercel. Move Trigger.dev background processing (sync pipeline, heavy provider API calls) to Railway for predictable container-based pricing. Total: $200–600/month for 100K users.
+Why Dodo simplifies hosting decisions:
+Unlike the old Razorpay + Paddle split which required location detection and routing, Dodo is a single provider that works everywhere. No Vercel geolocation headers needed, no multi-webhook complexity. One integration works for India and international users identically.
+
+7. Recommended Path to Launch
+Timeline
+Task
+Owner
+Day 1–2
+BLOCKER-2 + BLOCKER-3 + BLOCKER-6: handle_new_user trigger + RLS fixes + Remove Razorpay, install Dodo
+BE + Security
+Day 1–2
+BLOCKER-4: Wire checkRateLimit() into login, key creation, public routes
+Security
+Day 3–9
+BLOCKER-1: Full Trigger.dev sync pipeline (hourly, manual, daily, alerts)
+BE + Security
+Day 3–7
+BLOCKER-5: Build 5 remaining provider adapters
+BE
+Day 7
+Dodo checkout, webhook, discount API, pricing page
+All
+Day 8–9
+Missing pages + security audit + accessibility
+FE + Security
+Day 10
+Full flow test + production env setup
+All
+Days 11–12
+Production deploy + 24-hour monitoring
+All
+
+Estimated time to production-ready: 12 working days.
+The Dodo Payments swap (BLOCKER-6) is 1–2 days of work. Since Dodo has an official Next.js + Supabase starter kit, much of the integration pattern is already documented. The sync engine (BLOCKER-1) remains the longest pole at 5–7 days.
