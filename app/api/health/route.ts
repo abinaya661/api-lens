@@ -35,23 +35,23 @@ export async function GET() {
 
   checks.env_required = missingRequired.length === 0
     ? { status: 'ok' }
-    : { status: 'error', message: `Missing: ${missingRequired.join(', ')}` };
+    : { status: 'error', message: `Missing ${missingRequired.length} required configuration(s)` };
 
   checks.env_optional = missingOptional.length === 0
     ? { status: 'ok' }
-    : { status: 'ok', message: `Not configured: ${missingOptional.join(', ')}` };
+    : { status: 'ok', message: `${missingOptional.length} optional service(s) not configured` };
 
   // Check encryption key format
   const encKey = process.env.ENCRYPTION_KEY;
   checks.encryption = encKey && encKey.length === 64
     ? { status: 'ok' }
-    : { status: 'error', message: 'ENCRYPTION_KEY must be 64 hex characters' };
+    : { status: 'error', message: 'Invalid encryption configuration' };
 
   // Check cron secret
   const cronSecret = process.env.CRON_SECRET;
   checks.cron_secret = cronSecret && cronSecret.length >= 32
     ? { status: 'ok' }
-    : { status: 'error', message: 'CRON_SECRET must be at least 32 characters' };
+    : { status: 'error', message: 'Invalid cron configuration' };
 
   const allOk = Object.values(checks).every((c) => c.status === 'ok');
 

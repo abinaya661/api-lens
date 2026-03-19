@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { signupWithEmail } from '@/lib/actions/auth';
 import { toast } from 'sonner';
 
 export default function SignupPage() {
@@ -18,25 +19,15 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: {
-            company_name: companyName,
-          },
-        },
-      });
+      const result = await signupWithEmail(companyName, email, password);
 
-      if (error) {
-        toast.error(error.message);
+      if (result.error) {
+        toast.error(result.error);
         return;
       }
 
       toast.success('Check your email to verify your account!');
-      router.push('/login');
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch {
       toast.error('An unexpected error occurred. Please try again.');
     } finally {
