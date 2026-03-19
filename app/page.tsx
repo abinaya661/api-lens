@@ -152,8 +152,8 @@ export default function LandingPage() {
             <span className="text-zinc-600 text-sm ml-4">© 2026. All rights reserved.</span>
           </div>
           <div className="flex gap-6 text-sm text-zinc-500">
-            <Link href="#" className="hover:text-white transition">Privacy</Link>
-            <Link href="#" className="hover:text-white transition">Terms</Link>
+            <Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-white transition">Terms of Service</Link>
             <Link href="https://github.com/abinaya661/api-lens" className="hover:text-white transition">GitHub</Link>
           </div>
         </div>
