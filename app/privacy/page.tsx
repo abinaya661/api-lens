@@ -98,7 +98,7 @@ export default function PrivacyPage() {
               <ul className="space-y-2 text-zinc-400">
                 <li className="flex gap-3">
                   <span className="text-green-500 mt-1 shrink-0">&bull;</span>
-                  <span>We do <span className="text-zinc-200 font-medium">not</span> collect payment card data — payments are handled entirely by Razorpay on their secure infrastructure.</span>
+                  <span>We do <span className="text-zinc-200 font-medium">not</span> collect payment card data — payments are handled entirely by Dodo Payments on their secure infrastructure.</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="text-green-500 mt-1 shrink-0">&bull;</span>
@@ -131,7 +131,7 @@ export default function PrivacyPage() {
                 </li>
                 <li className="flex gap-3">
                   <span className="text-brand-500 mt-1 shrink-0">&bull;</span>
-                  <span>To process subscription payments via Razorpay.</span>
+                  <span>To process subscription payments via Dodo Payments.</span>
                 </li>
               </ul>
             </section>
@@ -227,7 +227,7 @@ export default function PrivacyPage() {
                     note: 'EU / US data centers. Your data is stored in the region you select at sign-up.',
                   },
                   {
-                    name: 'Razorpay',
+                    name: 'Dodo Payments',
                     role: 'Payment processing',
                     note: 'India-based payment gateway. Payment card data never touches our servers.',
                   },

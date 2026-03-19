@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { addKeySchema, updateKeySchema, type AddKeyInput, type UpdateKeyInput } from '@/lib/validations/key';
 import { encryptCredentials } from '@/lib/encryption';
+import { checkRateLimit, apiRateLimit } from '@/lib/ratelimit';
 import type { ApiKey } from '@/types/database';
 
 interface ActionResult<T = unknown> {
@@ -58,15 +59,10 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: 'Not authenticated' };
 
-    // Simple rate limit: max 20 keys per hour per user
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-    const { count } = await supabase
-      .from('api_keys')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('created_at', oneHourAgo)
-    if ((count ?? 0) >= 20) {
-      return { data: null, error: 'Rate limit: max 20 keys per hour' }
+    // Redis rate limit: 10 key creations per minute per user
+    const rl = await checkRateLimit(apiRateLimit, `add_key:${user.id}`);
+    if (!rl.success) {
+      return { data: null, error: 'Too many requests. Please wait a minute.' };
     }
 
     const { api_key, provider, nickname, project_id, endpoint_url, notes } = parsed.data;

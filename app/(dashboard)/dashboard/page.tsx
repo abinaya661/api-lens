@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { PageHeader } from '@/components/shared';
 import { DashboardSkeleton, EmptyState, ErrorState } from '@/components/shared';
 import {
@@ -33,12 +34,12 @@ export default function DashboardPage() {
           title="No API keys yet"
           description="Add your first API key to start tracking costs across all your AI providers."
           action={
-            <a
+            <Link
               href="/keys"
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-brand-600 text-white hover:bg-brand-700 transition-colors"
             >
               Add API Key
-            </a>
+            </Link>
           }
         />
       </div>

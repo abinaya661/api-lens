@@ -25,9 +25,8 @@ export async function GET() {
   ];
 
   const optionalEnvVars = [
-    'RAZORPAY_KEY_ID',
-    'RAZORPAY_KEY_SECRET',
-    'RAZORPAY_WEBHOOK_SECRET',
+    'DODO_PAYMENTS_API_KEY',
+    'DODO_WEBHOOK_SECRET',
     'RESEND_API_KEY',
   ];
 

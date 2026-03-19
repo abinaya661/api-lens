@@ -195,7 +195,7 @@ export default function SettingsPage() {
                 </div>
                 <h3 className="text-lg font-medium text-white mb-2">Billing & Subscription</h3>
                 <p className="text-sm text-zinc-500 max-w-md mx-auto mb-6">
-                  You are currently on the Free Trial. Razorpay billing integration coming in Phase 4.
+                  You are currently on the Free Trial. Upgrade to unlock all features.
                 </p>
                 <button className="px-6 py-2.5 bg-white text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-200 transition" disabled>
                   Manage Subscription

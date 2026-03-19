@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { PageHeader, SkeletonCard, ErrorState } from '@/components/shared';
-import { useSubscription, useCreateSubscription, useCancelSubscription } from '@/hooks/use-subscription';
+import { useSubscription, useCancelSubscription } from '@/hooks/use-subscription';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Card,
   CardHeader,
@@ -16,17 +17,11 @@ import {
 import { Check, Crown, Zap, Shield, BarChart3, Clock, Headphones, Loader2 } from 'lucide-react';
 import type { Subscription } from '@/types/database';
 
-declare global {
-  interface Window {
-    Razorpay: new (options: Record<string, unknown>) => { open: () => void };
-  }
-}
-
 const PLANS = [
   {
     id: 'monthly' as const,
     name: 'Monthly',
-    price: '$4.99',
+    price: '$5.99',
     period: '/month',
     description: 'Flexible month-to-month billing',
     badge: null,
@@ -35,9 +30,9 @@ const PLANS = [
   {
     id: 'annual' as const,
     name: 'Annual',
-    price: '$49.99',
+    price: '$59.99',
     period: '/year',
-    description: 'Best value — save ~17%',
+    description: 'Best value — 2 months free',
     badge: 'Recommended',
     highlighted: true,
   },
@@ -52,25 +47,11 @@ const FEATURES = [
   { icon: Headphones, text: 'Email support' },
 ];
 
-function loadRazorpayScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (typeof window !== 'undefined' && window.Razorpay) {
-      resolve();
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load Razorpay checkout'));
-    document.head.appendChild(script);
-  });
-}
-
 function getPlanLabel(plan: string | undefined | null): string {
   switch (plan) {
     case 'monthly': return 'Monthly Plan';
     case 'annual': return 'Annual Plan';
-    case 'trial': return 'Free Trial';
+    case 'trialing': return 'Free Trial';
     default: return 'Free Trial';
   }
 }
@@ -94,15 +75,13 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
-// ----- Current Plan Card -----
-
 function CurrentPlanCard({ subscription }: { subscription: Subscription | null | undefined }) {
   const cancelMutation = useCancelSubscription();
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  const plan = subscription?.plan ?? 'trial';
+  const plan = subscription?.plan ?? 'trialing';
   const isActive = plan === 'monthly' || plan === 'annual';
-  const isCancelling = subscription?.cancel_at_period_end === true;
+  const isCancelled = subscription?.status === 'cancelled';
 
   return (
     <div className="glass-card p-6 space-y-4">
@@ -127,15 +106,15 @@ function CurrentPlanCard({ subscription }: { subscription: Subscription | null |
               <p className="text-zinc-200 font-medium mt-0.5 capitalize">{plan}</p>
             </div>
             <div>
-              <span className="text-zinc-500">Current period ends</span>
+              <span className="text-zinc-500">Period ends</span>
               <p className="text-zinc-200 font-medium mt-0.5">
-                {formatDate(subscription?.current_period_end ?? null)}
+                {formatDate(subscription?.period_end ?? null)}
               </p>
             </div>
             <div>
               <span className="text-zinc-500">Status</span>
               <p className="mt-0.5">
-                {isCancelling ? (
+                {isCancelled ? (
                   <Badge variant="destructive">Cancels at period end</Badge>
                 ) : (
                   <Badge variant="default">Active</Badge>
@@ -144,7 +123,7 @@ function CurrentPlanCard({ subscription }: { subscription: Subscription | null |
             </div>
           </div>
 
-          {!isCancelling && (
+          {!isCancelled && (
             <div className="flex justify-end pt-2">
               {!showCancelConfirm ? (
                 <Button
@@ -158,11 +137,7 @@ function CurrentPlanCard({ subscription }: { subscription: Subscription | null |
               ) : (
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-zinc-400">Are you sure?</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowCancelConfirm(false)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setShowCancelConfirm(false)}>
                     Keep Plan
                   </Button>
                   <Button
@@ -176,10 +151,7 @@ function CurrentPlanCard({ subscription }: { subscription: Subscription | null |
                     }}
                   >
                     {cancelMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        Cancelling...
-                      </>
+                      <><Loader2 className="w-3 h-3 animate-spin" /> Cancelling...</>
                     ) : (
                       'Yes, Cancel'
                     )}
@@ -191,7 +163,7 @@ function CurrentPlanCard({ subscription }: { subscription: Subscription | null |
         </>
       )}
 
-      {plan === 'trial' && subscription?.trial_ends_at && (
+      {!isActive && subscription?.trial_ends_at && (
         <>
           <hr className="border-zinc-800" />
           <p className="text-sm text-zinc-400">
@@ -205,8 +177,6 @@ function CurrentPlanCard({ subscription }: { subscription: Subscription | null |
     </div>
   );
 }
-
-// ----- Pricing Card -----
 
 function PricingCard({
   plan,
@@ -263,29 +233,20 @@ function PricingCard({
 
       <CardFooter className="pt-4">
         {isCurrentPlan ? (
-          <Button
-            variant="outline"
-            className="w-full"
-            disabled
-          >
+          <Button variant="outline" className="w-full" disabled>
             Current Plan
           </Button>
         ) : (
           <Button
             className={`w-full ${
-              plan.highlighted
-                ? 'bg-brand-600 hover:bg-brand-700 text-white'
-                : ''
+              plan.highlighted ? 'bg-brand-600 hover:bg-brand-700 text-white' : ''
             }`}
             variant={plan.highlighted ? 'default' : 'outline'}
             disabled={isLoading}
             onClick={() => onSubscribe(plan.id)}
           >
             {isThisLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Processing...
-              </>
+              <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting to checkout...</>
             ) : (
               'Subscribe'
             )}
@@ -296,73 +257,41 @@ function PricingCard({
   );
 }
 
-// ----- Main Page -----
-
 export default function SubscriptionPage() {
   const { data: subscription, isLoading, error, refetch } = useSubscription();
-  const createSubscription = useCreateSubscription();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<'monthly' | 'annual' | null>(null);
+  const [promoCode, setPromoCode] = useState('');
 
-  const handleSubscribe = useCallback(async (plan: 'monthly' | 'annual') => {
+  async function handleSubscribe(plan: 'monthly' | 'annual') {
     setCheckoutLoading(true);
     setLoadingPlan(plan);
 
     try {
-      // Load Razorpay script
-      await loadRazorpayScript();
-
-      // Create subscription via API
-      const response = await fetch('/api/subscription/create', {
+      const res = await fetch('/api/subscription/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, discountCode: promoCode || undefined }),
       });
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Failed to create subscription');
+      if (!res.ok) {
+        const err = await res.json() as { error?: string };
+        throw new Error(err.error ?? 'Failed to create checkout session');
       }
 
-      const { subscription_id } = await response.json();
-
-      // Open Razorpay checkout
-      const razorpay = new window.Razorpay({
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        subscription_id,
-        name: 'API Lens',
-        description: `${plan === 'annual' ? 'Annual' : 'Monthly'} Subscription`,
-        theme: { color: '#6366f1' },
-        handler: (response: Record<string, string>) => {
-          createSubscription.mutate({
-            razorpaySubscriptionId: response.razorpay_subscription_id ?? '',
-            razorpayCustomerId: response.razorpay_customer_id ?? '',
-            plan,
-          });
-        },
-        modal: {
-          ondismiss: () => {
-            setCheckoutLoading(false);
-            setLoadingPlan(null);
-          },
-        },
-      });
-
-      razorpay.open();
+      const { checkout_url } = await res.json() as { checkout_url: string };
+      window.location.href = checkout_url;
     } catch (err) {
       console.error('Checkout error:', err);
       setCheckoutLoading(false);
       setLoadingPlan(null);
     }
-  }, [createSubscription]);
+  }
 
   if (isLoading) {
     return (
       <div className="animate-fade-in space-y-6">
-        <PageHeader
-          title="Subscription"
-          description="Manage your plan and billing."
-        />
+        <PageHeader title="Subscription" description="Manage your plan and billing." />
         <SkeletonCard />
       </div>
     );
@@ -371,16 +300,13 @@ export default function SubscriptionPage() {
   if (error) {
     return (
       <div className="animate-fade-in space-y-6">
-        <PageHeader
-          title="Subscription"
-          description="Manage your plan and billing."
-        />
+        <PageHeader title="Subscription" description="Manage your plan and billing." />
         <ErrorState message={error.message} onRetry={() => refetch()} />
       </div>
     );
   }
 
-  const currentPlan = subscription?.plan ?? 'trial';
+  const currentPlan = subscription?.plan ?? 'trialing';
 
   return (
     <div className="animate-fade-in space-y-8">
@@ -389,17 +315,25 @@ export default function SubscriptionPage() {
         description="Manage your plan and billing. Choose the plan that works best for you."
       />
 
-      {/* Current Plan Status */}
       <CurrentPlanCard subscription={subscription} />
 
-      {/* Pricing Cards */}
       <div>
         <h3 className="text-lg font-medium text-white mb-1">
-          {currentPlan === 'trial' ? 'Choose a Plan' : 'Change Plan'}
+          {currentPlan === 'trialing' ? 'Choose a Plan' : 'Change Plan'}
         </h3>
-        <p className="text-sm text-zinc-500 mb-6">
-          All plans include every feature. No hidden fees.
+        <p className="text-sm text-zinc-500 mb-4">
+          All plans include every feature. No hidden fees. Global checkout powered by Dodo Payments.
         </p>
+
+        {/* Promo code input */}
+        <div className="flex gap-2 max-w-sm mb-6">
+          <Input
+            placeholder="Promo code (optional)"
+            value={promoCode}
+            onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+            className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+          />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
           {PLANS.map((plan) => (
@@ -413,9 +347,11 @@ export default function SubscriptionPage() {
             />
           ))}
         </div>
+        <p className="text-xs text-zinc-500 mt-3">
+          You can also enter a promo code directly on the checkout page.
+        </p>
       </div>
 
-      {/* Features breakdown */}
       <div className="glass-card p-6">
         <h3 className="text-lg font-medium text-white mb-4">Everything included in your plan</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -436,11 +372,13 @@ export default function SubscriptionPage() {
         </div>
       </div>
 
-      {/* FAQ / Help */}
       <div className="text-center py-4">
         <p className="text-sm text-zinc-500">
           Questions about billing?{' '}
-          <a href="mailto:support@apilens.dev" className="text-brand-400 hover:text-brand-300 underline underline-offset-4">
+          <a
+            href="mailto:support@apilens.dev"
+            className="text-brand-400 hover:text-brand-300 underline underline-offset-4"
+          >
             Contact support
           </a>
         </p>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { loginWithEmail } from '@/lib/actions/auth';
 import { toast } from 'sonner';
 
 export default function LoginPage() {
@@ -17,14 +18,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const result = await loginWithEmail(email, password);
 
-      if (error) {
-        toast.error(error.message);
+      if (result.error) {
+        toast.error(result.error);
         return;
       }
 

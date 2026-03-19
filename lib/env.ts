@@ -10,12 +10,11 @@ const envSchema = z.object({
   ENCRYPTION_KEY: z.string().min(64),
   CRON_SECRET: z.string().min(32),
 
-  // Razorpay
-  RAZORPAY_KEY_ID: z.string().min(1),
-  RAZORPAY_KEY_SECRET: z.string().min(1),
-  RAZORPAY_WEBHOOK_SECRET: z.string().min(1),
-  RAZORPAY_PLAN_MONTHLY_ID: z.string().min(1),
-  RAZORPAY_PLAN_ANNUAL_ID: z.string().min(1),
+  // Dodo Payments
+  DODO_PAYMENTS_API_KEY: z.string().min(1),
+  DODO_WEBHOOK_SECRET: z.string().min(1),
+  NEXT_PUBLIC_DODO_PRODUCT_MONTHLY: z.string().min(1),
+  NEXT_PUBLIC_DODO_PRODUCT_ANNUAL: z.string().min(1),
 
   // Resend
   RESEND_API_KEY: z.string().min(1),
@@ -24,9 +23,6 @@ const envSchema = z.object({
   // Upstash Redis (optional)
   UPSTASH_REDIS_REST_URL: z.string().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
-
-  // Public
-  NEXT_PUBLIC_RAZORPAY_KEY_ID: z.string().min(1),
 });
 
 export type Env = z.infer<typeof envSchema>;

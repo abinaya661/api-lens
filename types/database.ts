@@ -213,19 +213,20 @@ export interface ReconciliationLog {
 }
 
 // --- Subscriptions ---
-export type PlanType = 'trial' | 'monthly' | 'annual';
+export type PlanType = 'monthly' | 'annual';
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'cancelled';
 
 export interface Subscription {
   id: string;
   user_id: string;
-  razorpay_customer_id: string | null;
-  razorpay_subscription_id: string | null;
-  plan: PlanType;
-  billing_cycle: string | null;
+  status: SubscriptionStatus;
+  plan: PlanType | null;
   trial_ends_at: string | null;
-  current_period_start: string | null;
-  current_period_end: string | null;
-  cancel_at_period_end: boolean;
+  dodo_subscription_id: string | null;
+  dodo_customer_id: string | null;
+  period_end: string | null;
+  last_payment_at: string | null;
+  grace_period_ends_at: string | null;
   created_at: string;
   updated_at: string;
 }

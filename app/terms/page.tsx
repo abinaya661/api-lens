@@ -81,7 +81,7 @@ export default function TermsPage() {
                 </li>
                 <li className="flex gap-3">
                   <span className="text-brand-500 mt-1 shrink-0">&bull;</span>
-                  <span>Payments are processed by Razorpay. By subscribing, you agree to Razorpay&apos;s terms of service.</span>
+                  <span>Payments are processed by Dodo Payments. By subscribing, you agree to Dodo Payments&apos;s terms of service.</span>
                 </li>
               </ul>
             </section>

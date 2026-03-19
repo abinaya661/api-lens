@@ -25,11 +25,11 @@ function daysLeft(dateStr: string | null | undefined): number {
   return Math.max(0, Math.ceil(diff / 86_400_000));
 }
 
-function getPlanLabel(plan: string | null | undefined): string {
+function getPlanLabel(plan: string | null | undefined, status?: string): string {
+  if (status === 'trialing') return 'Free Trial';
   switch (plan) {
     case 'monthly': return 'Monthly';
     case 'annual':  return 'Annual';
-    case 'trial':
     default:        return 'Free Trial';
   }
 }
@@ -130,12 +130,13 @@ export default function BillingPage() {
     );
   }
 
-  const plan = subscription?.plan ?? 'trial';
+  const status = subscription?.status ?? 'trialing';
+  const plan = subscription?.plan ?? null;
   const isActive = plan === 'monthly' || plan === 'annual';
-  const isTrialing = plan === 'trial';
-  const isCancelled = subscription?.cancel_at_period_end === true;
+  const isTrialing = status === 'trialing';
+  const isCancelled = status === 'cancelled';
   const trialEnd = subscription?.trial_ends_at;
-  const periodEnd = subscription?.current_period_end;
+  const periodEnd = subscription?.period_end;
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -153,7 +154,7 @@ export default function BillingPage() {
             </div>
             <div>
               <p className="text-xs text-zinc-500 uppercase tracking-wider font-medium">Current plan</p>
-              <h3 className="text-xl font-semibold text-white mt-0.5">{getPlanLabel(plan)}</h3>
+              <h3 className="text-xl font-semibold text-white mt-0.5">{getPlanLabel(plan, status)}</h3>
             </div>
           </div>
 
