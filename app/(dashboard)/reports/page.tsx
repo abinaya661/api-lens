@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { PageHeader, EmptyState, ErrorState, SkeletonTable } from '@/components/shared';
+import { PageHeader, EmptyState, ErrorState } from '@/components/shared';
 import { getUsageRecords } from '@/lib/actions/dashboard';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Download, FileText } from 'lucide-react';
@@ -39,7 +39,7 @@ export default function ReportsPage() {
   const dateFrom = getDateFrom(dateRange);
   const dateTo = toDateStr(new Date());
 
-  const { data: records, isLoading, error, refetch } = useQuery({
+  const { data: records, error, refetch } = useQuery({
     queryKey: ['usage-records', dateFrom, dateTo],
     queryFn: async () => {
       const result = await getUsageRecords(dateFrom, dateTo);
@@ -62,15 +62,6 @@ export default function ReportsPage() {
     a.download = `api-lens-report-${dateFrom}-${dateTo}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }
-
-  if (isLoading) {
-    return (
-      <div className="animate-fade-in space-y-6">
-        <PageHeader title="Reports & Analytics" description="Detailed, granular view of API usage ready for export." />
-        <SkeletonTable rows={8} />
-      </div>
-    );
   }
 
   if (error) {

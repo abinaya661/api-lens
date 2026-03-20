@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PageHeader, EmptyState, ErrorState, SkeletonCard } from '@/components/shared';
+import { PageHeader, EmptyState, ErrorState } from '@/components/shared';
 import { useBudgets, useCreateBudget, useUpdateBudget, useDeleteBudget } from '@/hooks/use-budgets';
 import { formatCurrency } from '@/lib/utils';
 import type { Budget, BudgetScope } from '@/types/database';
@@ -25,7 +25,7 @@ const SCOPE_CONFIG: Record<BudgetScope, { icon: typeof Globe; label: string; col
 };
 
 export default function BudgetsPage() {
-  const { data: budgets, isLoading, error, refetch } = useBudgets();
+  const { data: budgets, error, refetch } = useBudgets();
   const createMutation = useCreateBudget();
   const updateMutation = useUpdateBudget();
   const deleteMutation = useDeleteBudget();
@@ -37,17 +37,6 @@ export default function BudgetsPage() {
   const [formPlatform, setFormPlatform] = useState('');
   const [formLimit, setFormLimit] = useState('');
   const [formPeriod, setFormPeriod] = useState<'monthly' | 'weekly'>('monthly');
-
-  if (isLoading) {
-    return (
-      <div className="animate-fade-in">
-        <PageHeader title="Budgets" description="Set spending limits at global, platform, project, or key level." />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, authRateLimit } from '@/lib/ratelimit';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 interface AuthResult {
   success: boolean;
@@ -47,6 +48,12 @@ export async function signupWithEmail(
 
   if (error) return { success: false, error: error.message };
   return { success: true, error: null };
+}
+
+export async function signOut(): Promise<void> {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect('/login');
 }
 
 export async function resetPassword(email: string): Promise<AuthResult> {

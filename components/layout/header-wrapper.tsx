@@ -8,9 +8,11 @@ export function HeaderWrapper() {
   const { data: unreadCount } = useUnreadAlertCount();
   const { data: profile } = useProfile();
 
-  const userInitial = profile?.full_name
-    ? profile.full_name.charAt(0).toUpperCase()
-    : 'U';
+  const userInitial = (() => {
+    const source = profile?.full_name || profile?.company_name || '';
+    const alpha = source.match(/[a-zA-Z]/);
+    return alpha ? alpha[0].toUpperCase() : 'U';
+  })();
 
   return (
     <Header

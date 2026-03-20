@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PageHeader, EmptyState, ErrorState, SkeletonTable } from '@/components/shared';
+import { PageHeader, EmptyState, ErrorState } from '@/components/shared';
 import { useAlerts, useMarkAlertRead, useMarkAllAlertsRead } from '@/hooks/use-alerts';
 import { timeAgo } from '@/lib/utils';
 import type { AlertSeverity } from '@/types/database';
@@ -21,20 +21,11 @@ const SEVERITY_CONFIG: Record<AlertSeverity, { icon: typeof Info; color: string;
 };
 
 export default function AlertsPage() {
-  const { data: alerts, isLoading, error, refetch } = useAlerts();
+  const { data: alerts, error, refetch } = useAlerts();
   const markReadMutation = useMarkAlertRead();
   const markAllReadMutation = useMarkAllAlertsRead();
 
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
-
-  if (isLoading) {
-    return (
-      <div className="animate-fade-in">
-        <PageHeader title="Alerts" description="Budget thresholds, spend spikes, and key health notifications." />
-        <SkeletonTable rows={4} />
-      </div>
-    );
-  }
 
   if (error) {
     return (
