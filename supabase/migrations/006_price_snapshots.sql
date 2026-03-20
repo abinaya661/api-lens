@@ -15,16 +15,24 @@ CREATE TABLE IF NOT EXISTS public.price_snapshots (
   unit_display    TEXT NOT NULL DEFAULT 'per 1M tokens',
   batch_discount  NUMERIC(5, 4),             -- e.g. 0.5000 = 50% off
   supports_caching BOOLEAN DEFAULT false,
-  captured_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (provider, model)
+  captured_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Add unique constraint separately so it works even if table already existed
+DO $$ BEGIN
+  ALTER TABLE public.price_snapshots ADD CONSTRAINT price_snapshots_provider_model_key UNIQUE (provider, model);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
 
 ALTER TABLE public.price_snapshots ENABLE ROW LEVEL SECURITY;
 
 -- Pricing is public reference data — all authenticated users can read
-CREATE POLICY "Anyone can read price snapshots"
-  ON public.price_snapshots FOR SELECT
-  USING (true);
+DO $$ BEGIN
+  CREATE POLICY "Anyone can read price snapshots"
+    ON public.price_snapshots FOR SELECT
+    USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_price_snapshots_provider_model
   ON public.price_snapshots(provider, model);
