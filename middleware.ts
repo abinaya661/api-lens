@@ -15,7 +15,6 @@ const publicRoutes = [
   '/api/estimator',
   '/api/webhooks',
   '/api/cron',
-  '/api/platforms',
   '/api/health',
 ];
 
@@ -68,7 +67,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect unauthenticated users to login
-  if (!user && process.env.NODE_ENV !== 'development') {
+  if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirect', pathname);

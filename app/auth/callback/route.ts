@@ -6,17 +6,16 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/dashboard';
 
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      const isLocalEnv = process.env.NODE_ENV === 'development';
-      if (isLocalEnv) {
-        return NextResponse.redirect(`${origin}${next}`);
-      }
-      return NextResponse.redirect(`${origin}${next}`);
-    }
+  if (!code) {
+    return NextResponse.redirect(`${origin}/login?error=missing_code`);
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth_callback_error`);
+  const supabase = await createClient();
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+  }
+
+  return NextResponse.redirect(`${origin}${next}`);
 }
