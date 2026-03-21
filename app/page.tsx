@@ -1,11 +1,17 @@
 import Link from 'next/link';
 import { ArrowRight, BarChart3, ShieldCheck, Zap } from 'lucide-react';
+import { DashboardPreview } from '@/components/landing/dashboard-preview';
+import { HowItWorks } from '@/components/landing/how-it-works';
+import { ProviderMarquee } from '@/components/landing/provider-marquee';
+import { PricingSection } from '@/components/landing/pricing-section';
+import { SecurityCallout } from '@/components/landing/security-callout';
+import { RevealOnScroll } from '@/components/landing/reveal-on-scroll';
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-black text-zinc-300 selection:bg-brand-500/30">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-800 bg-black/50 backdrop-blur-xl">
+      {/* ─── S1: Sticky Nav ─── */}
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-800/50 bg-black/60 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center">
@@ -31,28 +37,31 @@ export default function LandingPage() {
       </nav>
 
       <main>
-        {/* Hero Section */}
+        {/* ─── S2: Hero ─── */}
         <section className="relative pt-32 pb-20 px-6 overflow-hidden">
-          {/* Background Glow */}
+          {/* Background glow */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-brand-600/20 blur-[120px] rounded-full pointer-events-none" />
-          
+
           <div className="max-w-4xl mx-auto text-center relative z-10">
+            {/* C1: Replaced fake metric with genuine social proof */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-brand-500/30 bg-brand-500/10 text-brand-400 text-sm font-medium mb-8">
               <span className="flex h-2 w-2 rounded-full bg-brand-500 animate-pulse" />
-              Now tracking over $1M in AI spend weekly
+              Built for teams shipping AI products
             </div>
-            
+
             <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight leading-[1.1] mb-8">
               Stop guessing your <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-brand-600">
                 AI token costs.
               </span>
             </h1>
-            
+
+            {/* C2: Removed "API Lens" from description */}
             <p className="text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-              API Lens is the single dashboard to monitor, budget, and attribute AI API usage across OpenAI, Anthropic, Gemini, and more.
+              The single dashboard to monitor, budget, and attribute AI API usage
+              across OpenAI, Anthropic, Gemini, and more.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/signup"
@@ -61,84 +70,102 @@ export default function LandingPage() {
                 Start your 7-day free trial
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
+              {/* B2: Fixed link from /dashboard to #dashboard-preview */}
               <Link
-                href="/dashboard"
+                href="#dashboard-preview"
+                aria-label="Scroll to interactive dashboard preview"
                 className="w-full sm:w-auto px-8 py-4 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-medium hover:bg-zinc-800 transition-all flex items-center justify-center"
               >
                 View Live Demo
               </Link>
             </div>
+            {/* C3: Added annual pricing option */}
             <p className="text-sm text-zinc-500 mt-6">
-              $5.99/month after trial. Cancel anytime.
+              $5.99/mo or $59.99/yr (2 months free). Cancel anytime.
             </p>
           </div>
         </section>
 
-        {/* Features Preview */}
+        {/* ─── S3: Three Value Pillars ─── */}
         <section className="py-20 px-6 bg-zinc-900/30 border-t border-zinc-800">
           <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="p-8 rounded-2xl bg-black border border-zinc-800 hover:border-zinc-700 transition-colors">
-                <div className="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-400 flex items-center justify-center mb-6">
-                  <BarChart3 className="w-6 h-6" />
+            <RevealOnScroll stagger>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="p-8 rounded-2xl bg-black border border-zinc-800 hover:border-zinc-700 transition-colors reveal">
+                  <div className="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-400 flex items-center justify-center mb-6">
+                    <BarChart3 className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-3">Unified Dashboard</h3>
+                  <p className="text-zinc-400 leading-relaxed">
+                    Connect all your providers and see exactly which projects and models are driving your AI spend in real-time.
+                  </p>
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Unified Dashboard</h3>
-                <p className="text-zinc-400 leading-relaxed">
-                  Connect all your providers and see exactly which projects and models are driving your AI spend in real-time.
-                </p>
-              </div>
 
-              <div className="p-8 rounded-2xl bg-black border border-zinc-800 hover:border-zinc-700 transition-colors">
-                <div className="w-12 h-12 rounded-xl bg-green-500/10 text-green-400 flex items-center justify-center mb-6">
-                  <ShieldCheck className="w-6 h-6" />
+                <div className="p-8 rounded-2xl bg-black border border-zinc-800 hover:border-zinc-700 transition-colors reveal">
+                  <div className="w-12 h-12 rounded-xl bg-green-500/10 text-green-400 flex items-center justify-center mb-6">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-3">Budget Alerts</h3>
+                  <p className="text-zinc-400 leading-relaxed">
+                    Set hard caps and receive instant Slack/Email alerts when usage spikes, completely avoiding bill shock.
+                  </p>
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Budget Alerts</h3>
-                <p className="text-zinc-400 leading-relaxed">
-                  Set hard caps and receive instant Slack/Email alerts when usage spikes, completely avoiding bill shock.
-                </p>
-              </div>
 
-              <div className="p-8 rounded-2xl bg-black border border-zinc-800 hover:border-zinc-700 transition-colors">
-                <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center mb-6">
-                  <Zap className="w-6 h-6" />
+                <div className="p-8 rounded-2xl bg-black border border-zinc-800 hover:border-zinc-700 transition-colors reveal">
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center mb-6">
+                    <Zap className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-3">Key Management</h3>
+                  <p className="text-zinc-400 leading-relaxed">
+                    Secure AES-256-GCM encryption for all API keys. Monitor key health and get rotation reminders automatically.
+                  </p>
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Key Management</h3>
-                <p className="text-zinc-400 leading-relaxed">
-                  Secure AES-256-GCM encryption for all API keys. Monitor key health and get rotation reminders automatically.
-                </p>
               </div>
-            </div>
+            </RevealOnScroll>
           </div>
         </section>
 
-        {/* Dashboard Screenshot Mockup */}
-        <section className="py-24 px-6 overflow-hidden">
-          <div className="max-w-5xl mx-auto">
-            <div className="relative rounded-2xl border border-zinc-800 bg-zinc-900/50 p-2 overflow-hidden shadow-2xl">
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/80 bg-black rounded-t-xl">
-                <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                <div className="w-3 h-3 rounded-full bg-green-500/80" />
-              </div>
-              <div className="aspect-[16/9] bg-black opacity-80 rounded-b-xl flex items-center justify-center relative">
-                <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/cubes.png')] opacity-[0.03]" />
-                <div className="text-center">
-                  <p className="text-zinc-500 mb-4 font-mono text-sm">Interactive Dashboard Preview</p>
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-zinc-800 text-white hover:bg-zinc-700 transition-colors shadow-lg"
-                  >
-                    Open Live Demo
-                  </Link>
-                </div>
-              </div>
-            </div>
+        {/* ─── S4: Interactive Dashboard Preview ─── */}
+        <DashboardPreview />
+
+        {/* ─── S5: How It Works ─── */}
+        <HowItWorks />
+
+        {/* ─── S6: Supported Providers ─── */}
+        <ProviderMarquee />
+
+        {/* ─── S7: Pricing ─── */}
+        <PricingSection />
+
+        {/* ─── S8: Security Callout ─── */}
+        <SecurityCallout />
+
+        {/* ─── S9: Final CTA ─── */}
+        <section className="py-24 px-6 border-t border-zinc-800 relative overflow-hidden">
+          {/* Background gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-600/5 via-transparent to-transparent pointer-events-none" />
+
+          <div className="max-w-3xl mx-auto text-center relative z-10">
+            <RevealOnScroll>
+              <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+                Ready to stop guessing<br />your AI costs?
+              </h2>
+              <Link
+                href="/signup"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-brand-600 text-white font-medium hover:bg-brand-700 transition-all group text-lg"
+              >
+                Start your 7-day free trial
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <p className="text-sm text-zinc-500 mt-6">
+                $5.99/mo or $59.99/yr. Cancel anytime.
+              </p>
+            </RevealOnScroll>
           </div>
         </section>
       </main>
 
-      {/* Footer */}
+      {/* ─── S10: Footer ─── */}
       <footer className="py-12 px-6 border-t border-zinc-800 bg-black">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
@@ -154,6 +181,7 @@ export default function LandingPage() {
           <div className="flex gap-6 text-sm text-zinc-500">
             <Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-white transition">Terms of Service</Link>
+            <Link href="/security" className="hover:text-white transition">Security</Link>
           </div>
         </div>
       </footer>

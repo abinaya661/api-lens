@@ -13,7 +13,12 @@
       "Bash(rm -f app/api/webhooks/razorpay/route.ts)",
       "Bash(pnpm build:*)",
       "Bash(pnpm test:*)",
-      "Bash(vercel whoami:*)"
+      "Bash(vercel whoami:*)",
+      "Bash(find '/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens' -name *pricing* -o -name *price* -type f)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"price_snapshot\\\\|PriceSnapshot\" '/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens' --include=*.sql --include=*.ts --include=*.tsx)",
+      "Bash(grep -E \"CREATE TABLE|CREATE VIEW\" supabase/migrations/*.sql)",
+      "Bash(npx supabase:*)"
     ]
   }
 }
