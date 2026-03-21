@@ -9,7 +9,9 @@ import { RevealOnScroll } from '@/components/landing/reveal-on-scroll';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-black text-zinc-300 selection:bg-brand-500/30">
+    <div className="min-h-screen bg-black text-zinc-300 selection:bg-brand-500/30 relative">
+      {/* Global dot grid background */}
+      <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/cubes.png')] opacity-[0.015] pointer-events-none" />
       {/* ─── S1: Sticky Nav ─── */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-800/50 bg-black/60 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -38,7 +40,7 @@ export default function LandingPage() {
 
       <main>
         {/* ─── S2: Hero ─── */}
-        <section className="relative pt-32 pb-20 px-6 overflow-hidden">
+        <section className="relative pt-24 pb-16 px-6 overflow-hidden">
           {/* Background glow */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-brand-600/20 blur-[120px] rounded-full pointer-events-none" />
 
@@ -87,7 +89,7 @@ export default function LandingPage() {
         </section>
 
         {/* ─── S3: Three Value Pillars ─── */}
-        <section className="py-20 px-6 bg-zinc-900/30 border-t border-zinc-800">
+        <section className="py-16 px-6 bg-zinc-900/30 border-t border-zinc-800">
           <div className="max-w-7xl mx-auto">
             <RevealOnScroll stagger>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -140,8 +142,32 @@ export default function LandingPage() {
         {/* ─── S8: Security Callout ─── */}
         <SecurityCallout />
 
+        {/* ─── S8.5: FAQ ─── */}
+        <section className="py-16 px-6">
+          <div className="max-w-3xl mx-auto">
+            <RevealOnScroll>
+              <h2 className="text-3xl font-bold text-white text-center mb-8">Frequently Asked Questions</h2>
+            </RevealOnScroll>
+            <RevealOnScroll stagger>
+              <div className="space-y-4 reveal">
+                {[
+                  { q: "Is there a setup fee?", a: "No. You simply pay a flat subscription fee. Setup takes less than 2 minutes." },
+                  { q: "Will I need to change my code?", a: "No. API Lens works by dropping in a proxy URL or syncing directly with your provider via their read-only billing endpoints." },
+                  { q: "How secure is the dashboard?", a: "We use AES-256-GCM encryption with a write-only master key. We physically cannot read your stored API credentials." },
+                  { q: "Can I limit spend per team member?", a: "Yes. You can issue granular gateway keys to individual developers or projects with hard budget caps." }
+                ].map((faq, i) => (
+                  <div key={i} className="p-6 rounded-2xl border border-zinc-800 bg-zinc-900/40">
+                    <p className="text-white font-semibold mb-2">{faq.q}</p>
+                    <p className="text-zinc-400 text-sm leading-relaxed">{faq.a}</p>
+                  </div>
+                ))}
+              </div>
+            </RevealOnScroll>
+          </div>
+        </section>
+
         {/* ─── S9: Final CTA ─── */}
-        <section className="py-24 px-6 border-t border-zinc-800 relative overflow-hidden">
+        <section className="py-16 md:py-20 px-6 border-t border-zinc-800 relative xl:mb-12 overflow-hidden">
           {/* Background gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-brand-600/5 via-transparent to-transparent pointer-events-none" />
 

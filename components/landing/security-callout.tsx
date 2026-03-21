@@ -6,7 +6,7 @@ import { RevealOnScroll } from './reveal-on-scroll';
 
 export function SecurityCallout() {
   return (
-    <section className="py-20 px-6 border-t border-zinc-800">
+    <section className="py-16 px-6 border-t border-zinc-800">
       <div className="max-w-3xl mx-auto">
         <RevealOnScroll>
           <div className="relative rounded-2xl border border-zinc-800 bg-zinc-900/50 p-10 md:p-12 overflow-hidden">

@@ -33,7 +33,7 @@ function ProviderBadge({ name, color }: { name: string; color: string }) {
 
 export function ProviderMarquee() {
   return (
-    <section className="py-20 px-6 border-t border-zinc-800 overflow-hidden">
+    <section className="py-16 px-6 border-t border-zinc-800 overflow-hidden">
       <div className="max-w-6xl mx-auto">
         <RevealOnScroll>
           <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-4">
