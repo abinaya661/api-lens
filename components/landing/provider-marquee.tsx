@@ -37,7 +37,7 @@ export function ProviderMarquee() {
       <div className="max-w-6xl mx-auto">
         <RevealOnScroll>
           <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-4">
-            14 Providers. One Dashboard.
+            All your providers. One Dashboard.
           </h2>
           <p className="text-zinc-400 text-center mb-12 max-w-xl mx-auto">
             Connect every major AI provider and see all your spend in a single view.
@@ -48,8 +48,8 @@ export function ProviderMarquee() {
       {/* Marquee container */}
       <div className="relative">
         {/* Fade edges */}
-        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#09090b] to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#09090b] to-transparent z-10 pointer-events-none" />
+        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
 
         <div className="flex gap-4 marquee-track" style={{ width: 'max-content' }}>
           {/* First set */}
