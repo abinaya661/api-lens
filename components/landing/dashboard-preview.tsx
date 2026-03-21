@@ -78,9 +78,10 @@ export function DashboardPreview() {
           </div>
 
           <div
-            className="dashboard-frame rounded-2xl border border-zinc-800 bg-zinc-900/50 p-1.5 md:p-2 shadow-2xl shadow-brand-500/10 transition-all duration-500"
+            className="dashboard-frame rounded-2xl border border-zinc-800 bg-zinc-900/50 p-1.5 md:p-2 shadow-2xl shadow-brand-500/10 transition-all duration-500 w-full overflow-x-auto"
             aria-label="Interactive dashboard preview showing spend analytics with dummy data"
           >
+            <div className="min-w-[700px]">
             {/* Browser chrome */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/80 bg-black/80 backdrop-blur-md rounded-t-xl">
               <div className="flex gap-1.5">
@@ -108,6 +109,7 @@ export function DashboardPreview() {
                 {activeTab === 'keys' && <KeysTab />}
               </div>
             </div>
+          </div>
           </div>
         </RevealOnScroll>
       </div>

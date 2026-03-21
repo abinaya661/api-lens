@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
-  Shield, Lock, Eye, Server, CheckCircle, KeyRound, FileSearch, ArrowRight,
+  Shield, Lock, Eye, Server, CheckCircle, KeyRound, FileSearch, ArrowRight, ArrowDown,
   EyeOff, AlertTriangle, Mail, Activity,
 } from 'lucide-react';
 
@@ -136,8 +136,8 @@ export default function SecurityPage() {
                         <p className={`text-sm font-semibold ${step.color} leading-snug`}>{step.label}</p>
                         <p className="text-[11px] text-zinc-400 leading-snug">{step.sublabel}</p>
                       </div>
-                      {i < FLOW_STEPS.length - 1 && <ArrowRight className="w-5 h-5 text-zinc-600 shrink-0 sm:hidden" />}
-                      {i < FLOW_STEPS.length - 1 && <ArrowRight className="w-5 h-5 text-zinc-600 shrink-0 hidden sm:block sm:absolute sm:translate-x-full" aria-hidden />}
+                      {i < FLOW_STEPS.length - 1 && <ArrowDown className="w-5 h-5 text-zinc-600 sm:hidden mx-auto my-2 shrink-0" />}
+                      {i < FLOW_STEPS.length - 1 && <ArrowRight className="w-5 h-5 text-zinc-600 hidden sm:block shrink-0" aria-hidden />}
                     </div>
                   ))}
                 </div>

@@ -9,7 +9,7 @@ import { RevealOnScroll } from '@/components/landing/reveal-on-scroll';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-black text-zinc-300 selection:bg-brand-500/30 relative">
+    <div className="min-h-screen bg-black text-zinc-300 selection:bg-brand-500/30 relative overflow-x-hidden">
       {/* Global dot grid background */}
       <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/cubes.png')] opacity-[0.015] pointer-events-none" />
       {/* ─── S1: Sticky Nav ─── */}
