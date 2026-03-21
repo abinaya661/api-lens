@@ -109,7 +109,7 @@ export default function LandingPage() {
                   </div>
                   <h3 className="text-xl font-semibold text-white mb-3">Budget Alerts</h3>
                   <p className="text-zinc-400 leading-relaxed">
-                    Set hard caps and receive instant Slack/Email alerts when usage spikes, completely avoiding bill shock.
+                    Set hard caps and receive instant Email & In-App alerts when usage spikes, completely avoiding bill shock.
                   </p>
                 </div>
 

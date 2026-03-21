@@ -7,7 +7,7 @@ import { RevealOnScroll } from './reveal-on-scroll';
 const MONTHLY_FEATURES = [
   'Unlimited API keys & providers',
   'Real-time spend aggregation',
-  'Granular budget alerts via Slack/Email',
+  'Granular budget alerts via Email & In-App',
   'End-to-end AES-256-GCM encryption',
   'Automated key rotation reminders',
   'Unlimited team members',

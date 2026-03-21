@@ -1,0 +1,50 @@
+
+> api-lens@0.1.0 dev C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens
+> next dev --turbopack "-p" "3001"
+
+   ▲ Next.js 15.5.13 (Turbopack)
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.1.8:3001
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · serverActions
+
+ ✓ Starting...
+ ○ Compiling instrumentation Node.js ...
+ ✓ Compiled instrumentation Node.js in 1059ms
+ ✓ Compiled instrumentation Edge in 304ms
+ ✓ Compiled middleware in 236ms
+ ✓ Ready in 3.4s
+ ○ Compiling / ...
+ ✓ Compiled / in 5.6s
+ GET / 200 in 857ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 2.5s
+ GET /login?e18a7769a9fd704f=&redirect=%2Ficon 200 in 3402ms
+ ✓ Compiled /security in 396ms
+ GET /security 200 in 604ms
+ ○ Compiling /privacy ...
+ ✓ Compiled /privacy in 1215ms
+ GET /privacy 200 in 1622ms
+ GET /login?e18a7769a9fd704f=&redirect=%2Ficon 200 in 520ms
+ ○ Compiling /terms ...
+ ✓ Compiled /terms in 1123ms
+ GET /terms 200 in 1523ms
+ GET /login?e18a7769a9fd704f=&redirect=%2Ficon 200 in 650ms
+ GET / 200 in 408ms
+ GET /login?e18a7769a9fd704f=&redirect=%2Ficon 200 in 526ms
+ GET /security 200 in 520ms
+ GET /login?e18a7769a9fd704f=&redirect=%2Ficon 200 in 515ms
+ GET / 200 in 485ms
+ GET /login?e18a7769a9fd704f=&redirect=%2Ficon 200 in 508ms
+ ✓ Compiled in 349ms
+ GET / 200 in 405ms
+ ✓ Compiled in 467ms
+ GET / 200 in 497ms
+ ✓ Compiled in 224ms
+ GET / 200 in 435ms
+ ✓ Compiled in 406ms
+ ✓ Compiled in 326ms
+ ✓ Compiled in 406ms
+ ✓ Compiled / in 183ms
+ GET / 200 in 722ms

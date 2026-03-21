@@ -194,7 +194,7 @@ function BudgetsTab() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h3 className="text-lg font-semibold text-white">Active Budgets</h3>
-          <p className="text-sm text-zinc-500">Alerts triggering via Slack & Email</p>
+          <p className="text-sm text-zinc-500">Alerts triggering via Email & In-App</p>
         </div>
         <button 
           onClick={() => setClickedMock(true)}
