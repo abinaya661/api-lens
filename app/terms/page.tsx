@@ -69,7 +69,7 @@ export default function TermsPage() {
               <ul className="space-y-2 text-zinc-400">
                 <li className="flex gap-3">
                   <span className="text-brand-500 mt-1 shrink-0">&bull;</span>
-                  <span>API Lens is a subscription service priced at <span className="text-zinc-200 font-medium">$4.99/month</span> after a 7-day free trial.</span>
+                  <span>API Lens is a subscription service priced at <span className="text-zinc-200 font-medium">$5.99/month</span> after a 7-day free trial.</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="text-brand-500 mt-1 shrink-0">&bull;</span>
@@ -210,8 +210,8 @@ export default function TermsPage() {
               </h2>
               <p className="text-zinc-400 leading-relaxed">
                 For legal inquiries, email{' '}
-                <a href="mailto:legal@apilens.dev" className="text-brand-400 hover:text-brand-300 transition-colors font-medium">
-                  legal@apilens.dev
+                <a href="mailto:legal@apilens.tech" className="text-brand-400 hover:text-brand-300 transition-colors font-medium">
+                  legal@apilens.tech
                 </a>
                 . We aim to respond within 5 business days.
               </p>
