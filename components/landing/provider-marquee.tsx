@@ -3,30 +3,36 @@
 import { RevealOnScroll } from './reveal-on-scroll';
 
 const PROVIDERS = [
-  { name: 'OpenAI', color: '#10a37f' },
-  { name: 'Anthropic', color: '#d97757' },
-  { name: 'Google Gemini', color: '#1a73e8' },
-  { name: 'AWS Bedrock', color: '#ff9900' },
-  { name: 'Mistral AI', color: '#f54e42' },
-  { name: 'Cohere', color: '#39594d' },
-  { name: 'Azure OpenAI', color: '#0078d4' },
-  { name: 'ElevenLabs', color: '#ffffff' },
-  { name: 'Deepgram', color: '#13ef93' },
-  { name: 'AssemblyAI', color: '#ff6b6b' },
-  { name: 'Replicate', color: '#bc5090' },
-  { name: 'Fal.ai', color: '#8b5cf6' },
-  { name: 'OpenRouter', color: '#6366f1' },
-  { name: 'Vertex AI', color: '#4285f4' },
+  { name: 'OpenAI', type: 'clean', color: 'text-white' },
+  { name: 'Anthropic', type: 'serif', color: 'text-[#d97757]' },
+  { name: 'Google Gemini', type: 'gradient', from: 'from-blue-400', to: 'to-indigo-400' },
+  { name: 'Meta Llama', type: 'bold', color: 'text-[#0668E1]' },
+  { name: 'Mistral AI', type: 'mono', color: 'text-[#f54e42]' },
+  { name: 'xAI', type: 'heavy', color: 'text-zinc-100' },
+  { name: 'Perplexity', type: 'clean', color: 'text-[#22d3ee]' },
+  { name: 'DeepSeek', type: 'bold', color: 'text-[#306CFA]' },
+  { name: 'Cohere', type: 'serif', color: 'text-[#39594d]' },
+  { name: 'HuggingFace', type: 'heavy', color: 'text-[#ffd21e]' },
+  { name: 'ElevenLabs', type: 'clean', color: 'text-zinc-300' },
+  { name: 'OpenRouter', type: 'gradient', from: 'from-[#6366f1]', to: 'to-[#a855f7]' },
+  { name: 'Moonshot', type: 'mono', color: 'text-zinc-400' },
 ];
 
-function ProviderBadge({ name, color }: { name: string; color: string }) {
+function ProviderBadge({ provider }: { provider: any }) {
+  const getLogoStyle = () => {
+    if (provider.type === 'gradient') return `font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${provider.from} ${provider.to}`;
+    if (provider.type === 'serif') return `font-serif font-semibold tracking-wide ${provider.color}`;
+    if (provider.type === 'mono') return `font-mono font-bold tracking-tighter uppercase ${provider.color}`;
+    if (provider.type === 'heavy') return `font-black tracking-tighter ${provider.color}`;
+    if (provider.type === 'bold') return `font-extrabold tracking-tight ${provider.color}`;
+    return `font-bold tracking-tight ${provider.color}`;
+  };
+
   return (
-    <div className="flex items-center gap-3 px-5 py-3 rounded-full border border-zinc-800 bg-zinc-900/50 whitespace-nowrap flex-shrink-0">
-      <div
-        className="w-3 h-3 rounded-full flex-shrink-0"
-        style={{ backgroundColor: color }}
-      />
-      <span className="text-sm font-medium text-zinc-300">{name}</span>
+    <div className="flex items-center justify-center px-10 py-6 mx-4 rounded-2xl bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-sm whitespace-nowrap overflow-hidden group hover:border-zinc-700 transition-colors">
+      <span className={`text-2xl md:text-3xl ${getLogoStyle()} opacity-60 group-hover:opacity-100 transition-opacity grayscale group-hover:grayscale-0`}>
+        {provider.name}
+      </span>
     </div>
   );
 }
@@ -46,19 +52,20 @@ export function ProviderMarquee() {
       </div>
 
       {/* Marquee container */}
-      <div className="relative">
-        {/* Fade edges */}
-        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
-
-        <div className="flex gap-4 marquee-track" style={{ width: 'max-content' }}>
+      <div className="relative w-full">
+        {/* Fade edges completely removed per user request for clear scrolling boundaries */}
+        <div className="flex marquee-track" style={{ width: 'max-content' }}>
           {/* First set */}
           {PROVIDERS.map((p) => (
-            <ProviderBadge key={`a-${p.name}`} name={p.name} color={p.color} />
+            <ProviderBadge key={`a-${p.name}`} provider={p} />
           ))}
           {/* Duplicate for seamless loop */}
           {PROVIDERS.map((p) => (
-            <ProviderBadge key={`b-${p.name}`} name={p.name} color={p.color} />
+            <ProviderBadge key={`b-${p.name}`} provider={p} />
+          ))}
+          {/* Triplicate for ultra-wide monitors */}
+          {PROVIDERS.map((p) => (
+            <ProviderBadge key={`c-${p.name}`} provider={p} />
           ))}
         </div>
       </div>

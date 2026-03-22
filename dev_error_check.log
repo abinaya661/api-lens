@@ -49,3 +49,126 @@
  ✓ Compiled / in 183ms
  GET / 200 in 722ms
  ✓ Compiled in 569ms
+ GET / 200 in 1542ms
+ GET /login?e18a7769a9fd704f=&redirect=%2Ficon 200 in 573ms
+ ✓ Compiled /privacy in 241ms
+ GET /privacy 200 in 856ms
+ GET /login?e18a7769a9fd704f=&redirect=%2Ficon 200 in 518ms
+ GET / 200 in 378ms
+ GET /login?e18a7769a9fd704f=&redirect=%2Ficon 200 in 498ms
+ GET / 200 in 425ms
+ GET /login?e18a7769a9fd704f=&redirect=%2Ficon 200 in 446ms
+ ⨯ ./app/page.tsx:204:14
+Parsing ecmascript source code failed
+[0m [90m 202 |[39m           [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m
+ [90m 203 |[39m         [33m<[39m[33m/[39m[33msection[39m[33m>[39m
+[31m[1m>[22m[39m[90m 204 |[39m       [33m<[39m[33m/[39m[33mmain[39m[33m>[39m
+ [90m     |[39m              [31m[1m^[22m[39m
+[31m[1m>[22m[39m[90m 205 |[39m
+ [90m     |[39m [31m[1m^[22m[39m
+[31m[1m>[22m[39m[90m 206 |[39m       {[90m/* ─── S10: Footer ─── */[39m}
+ [90m     |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 207 |[39m       [33m<[39m[33mfooter[39m className[33m=[39m[32m"py-12 px-6 border-t border-zinc-800 bg-black"[39m[33m>[39m
+ [90m 208 |[39m         [33m<[39m[33mdiv[39m className[33m=[39m[32m"max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6"[39m[33m>[39m
+ [90m 209 |[39m           [33m<[39m[33mdiv[39m className[33m=[39m[32m"flex items-center gap-2"[39m[33m>[39m[0m
+
+Expected '</', got 'jsx text (
+
+      )'
+
+
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1422ms
+ GET / 500 in 1944ms
+ ✓ Compiled in 84ms
+ ✓ Compiled / in 14ms
+ ⨯ [Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\app\page\app-build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\app\\page\\app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\pages\_app\build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\pages\\_app\\build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\app\page\app-build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\app\\page\\app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\pages\_app\build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\pages\\_app\\build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\pages\_app\build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\pages\\_app\\build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\app\page\app-build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\app\\page\\app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\pages\_app\build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\pages\\_app\\build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\app\page\app-build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\app\\page\\app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\pages\_app\build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\pages\\_app\\build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\pages\_app\build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\pages\\_app\\build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\app\page\app-build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\app\\page\\app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\pages\_app\build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\pages\\_app\\build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\app\page\app-build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\app\\page\\app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\pages\_app\build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\pages\\_app\\build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open 'C:\Users\adhia\OneDrive\Desktop\APi lens\api-lens\.next\server\pages\_app\build-manifest.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\adhia\\OneDrive\\Desktop\\APi lens\\api-lens\\.next\\server\\pages\\_app\\build-manifest.json'
+}

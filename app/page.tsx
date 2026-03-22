@@ -38,9 +38,12 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      <main>
-        {/* ─── S2: Hero ─── */}
-        <section className="relative pt-24 pb-16 px-6 overflow-hidden">
+      <main className="relative">
+        {/* ========================================== */}
+        {/* LAYER 1: STICKY HERO BACKGROUND            */}
+        {/* ========================================== */}
+        <div className="sticky top-0 h-[100svh] w-full flex flex-col justify-center bg-black z-0 overflow-hidden pt-16">
+          <section className="relative px-6">
           {/* Background glow */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-brand-600/20 blur-[120px] rounded-full pointer-events-none" />
 
@@ -86,10 +89,22 @@ export default function LandingPage() {
               $5.99/mo or $59.99/yr (2 months free). Cancel anytime.
             </p>
           </div>
-        </section>
+          </section>
+        </div>
 
-        {/* ─── S3: Three Value Pillars ─── */}
-        <section className="py-16 px-6 bg-zinc-900/30 border-t border-zinc-800">
+        {/* ========================================== */}
+        {/* LAYER 2: DASHBOARD PREVIEW OVERLAY         */}
+        {/* ========================================== */}
+        <div className="relative z-10 w-full bg-zinc-950 border-t border-zinc-800 shadow-[0_-40px_80px_rgba(0,0,0,0.8)] rounded-t-[2.5rem] md:rounded-t-[3rem] pt-12 pb-16">
+          <DashboardPreview />
+        </div>
+
+        {/* ========================================== */}
+        {/* LAYER 3: MAIN CONTENT OVERLAY              */}
+        {/* ========================================== */}
+        <div className="relative z-20 w-full bg-black border-t border-zinc-800 shadow-[0_-40px_80px_rgba(0,0,0,1)] rounded-t-[2.5rem] md:rounded-t-[3rem] pt-8">
+          {/* ─── S3: Three Value Pillars ─── */}
+          <section className="py-16 px-6 bg-zinc-900/30 border-b border-zinc-800 rounded-t-[2.5rem] md:rounded-t-[3rem]">
           <div className="max-w-7xl mx-auto">
             <RevealOnScroll stagger>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -126,9 +141,6 @@ export default function LandingPage() {
             </RevealOnScroll>
           </div>
         </section>
-
-        {/* ─── S4: Interactive Dashboard Preview ─── */}
-        <DashboardPreview />
 
         {/* ─── S5: How It Works ─── */}
         <HowItWorks />
@@ -189,6 +201,7 @@ export default function LandingPage() {
             </RevealOnScroll>
           </div>
         </section>
+        </div>
       </main>
 
       {/* ─── S10: Footer ─── */}
