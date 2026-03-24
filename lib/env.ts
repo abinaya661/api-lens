@@ -10,6 +10,9 @@ const envSchema = z.object({
   ENCRYPTION_KEY: z.string().min(64),
   CRON_SECRET: z.string().min(32),
 
+  // App
+  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+
   // Dodo Payments
   DODO_PAYMENTS_API_KEY: z.string().min(1),
   DODO_WEBHOOK_SECRET: z.string().min(1),
