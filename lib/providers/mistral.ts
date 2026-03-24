@@ -1,4 +1,4 @@
-import type { Provider, NormalizedUsage, ProviderSyncResult } from '@/types';
+import type { ProviderSyncResult } from '@/types';
 
 export async function validateMistralKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
   try {
@@ -14,9 +14,9 @@ export async function validateMistralKey(apiKey: string): Promise<{ valid: boole
 }
 
 export async function fetchMistralUsage(
-  apiKey: string,
-  keyId: string,
-  since?: Date,
+  _apiKey: string,
+  _keyId: string,
+  _since?: Date,
 ): Promise<ProviderSyncResult> {
   // Mistral does not currently provide a public programmatic usage API.
   // In a production environment without a proxy, we fallback to zero.
