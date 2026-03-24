@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PageHeader, EmptyState, ErrorState, SkeletonTable } from '@/components/shared';
 import { useKeys, useAddKey, useUpdateKey, useDeleteKey } from '@/hooks/use-keys';
-import { useProjects } from '@/hooks/use-projects';
+import { useProjects, useCreateProject } from '@/hooks/use-projects';
 import { timeAgo } from '@/lib/utils';
 import type { ApiKey } from '@/types/database';
 import {
@@ -16,13 +16,30 @@ import {
   Copy,
   Check,
   Key,
+  Lock,
+  Loader2,
+  ShieldCheck,
+  ChevronDown,
 } from 'lucide-react';
-import { PROVIDER_NAMES, PROVIDER_COLORS } from '@/lib/utils/provider-config';
+import { PROVIDER_NAMES, PROVIDER_COLORS, ADD_KEY_PROVIDERS } from '@/lib/utils/provider-config';
 import { getHealthConfig } from '@/lib/utils/key-health';
+
+/** Mask an API key showing only the first 2 and last 2 characters */
+function maskApiKey(key: string): string {
+  const trimmed = key.trim();
+  if (trimmed.length <= 4) return trimmed;
+  const first2 = trimmed.slice(0, 2);
+  const last2 = trimmed.slice(-2);
+  const middleLength = Math.min(trimmed.length - 4, 20);
+  return `${first2}${'•'.repeat(middleLength)}${last2}`;
+}
+
+type ProjectMode = 'none' | 'existing' | 'new';
 
 export default function KeysPage() {
   const { data: keys, isLoading, error, refetch } = useKeys();
   const { data: projects } = useProjects();
+  const createProjectMutation = useCreateProject();
   const addKeyMutation = useAddKey();
   const updateKeyMutation = useUpdateKey();
   const deleteKeyMutation = useDeleteKey();
@@ -32,11 +49,74 @@ export default function KeysPage() {
   const [copied, setCopied] = useState<string | null>(null);
 
   // Add key form state
-  const [formProvider, setFormProvider] = useState('openai');
+  const [formProvider, setFormProvider] = useState('');
   const [formLabel, setFormLabel] = useState('');
-  const [formProject, setFormProject] = useState('');
   const [formKey, setFormKey] = useState('');
   const [showKey, setShowKey] = useState(false);
+  const [projectMode, setProjectMode] = useState<ProjectMode>('none');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [newProjectName, setNewProjectName] = useState('');
+
+  const activeProjects = useMemo(
+    () => (projects ?? []).filter((p) => p.is_active),
+    [projects],
+  );
+
+  function resetForm() {
+    setFormProvider('');
+    setFormLabel('');
+    setFormKey('');
+    setShowKey(false);
+    setProjectMode('none');
+    setSelectedProjectId('');
+    setNewProjectName('');
+  }
+
+  function openModal() {
+    resetForm();
+    setShowModal(true);
+  }
+
+  function closeModal() {
+    if (addKeyMutation.isPending) return;
+    setShowModal(false);
+  }
+
+  async function handleAddKey() {
+    if (!formProvider || !formLabel.trim() || !formKey.trim()) return;
+
+    let projectId: string | undefined;
+
+    // If user wants a new project, create it first
+    if (projectMode === 'new' && newProjectName.trim()) {
+      try {
+        const result = await createProjectMutation.mutateAsync({
+          name: newProjectName.trim(),
+        });
+        projectId = result.id;
+      } catch {
+        // Error toast is handled by the hook
+        return;
+      }
+    } else if (projectMode === 'existing' && selectedProjectId) {
+      projectId = selectedProjectId;
+    }
+
+    addKeyMutation.mutate(
+      {
+        provider: formProvider,
+        nickname: formLabel.trim(),
+        api_key: formKey,
+        project_id: projectId,
+      },
+      {
+        onSuccess: () => {
+          closeModal();
+          resetForm();
+        },
+      },
+    );
+  }
 
   if (isLoading) {
     return (
@@ -58,6 +138,222 @@ export default function KeysPage() {
 
   const allKeys = keys ?? [];
 
+  function handleRevoke(id: string) {
+    updateKeyMutation.mutate({ id, is_active: false });
+  }
+
+  function handleDelete(id: string) {
+    deleteKeyMutation.mutate(id);
+  }
+
+  function handleCopy(id: string, hint: string) {
+    navigator.clipboard.writeText(hint);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
+  const isSubmitting = addKeyMutation.isPending || createProjectMutation.isPending;
+  const canSubmit = formProvider && formLabel.trim() && formKey.trim() && !isSubmitting
+    && (projectMode !== 'new' || newProjectName.trim())
+    && (projectMode !== 'existing' || selectedProjectId);
+
+  function renderModal() {
+    if (!showModal) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+        <div className="glass-card w-full max-w-lg p-6 mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-brand-400" />
+              <h2 className="text-lg font-semibold text-white">Add API Key</h2>
+            </div>
+            <button
+              onClick={closeModal}
+              disabled={isSubmitting}
+              className="p-1 text-zinc-500 hover:text-white transition-colors disabled:opacity-50"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="space-y-5">
+            {/* Provider Selection */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1.5">Provider</label>
+              <div className="relative">
+                <select
+                  value={formProvider}
+                  onChange={(e) => setFormProvider(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all appearance-none"
+                >
+                  <option value="" disabled>Select a provider</option>
+                  {ADD_KEY_PROVIDERS.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+              </div>
+              {formProvider === 'azure_openai' && (
+                <p className="text-xs text-zinc-500 mt-1.5">
+                  Azure keys should be in format: <code className="text-zinc-400">endpoint|api-key</code>
+                </p>
+              )}
+            </div>
+
+            {/* Project Selection */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1.5">Project</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setProjectMode('none'); setSelectedProjectId(''); setNewProjectName(''); }}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium border transition-all ${
+                    projectMode === 'none'
+                      ? 'bg-brand-600/20 border-brand-500/40 text-brand-400'
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
+                  }`}
+                >
+                  No Project
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setProjectMode('existing'); setNewProjectName(''); }}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium border transition-all ${
+                    projectMode === 'existing'
+                      ? 'bg-brand-600/20 border-brand-500/40 text-brand-400'
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
+                  }`}
+                >
+                  Existing Project
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setProjectMode('new'); setSelectedProjectId(''); }}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium border transition-all ${
+                    projectMode === 'new'
+                      ? 'bg-brand-600/20 border-brand-500/40 text-brand-400'
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
+                  }`}
+                >
+                  New Project
+                </button>
+              </div>
+
+              {/* Existing project dropdown */}
+              {projectMode === 'existing' && (
+                <div className="mt-2.5 relative">
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all appearance-none"
+                  >
+                    <option value="" disabled>Select a project</option>
+                    {activeProjects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+                  {activeProjects.length === 0 && (
+                    <p className="text-xs text-zinc-500 mt-1.5">No projects found. Create a new one instead.</p>
+                  )}
+                </div>
+              )}
+
+              {/* New project name */}
+              {projectMode === 'new' && (
+                <div className="mt-2.5">
+                  <input
+                    type="text"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    placeholder="Enter project name"
+                    className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Label */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1.5">Label</label>
+              <input
+                type="text"
+                value={formLabel}
+                onChange={(e) => setFormLabel(e.target.value)}
+                placeholder="e.g. GPT-4o Production"
+                className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
+              />
+            </div>
+
+            {/* API Key */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1.5">API Key</label>
+              <div className="relative">
+                <input
+                  type={showKey ? 'text' : 'password'}
+                  value={formKey}
+                  onChange={(e) => setFormKey(e.target.value)}
+                  placeholder="Paste your API key here"
+                  className="w-full px-3 py-2.5 pr-10 rounded-lg bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKey(!showKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+                >
+                  {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {/* Masked key preview + privacy message */}
+              {formKey.length > 0 && (
+                <div className="mt-2 p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/50">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Lock className="w-3.5 h-3.5 text-brand-400 shrink-0" />
+                    <code className="text-xs text-zinc-300 font-mono tracking-wider">
+                      {maskApiKey(formKey)}
+                    </code>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">
+                    We can never see your API keys. The moment you enter it, it is encrypted with AES-256-GCM encryption. Only the first two and last two characters are stored for identification.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={closeModal}
+              disabled={isSubmitting}
+              className="flex-1 py-2.5 rounded-lg bg-zinc-800 text-zinc-300 text-sm font-medium hover:bg-zinc-700 disabled:opacity-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAddKey}
+              disabled={!canSubmit}
+              className="flex-1 py-2.5 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Verifying & Adding...
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-4 h-4" />
+                  Add Key
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (allKeys.length === 0) {
     return (
       <div className="animate-fade-in">
@@ -66,7 +362,7 @@ export default function KeysPage() {
           description="Manage your encrypted API keys and monitor their health."
           actions={
             <button
-              onClick={() => setShowModal(true)}
+              onClick={openModal}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-brand-600 text-white hover:bg-brand-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
@@ -80,7 +376,7 @@ export default function KeysPage() {
           description="Add your first API key to start tracking costs. Keys are encrypted with AES-256-GCM."
           action={
             <button
-              onClick={() => setShowModal(true)}
+              onClick={openModal}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-brand-600 text-white hover:bg-brand-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
@@ -99,136 +395,6 @@ export default function KeysPage() {
     return true;
   });
 
-  function handleAddKey() {
-    if (!formLabel.trim() || !formKey.trim()) return;
-    addKeyMutation.mutate(
-      {
-        provider: formProvider,
-        nickname: formLabel,
-        api_key: formKey,
-        project_id: formProject || undefined,
-      },
-      {
-        onSuccess: () => {
-          setShowModal(false);
-          setFormLabel('');
-          setFormKey('');
-          setFormProvider('openai');
-          setFormProject('');
-        },
-      },
-    );
-  }
-
-  function handleRevoke(id: string) {
-    updateKeyMutation.mutate({ id, is_active: false });
-  }
-
-  function handleDelete(id: string) {
-    deleteKeyMutation.mutate(id);
-  }
-
-  function handleCopy(id: string, hint: string) {
-    navigator.clipboard.writeText(hint);
-    setCopied(id);
-    setTimeout(() => setCopied(null), 2000);
-  }
-
-  function renderModal() {
-    if (!showModal) return null;
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-        <div className="glass-card w-full max-w-md p-6 mx-4">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white">Add API Key</h2>
-            <button onClick={() => setShowModal(false)} className="p-1 text-zinc-500 hover:text-white transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1.5">Provider</label>
-              <select
-                value={formProvider}
-                onChange={(e) => setFormProvider(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
-              >
-                {Object.entries(PROVIDER_NAMES).map(([key, name]) => (
-                  <option key={key} value={key}>{name}</option>
-                ))}
-              </select>
-            </div>
-
-            {projects && projects.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1.5">Project (optional)</label>
-                <select
-                  value={formProject}
-                  onChange={(e) => setFormProject(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
-                >
-                  <option value="">No project</option>
-                  {projects.filter((p) => p.is_active).map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1.5">Label</label>
-              <input
-                type="text"
-                value={formLabel}
-                onChange={(e) => setFormLabel(e.target.value)}
-                placeholder="e.g. GPT-4o Production"
-                className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1.5">API Key</label>
-              <div className="relative">
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  value={formKey}
-                  onChange={(e) => setFormKey(e.target.value)}
-                  placeholder="sk-..."
-                  className="w-full px-3 py-2.5 pr-10 rounded-lg bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
-                >
-                  {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <p className="text-xs text-zinc-600 mt-1.5">Keys are encrypted with AES-256-GCM before storage.</p>
-            </div>
-          </div>
-
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={() => setShowModal(false)}
-              className="flex-1 py-2.5 rounded-lg bg-zinc-800 text-zinc-300 text-sm font-medium hover:bg-zinc-700 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAddKey}
-              disabled={!formLabel.trim() || !formKey.trim() || addKeyMutation.isPending}
-              className="flex-1 py-2.5 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {addKeyMutation.isPending ? 'Adding...' : 'Add Key'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="animate-fade-in">
       <PageHeader
@@ -236,7 +402,7 @@ export default function KeysPage() {
         description="Manage your encrypted API keys and monitor their health."
         actions={
           <button
-            onClick={() => setShowModal(true)}
+            onClick={openModal}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-brand-600 text-white hover:bg-brand-700 transition-colors"
           >
             <Plus className="w-4 h-4" />

@@ -22,12 +22,16 @@ export function useAddKey() {
     mutationFn: async (input: AddKeyInput) => {
       const result = await addKey(input);
       if (result.error) throw new Error(result.error);
-      return result.data!;
+      return { data: result.data!, warning: result.warning };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['keys'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast.success('API key added successfully');
+      if (result.warning) {
+        toast.success('API key added successfully', { description: result.warning });
+      } else {
+        toast.success('API key verified & added successfully');
+      }
     },
     onError: (error: Error) => toast.error(error.message),
   });

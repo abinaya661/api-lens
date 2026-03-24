@@ -5,11 +5,13 @@
 import type { Provider, ProviderSyncResult } from '@/types';
 import { validateOpenAIKey, fetchOpenAIUsage } from './openai';
 import { validateAnthropicKey, fetchAnthropicUsage } from './anthropic';
-import { validateMistralKey, fetchMistralUsage } from './mistral';
-import { validateCohereKey, fetchCohereUsage } from './cohere';
-import { validateAzureOpenAI, fetchAzureOpenAIUsage } from './azure_openai';
 import { validateGemini, fetchGeminiUsage } from './gemini';
-import { validateBedrock, fetchBedrockUsage } from './bedrock';
+import { validateGrokKey, fetchGrokUsage } from './grok';
+import { validateAzureOpenAI, fetchAzureOpenAIUsage } from './azure_openai';
+import { validateMoonshotKey, fetchMoonshotUsage } from './moonshot';
+import { validateDeepSeekKey, fetchDeepSeekUsage } from './deepseek';
+import { validateElevenLabsKey, fetchElevenLabsUsage } from './elevenlabs';
+import { validateOpenRouterKey, fetchOpenRouterUsage } from './openrouter';
 
 export interface ProviderModule {
   validate: (credentials: Record<string, string>) => Promise<{ valid: boolean; error?: string }>;
@@ -25,25 +27,33 @@ const providers: Partial<Record<Provider, ProviderModule>> = {
     validate: (creds) => validateAnthropicKey(creds.api_key ?? ''),
     fetchUsage: (creds, keyId, since) => fetchAnthropicUsage(creds.api_key ?? '', keyId, since),
   },
-  mistral: {
-    validate: (creds) => validateMistralKey(creds.api_key ?? ''),
-    fetchUsage: (creds, keyId, since) => fetchMistralUsage(creds.api_key ?? '', keyId, since),
+  gemini: {
+    validate: (creds) => validateGemini(creds.service_account_json ?? '', creds.project_id ?? ''),
+    fetchUsage: (creds, keyId, since) => fetchGeminiUsage(creds.service_account_json ?? '', creds.project_id ?? '', keyId, since),
   },
-  cohere: {
-    validate: (creds) => validateCohereKey(creds.api_key ?? ''),
-    fetchUsage: (creds, keyId, since) => fetchCohereUsage(creds.api_key ?? '', keyId, since),
+  grok: {
+    validate: (creds) => validateGrokKey(creds.api_key ?? ''),
+    fetchUsage: (creds, keyId, since) => fetchGrokUsage(creds.api_key ?? '', keyId, since),
   },
   azure_openai: {
     validate: (creds) => validateAzureOpenAI(creds.api_key ?? '', creds.endpoint ?? '', creds.subscription_id ?? ''),
     fetchUsage: (creds, keyId, since) => fetchAzureOpenAIUsage(creds.api_key ?? '', creds.endpoint ?? '', creds.subscription_id ?? '', keyId, since),
   },
-  gemini: {
-    validate: (creds) => validateGemini(creds.service_account_json ?? '', creds.project_id ?? ''),
-    fetchUsage: (creds, keyId, since) => fetchGeminiUsage(creds.service_account_json ?? '', creds.project_id ?? '', keyId, since),
+  moonshot: {
+    validate: (creds) => validateMoonshotKey(creds.api_key ?? ''),
+    fetchUsage: (creds, keyId, since) => fetchMoonshotUsage(creds.api_key ?? '', keyId, since),
   },
-  bedrock: {
-    validate: (creds) => validateBedrock(creds.aws_access_key_id ?? '', creds.aws_secret_access_key ?? '', creds.aws_region ?? ''),
-    fetchUsage: (creds, keyId, since) => fetchBedrockUsage(creds.aws_access_key_id ?? '', creds.aws_secret_access_key ?? '', creds.aws_region ?? '', keyId, since),
+  deepseek: {
+    validate: (creds) => validateDeepSeekKey(creds.api_key ?? ''),
+    fetchUsage: (creds, keyId, since) => fetchDeepSeekUsage(creds.api_key ?? '', keyId, since),
+  },
+  elevenlabs: {
+    validate: (creds) => validateElevenLabsKey(creds.api_key ?? ''),
+    fetchUsage: (creds, keyId, since) => fetchElevenLabsUsage(creds.api_key ?? '', keyId, since),
+  },
+  openrouter: {
+    validate: (creds) => validateOpenRouterKey(creds.api_key ?? ''),
+    fetchUsage: (creds, keyId, since) => fetchOpenRouterUsage(creds.api_key ?? '', keyId, since),
   },
 };
 
@@ -58,7 +68,7 @@ export function getProviderModule(provider: Provider): ProviderModule | null {
  * Check if a provider has an implemented module.
  */
 export function isProviderSupported(provider: Provider): boolean {
-  return provider in providers || provider === 'custom';
+  return provider in providers;
 }
 
 /**
@@ -66,11 +76,12 @@ export function isProviderSupported(provider: Provider): boolean {
  */
 export function getProviderStatus(): Array<{ provider: Provider; implemented: boolean }> {
   const allProviders: Provider[] = [
-    'openai', 'anthropic', 'gemini', 'bedrock',
-    'mistral', 'cohere', 'azure_openai', 'custom',
+    'openai', 'anthropic', 'gemini', 'grok',
+    'azure_openai', 'moonshot', 'deepseek',
+    'elevenlabs', 'openrouter',
   ];
   return allProviders.map((p) => ({
     provider: p,
-    implemented: p in providers || p === 'custom',
+    implemented: p in providers,
   }));
 }

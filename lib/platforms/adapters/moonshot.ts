@@ -1,17 +1,19 @@
 import { BaseAdapter } from './base';
 import type { SyncResult } from '../types';
 
-export class AssemblyAIAdapter extends BaseAdapter {
-  provider = 'assemblyai';
+export class MoonshotAdapter extends BaseAdapter {
+  provider = 'moonshot';
 
   async fetchUsage(_apiKey: string, _dateFrom: string, _dateTo: string): Promise<SyncResult> {
+    // Moonshot (Kimi) does not expose a public usage/billing API
     return this.makeSyncResult(this.provider, []);
   }
 
   async validateKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
     try {
-      const res = await fetch('https://api.assemblyai.com/v2/transcript?limit=1', {
-        headers: { 'Authorization': apiKey },
+      // Moonshot is OpenAI-compatible; validate by listing models
+      const res = await fetch('https://api.moonshot.cn/v1/models', {
+        headers: { 'Authorization': `Bearer ${apiKey}` },
       });
 
       if (res.ok) {
@@ -22,8 +24,8 @@ export class AssemblyAIAdapter extends BaseAdapter {
         return { valid: false, error: 'Invalid or unauthorized API key' };
       }
 
-      // Other statuses (e.g. 200 with empty list) still mean the key is valid
-      return { valid: true };
+      const body = await res.text();
+      return { valid: false, error: `Moonshot returned ${res.status}: ${body}` };
     } catch (e: unknown) {
       return { valid: false, error: e instanceof Error ? e.message : 'Validation failed' };
     }

@@ -18,7 +18,8 @@
       "Bash(xargs grep:*)",
       "Bash(grep -r \"price_snapshot\\\\|PriceSnapshot\" '/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens' --include=*.sql --include=*.ts --include=*.tsx)",
       "Bash(grep -E \"CREATE TABLE|CREATE VIEW\" supabase/migrations/*.sql)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

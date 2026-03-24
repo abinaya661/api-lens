@@ -21,17 +21,12 @@ const PROVIDERS = [
   { value: 'openai', label: 'OpenAI' },
   { value: 'anthropic', label: 'Anthropic' },
   { value: 'gemini', label: 'Gemini' },
-  { value: 'mistral', label: 'Mistral' },
-  { value: 'cohere', label: 'Cohere' },
-  { value: 'bedrock', label: 'Bedrock' },
-  { value: 'azure_openai', label: 'Azure OpenAI' },
+  { value: 'grok', label: 'Grok' },
+  { value: 'azure_openai', label: 'Microsoft Azure' },
+  { value: 'moonshot', label: 'Moonshot' },
+  { value: 'deepseek', label: 'DeepSeek' },
   { value: 'elevenlabs', label: 'ElevenLabs' },
-  { value: 'deepgram', label: 'Deepgram' },
-  { value: 'assemblyai', label: 'AssemblyAI' },
-  { value: 'replicate', label: 'Replicate' },
-  { value: 'fal', label: 'Fal AI' },
   { value: 'openrouter', label: 'OpenRouter' },
-  { value: 'vertex_ai', label: 'Vertex AI' },
 ];
 
 const STEPS = [

@@ -56,16 +56,31 @@ export class OpenAIAdapter extends BaseAdapter {
 
   async validateKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
     try {
-      const res = await fetch('https://api.openai.com/v1/models', {
+      // First check basic validity
+      const modelsRes = await fetch('https://api.openai.com/v1/models', {
         headers: { 'Authorization': `Bearer ${apiKey}` },
       });
 
-      if (res.ok) {
-        return { valid: true };
+      if (!modelsRes.ok) {
+        const body = await modelsRes.text();
+        return { valid: false, error: `OpenAI returned ${modelsRes.status}: ${body}` };
       }
 
-      const body = await res.text();
-      return { valid: false, error: `OpenAI returned ${res.status}: ${body}` };
+      // Then verify billing/admin access via the costs endpoint
+      const now = Math.floor(Date.now() / 1000);
+      const oneDayAgo = now - 86400;
+      const billingRes = await fetch(
+        `https://api.openai.com/v1/organization/costs?start_time=${oneDayAgo}&end_time=${now}`,
+        { headers: { 'Authorization': `Bearer ${apiKey}` } },
+      );
+
+      if (!billingRes.ok) {
+        // Key is valid but doesn't have billing access — we still accept it
+        // but flag it so the user knows usage sync may be limited
+        return { valid: true, error: 'Key is valid but may not have billing access. Usage tracking may be limited.' };
+      }
+
+      return { valid: true };
     } catch (e: unknown) {
       return { valid: false, error: e instanceof Error ? e.message : 'Validation failed' };
     }
