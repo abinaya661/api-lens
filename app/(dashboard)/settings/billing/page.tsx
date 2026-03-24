@@ -132,7 +132,7 @@ export default function BillingPage() {
 
   const status = subscription?.status ?? 'trialing';
   const plan = subscription?.plan ?? null;
-  const isActive = plan === 'monthly' || plan === 'annual';
+  const isActive = status === 'active';
   const isTrialing = status === 'trialing';
   const isCancelled = status === 'cancelled';
   const trialEnd = subscription?.trial_ends_at;

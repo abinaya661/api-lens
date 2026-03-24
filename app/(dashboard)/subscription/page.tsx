@@ -85,8 +85,8 @@ function CurrentPlanCard({ subscription }: { subscription: Subscription | null |
   const cancelMutation = useCancelSubscription();
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  const plan = subscription?.plan ?? 'trialing';
-  const isActive = plan === 'monthly' || plan === 'annual';
+  const plan = subscription?.plan ?? null;
+  const isActive = subscription?.status === 'active';
   const isCancelled = subscription?.status === 'cancelled';
 
   return (
@@ -95,12 +95,12 @@ function CurrentPlanCard({ subscription }: { subscription: Subscription | null |
         <div>
           <h3 className="text-lg font-medium text-white">Current Plan</h3>
           <p className="text-sm text-zinc-500 mt-1">
-            {isActive
+            {isActive && plan
               ? `Your ${plan} subscription is active.`
               : 'You are on the free trial. Upgrade to unlock all features.'}
           </p>
         </div>
-        <Badge variant={getPlanBadgeVariant(plan)}>{getPlanLabel(plan)}</Badge>
+        <Badge variant={getPlanBadgeVariant(isActive ? plan : null)}>{getPlanLabel(isActive ? plan : null)}</Badge>
       </div>
 
       {isActive && (
@@ -322,7 +322,7 @@ export default function SubscriptionPage() {
     );
   }
 
-  const currentPlan = subscription?.plan ?? 'trialing';
+  const currentPlan = subscription?.status === 'active' ? subscription?.plan : null;
 
   return (
     <div className="animate-fade-in space-y-8">
@@ -335,7 +335,7 @@ export default function SubscriptionPage() {
 
       <div>
         <h3 className="text-lg font-medium text-white mb-1">
-          {currentPlan === 'trialing' ? 'Choose a Plan' : 'Change Plan'}
+          {currentPlan ? 'Change Plan' : 'Choose a Plan'}
         </h3>
         <p className="text-sm text-zinc-500 mb-4">
           All plans include every feature. No hidden fees. Global checkout powered by Dodo Payments.
