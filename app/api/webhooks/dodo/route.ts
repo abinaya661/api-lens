@@ -22,6 +22,21 @@ export async function POST(request: Request) {
     return new Response('Invalid signature', { status: 400 });
   }
 
+  const adminSupabase = createAdminClient();
+
+  // Idempotency check: skip if this webhook-id was already processed
+  const webhookId = webhookHeaders['webhook-id'];
+  if (webhookId) {
+    const { data: existing } = await adminSupabase
+      .from('webhook_events')
+      .select('webhook_id')
+      .eq('webhook_id', webhookId)
+      .single();
+    if (existing) {
+      return new Response('Already processed', { status: 200 });
+    }
+  }
+
   const event = JSON.parse(rawBody) as {
     type: string;
     data: {
@@ -32,12 +47,25 @@ export async function POST(request: Request) {
     };
   };
 
-  const adminSupabase = createAdminClient();
+  // Record webhook event for idempotency
+  if (webhookId) {
+    await adminSupabase.from('webhook_events').insert({
+      webhook_id: webhookId,
+      event_type: event.type,
+    });
+  }
 
   switch (event.type) {
     case 'subscription.active': {
       const userId = event.data.metadata?.user_id;
-      if (!userId) break;
+      if (!userId) {
+        console.warn('[webhook] subscription.active missing user_id', { webhookId });
+        break;
+      }
+      if (!event.data.subscription_id) {
+        console.warn('[webhook] subscription.active missing subscription_id', { webhookId });
+        break;
+      }
 
       await adminSupabase.from('subscriptions').update({
         status: 'active',
@@ -52,6 +80,10 @@ export async function POST(request: Request) {
     }
 
     case 'subscription.renewed': {
+      if (!event.data.subscription_id) {
+        console.warn('[webhook] subscription.renewed missing subscription_id', { webhookId });
+        break;
+      }
       await adminSupabase.from('subscriptions').update({
         status: 'active',
         last_payment_at: new Date().toISOString(),
@@ -62,6 +94,10 @@ export async function POST(request: Request) {
     }
 
     case 'payment.failed': {
+      if (!event.data.subscription_id) {
+        console.warn('[webhook] payment.failed missing subscription_id', { webhookId });
+        break;
+      }
       await adminSupabase.from('subscriptions').update({
         status: 'past_due',
         grace_period_ends_at: new Date(
@@ -73,6 +109,10 @@ export async function POST(request: Request) {
     }
 
     case 'subscription.canceled': {
+      if (!event.data.subscription_id) {
+        console.warn('[webhook] subscription.canceled missing subscription_id', { webhookId });
+        break;
+      }
       await adminSupabase.from('subscriptions').update({
         status: 'cancelled',
         updated_at: new Date().toISOString(),
@@ -81,6 +121,10 @@ export async function POST(request: Request) {
     }
 
     case 'payment.completed': {
+      if (!event.data.subscription_id) {
+        console.warn('[webhook] payment.completed missing subscription_id', { webhookId });
+        break;
+      }
       await adminSupabase.from('subscriptions').update({
         status: 'active',
         last_payment_at: new Date().toISOString(),
@@ -90,6 +134,10 @@ export async function POST(request: Request) {
     }
 
     case 'subscription.updated': {
+      if (!event.data.subscription_id) {
+        console.warn('[webhook] subscription.updated missing subscription_id', { webhookId });
+        break;
+      }
       await adminSupabase.from('subscriptions').update({
         plan: event.data.metadata?.plan,
         updated_at: new Date().toISOString(),

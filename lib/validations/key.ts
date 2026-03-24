@@ -5,7 +5,18 @@ export const addKeySchema = z.object({
   nickname: z.string().min(1, 'Label is required').max(100),
   api_key: z.string().min(1, 'API key is required'),
   project_id: z.string().uuid().optional(),
-  endpoint_url: z.string().url().optional().or(z.literal('')),
+  endpoint_url: z.string().optional().or(z.literal('')).refine((val) => {
+    if (!val) return true;
+    try {
+      const url = new URL(val);
+      if (url.protocol !== 'https:') return false;
+      const hostname = url.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return false;
+      if (hostname.startsWith('10.') || hostname.startsWith('192.168.') || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) return false;
+      if (hostname.endsWith('.internal') || hostname.endsWith('.local')) return false;
+      return true;
+    } catch { return false; }
+  }, 'Must be a valid HTTPS URL (no internal/private addresses)'),
   notes: z.string().max(500).optional(),
 });
 

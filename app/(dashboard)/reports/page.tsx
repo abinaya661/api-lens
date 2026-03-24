@@ -39,7 +39,7 @@ export default function ReportsPage() {
   const dateFrom = getDateFrom(dateRange);
   const dateTo = toDateStr(new Date());
 
-  const { data: records, error, refetch } = useQuery({
+  const { data: usageData, error, refetch } = useQuery({
     queryKey: ['usage-records', dateFrom, dateTo],
     queryFn: async () => {
       const result = await getUsageRecords(dateFrom, dateTo);
@@ -47,6 +47,7 @@ export default function ReportsPage() {
       return result.data!;
     },
   });
+  const records = usageData?.records;
 
   function handleExport() {
     if (!records || records.length === 0) return;

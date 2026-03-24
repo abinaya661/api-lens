@@ -1,8 +1,13 @@
 import { NextRequest } from 'next/server';
 import { dodo } from '@/lib/dodo/client';
 import { createClient } from '@/lib/supabase/server';
+import { validateOrigin } from '@/lib/utils/csrf';
 
 export async function POST(req: NextRequest) {
+  if (!validateOrigin(req)) {
+    return Response.json({ error: 'Invalid origin' }, { status: 403 });
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });

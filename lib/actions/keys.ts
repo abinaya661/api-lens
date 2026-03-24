@@ -2,7 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { addKeySchema, updateKeySchema, type AddKeyInput, type UpdateKeyInput } from '@/lib/validations/key';
-import { encryptCredentials } from '@/lib/encryption';
+import { encryptCredentials, extractKeyHint } from '@/lib/encryption';
+import { logAudit } from '@/lib/utils/audit';
 import { checkRateLimit, apiRateLimit } from '@/lib/ratelimit';
 import type { ApiKey } from '@/types/database';
 
@@ -69,7 +70,7 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
 
     // Encrypt the API key
     const encrypted = encryptCredentials(api_key);
-    const keyHint = api_key.slice(-4);
+    const keyHint = extractKeyHint(api_key);
 
     const { data, error } = await supabase
       .from('api_keys')
@@ -94,6 +95,14 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
         key_id: data.id,
       });
     }
+
+    await logAudit(supabase, {
+      userId: user.id,
+      action: 'key.created',
+      entityType: 'api_key',
+      entityId: data?.id,
+      metadata: { provider, nickname },
+    });
 
     return { data, error: null };
   } catch (e) {
@@ -121,6 +130,15 @@ export async function updateKey(input: UpdateKeyInput): Promise<ActionResult<Api
       .single();
 
     if (error) return { data: null, error: error.message };
+
+    await logAudit(supabase, {
+      userId: user.id,
+      action: 'key.updated',
+      entityType: 'api_key',
+      entityId: id,
+      metadata: updates,
+    });
+
     return { data, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
@@ -133,7 +151,17 @@ export async function deleteKey(id: string): Promise<ActionResult<null>> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: 'Not authenticated' };
 
-    // Delete project_keys links first
+    // Verify the key belongs to this user before deleting project links
+    const { data: keyCheck } = await supabase
+      .from('api_keys')
+      .select('id')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!keyCheck) return { data: null, error: 'Key not found' };
+
+    // Now safe to delete project_keys
     await supabase.from('project_keys').delete().eq('key_id', id);
 
     const { error } = await supabase
@@ -143,6 +171,14 @@ export async function deleteKey(id: string): Promise<ActionResult<null>> {
       .eq('user_id', user.id);
 
     if (error) return { data: null, error: error.message };
+
+    await logAudit(supabase, {
+      userId: user.id,
+      action: 'key.deleted',
+      entityType: 'api_key',
+      entityId: id,
+    });
+
     return { data: null, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
