@@ -47,8 +47,20 @@ export async function getDashboardData(): Promise<ActionResult<DashboardData>> {
     if (!user) return { data: null, error: 'Not authenticated' };
 
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const today = now.toISOString().split('T')[0];
+
+    // Fetch user timezone for accurate date calculation
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('timezone')
+      .eq('id', user.id)
+      .single();
+    const tz = profile?.timezone || 'UTC';
+
+    // Calculate "today" and "month start" in the user's timezone
+    const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: tz });
+    const today = formatter.format(now);
+    const [year, month] = today.split('-');
+    const monthStart = `${year}-${month}-01`;
 
     // Parallel queries
     const [usageRes, keysRes, alertsRes, budgetRes] = await Promise.all([
@@ -170,25 +182,31 @@ export async function getDashboardData(): Promise<ActionResult<DashboardData>> {
 export async function getUsageRecords(
   dateFrom?: string,
   dateTo?: string,
-): Promise<ActionResult<UsageRecord[]>> {
+  page: number = 1,
+  pageSize: number = 100,
+): Promise<ActionResult<{ records: UsageRecord[]; total: number }>> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: 'Not authenticated' };
 
+    const safePageSize = Math.min(Math.max(pageSize, 1), 500);
+    const from = (page - 1) * safePageSize;
+    const to = from + safePageSize - 1;
+
     let query = supabase
       .from('usage_records')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('user_id', user.id)
       .order('date', { ascending: false })
-      .limit(100);
+      .range(from, to);
 
     if (dateFrom) query = query.gte('date', dateFrom);
     if (dateTo) query = query.lte('date', dateTo);
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
     if (error) return { data: null, error: error.message };
-    return { data: data as UsageRecord[], error: null };
+    return { data: { records: data as UsageRecord[], total: count ?? 0 }, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }

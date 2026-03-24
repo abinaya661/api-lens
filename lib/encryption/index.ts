@@ -64,6 +64,7 @@ function unwrapDEK(wrapped: string): Buffer {
 }
 
 export interface EncryptedPayload {
+  version?: number;    // encryption scheme version
   ciphertext: string;  // base64 encoded
   iv: string;          // base64 encoded
   tag: string;         // base64 encoded
@@ -79,10 +80,11 @@ export function encryptCredentials(plaintext: string): EncryptedPayload {
   const { ciphertext, iv, tag } = aesEncrypt(Buffer.from(plaintext, 'utf8'), dek);
 
   return {
+    version: 1,
     ciphertext: ciphertext.toString('base64'),
     iv: iv.toString('base64'),
     tag: tag.toString('base64'),
-    dek: wrapDEK(dek), // DEK is wrapped with master key
+    dek: wrapDEK(dek),
   };
 }
 
@@ -91,10 +93,13 @@ export function encryptCredentials(plaintext: string): EncryptedPayload {
  * Unwraps the DEK with the master key, then decrypts the ciphertext.
  */
 export function decryptCredentials(payload: EncryptedPayload): string {
+  const version = payload.version ?? 1;
+  if (version !== 1) throw new Error(`Unsupported encryption version: ${version}`);
+
   const ciphertext = Buffer.from(payload.ciphertext, 'base64');
   const iv = Buffer.from(payload.iv, 'base64');
   const tag = Buffer.from(payload.tag, 'base64');
-  const dek = unwrapDEK(payload.dek); // Unwrap DEK using master key
+  const dek = unwrapDEK(payload.dek);
 
   return aesDecrypt(ciphertext, dek, iv, tag).toString('utf8');
 }
@@ -103,5 +108,7 @@ export function decryptCredentials(payload: EncryptedPayload): string {
  * Extract the last 4 characters of a key for display (key hint).
  */
 export function extractKeyHint(key: string): string {
-  return key.trim().slice(-4);
+  const trimmed = key.trim();
+  if (trimmed.length < 8) return '****';
+  return trimmed.slice(-4);
 }

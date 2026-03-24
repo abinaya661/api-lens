@@ -5,7 +5,7 @@ let _dodo: DodoPayments | null = null;
 function getDodoClient(): DodoPayments {
   if (!_dodo) {
     _dodo = new DodoPayments({
-      bearerToken: process.env.DODO_PAYMENTS_API_KEY!,
+      bearerToken: process.env.DODO_API_KEY!,
       environment:
         process.env.DODO_PAYMENTS_ENVIRONMENT === 'test_mode' ? 'test_mode' : undefined,
     });

@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { Check, ArrowRight, AlertTriangle } from 'lucide-react';
 import { RevealOnScroll } from './reveal-on-scroll';
+import { useRegionalPrice } from '@/hooks/use-regional-price';
+import { formatPrice } from '@/lib/regional-pricing';
 
 const MONTHLY_FEATURES = [
   'Unlimited API keys & providers',
@@ -23,6 +25,10 @@ const ANNUAL_FEATURES = [
 ];
 
 export function PricingSection() {
+  const regional = useRegionalPrice();
+  const monthlyPrice = formatPrice(regional, 'monthly');
+  const annualPrice = formatPrice(regional, 'annual');
+
   return (
     <section className="py-16 md:py-24 px-6 border-t border-zinc-800">
       <div className="max-w-6xl mx-auto">
@@ -58,7 +64,7 @@ export function PricingSection() {
                 </li>
                 <li className="text-sm text-zinc-300 leading-relaxed">
                   <strong className="text-white block mb-1">Ghost subscriptions:</strong>
-                  Teams expensing duplicate provider accounts because there's no central visibility.
+                  Teams expensing duplicate provider accounts because there&apos;s no central visibility.
                 </li>
               </ul>
               <div className="p-4 rounded-xl bg-black border border-red-500/20 text-center">
@@ -76,7 +82,7 @@ export function PricingSection() {
                 </div>
 
                 <div className="mb-8">
-                  <span className="text-5xl font-bold text-white font-mono">$5.99</span>
+                  <span className="text-5xl font-bold text-white font-mono">{monthlyPrice}</span>
                   <span className="text-zinc-500 text-sm ml-1">/mo</span>
                 </div>
 
@@ -114,7 +120,7 @@ export function PricingSection() {
                 </div>
 
                 <div className="mb-8 relative">
-                  <span className="text-5xl font-bold text-white font-mono">$59.99</span>
+                  <span className="text-5xl font-bold text-white font-mono">{annualPrice}</span>
                   <span className="text-zinc-500 text-sm ml-1">/yr</span>
                   <p className="text-brand-400 text-sm mt-2 font-medium">Get 2 months free</p>
                 </div>

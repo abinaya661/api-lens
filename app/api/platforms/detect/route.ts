@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { validateOrigin } from '@/lib/utils/csrf';
 
 interface DetectionResult {
   provider: string;
@@ -33,11 +34,19 @@ function detectProvider(keyPrefix: string): DetectionResult | null {
 }
 
 export async function POST(request: NextRequest) {
+  if (!validateOrigin(request)) {
+    return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
+  }
+
   try {
     const body = await request.json() as { apiKey?: string };
 
     if (!body.apiKey || typeof body.apiKey !== 'string') {
       return NextResponse.json({ error: 'apiKey is required' }, { status: 400 });
+    }
+
+    if (body.apiKey.length > 1000) {
+      return NextResponse.json({ error: 'API key too long' }, { status: 400 });
     }
 
     // Only use the key for pattern matching — never log or store

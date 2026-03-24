@@ -25,7 +25,7 @@ export async function GET() {
   ];
 
   const optionalEnvVars = [
-    'DODO_PAYMENTS_API_KEY',
+    'DODO_API_KEY',
     'DODO_WEBHOOK_SECRET',
     'RESEND_API_KEY',
   ];

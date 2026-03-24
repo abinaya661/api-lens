@@ -8,7 +8,6 @@ import { timeAgo } from '@/lib/utils';
 import type { ApiKey } from '@/types/database';
 import {
   Plus,
-  Shield,
   ShieldX,
   Trash2,
   X,
@@ -18,46 +17,8 @@ import {
   Check,
   Key,
 } from 'lucide-react';
-
-const PROVIDER_NAMES: Record<string, string> = {
-  openai: 'OpenAI',
-  anthropic: 'Anthropic',
-  gemini: 'Gemini',
-  mistral: 'Mistral',
-  cohere: 'Cohere',
-  bedrock: 'Bedrock',
-  azure_openai: 'Azure OpenAI',
-  elevenlabs: 'ElevenLabs',
-  deepgram: 'Deepgram',
-  assemblyai: 'AssemblyAI',
-  replicate: 'Replicate',
-  fal: 'Fal AI',
-  openrouter: 'OpenRouter',
-  vertex_ai: 'Vertex AI',
-};
-
-const PROVIDER_COLORS: Record<string, string> = {
-  openai: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  anthropic: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-  gemini: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  mistral: 'bg-red-500/10 text-red-400 border-red-500/20',
-  cohere: 'bg-teal-500/10 text-teal-400 border-teal-500/20',
-  bedrock: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  azure_openai: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-  elevenlabs: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
-  deepgram: 'bg-green-500/10 text-green-400 border-green-500/20',
-  assemblyai: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  replicate: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
-  fal: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  openrouter: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
-  vertex_ai: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-};
-
-function getHealthConfig(key: ApiKey) {
-  if (!key.is_active) return { icon: ShieldX, color: 'text-zinc-400', bg: 'bg-zinc-500/10', label: 'Revoked' };
-  if (!key.is_valid || key.consecutive_failures > 0) return { icon: ShieldX, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Error' };
-  return { icon: Shield, color: 'text-green-400', bg: 'bg-green-500/10', label: 'Healthy' };
-}
+import { PROVIDER_NAMES, PROVIDER_COLORS } from '@/lib/utils/provider-config';
+import { getHealthConfig } from '@/lib/utils/key-health';
 
 export default function KeysPage() {
   const { data: keys, isLoading, error, refetch } = useKeys();

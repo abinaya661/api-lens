@@ -18,7 +18,7 @@ export async function syncAllKeys(): Promise<SyncStats> {
   // Fetch all active keys
   const { data: keys, error } = await supabase
     .from('api_keys')
-    .select('id, user_id, provider, encrypted_key, nickname')
+    .select('id, user_id, provider, encrypted_key, nickname, consecutive_failures')
     .eq('is_active', true);
 
   if (error || !keys) {
@@ -79,16 +79,32 @@ export async function syncAllKeys(): Promise<SyncStats> {
       }
 
       // Update key status
-      await supabase
-        .from('api_keys')
-        .update({
-          last_used: new Date().toISOString(),
-          is_valid: result.success,
-          consecutive_failures: result.success ? 0 : undefined,
-          last_failure_reason: result.error ?? null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', key.id);
+      if (result.success) {
+        await supabase
+          .from('api_keys')
+          .update({
+            last_used: new Date().toISOString(),
+            is_valid: true,
+            consecutive_failures: 0,
+            last_failure_reason: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', key.id);
+      } else {
+        const newFailures = Math.min((key.consecutive_failures ?? 0) + 1, 10);
+        const shouldDeactivate = newFailures >= 5;
+        await supabase
+          .from('api_keys')
+          .update({
+            last_used: new Date().toISOString(),
+            is_valid: false,
+            consecutive_failures: newFailures,
+            ...(shouldDeactivate ? { is_active: false } : {}),
+            last_failure_reason: result.error ?? 'Unknown error',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', key.id);
+      }
 
       if (result.success) {
         stats.keys_succeeded++;
@@ -99,10 +115,14 @@ export async function syncAllKeys(): Promise<SyncStats> {
       stats.keys_failed++;
       stats.errors.push(`${key.nickname}: ${e instanceof Error ? e.message : 'Unknown error'}`);
 
+      const newFailures = Math.min((key.consecutive_failures ?? 0) + 1, 10);
+      const shouldDeactivate = newFailures >= 5;
       await supabase
         .from('api_keys')
         .update({
           is_valid: false,
+          consecutive_failures: newFailures,
+          ...(shouldDeactivate ? { is_active: false } : {}),
           last_failure_reason: e instanceof Error ? e.message : 'Sync error',
           updated_at: new Date().toISOString(),
         })
@@ -162,24 +182,34 @@ export async function checkBudgets(): Promise<{ alerts_created: number }> {
 
     for (const t of thresholds) {
       if (t.enabled && pct >= t.pct && lastAlerted < t.pct) {
-        // Create alert
-        await supabase.from('alerts').insert({
-          user_id: budget.user_id,
-          type: 'budget_threshold',
-          severity: t.severity,
-          title: `Budget ${t.pct}% reached`,
-          message: `Your ${budget.scope} budget of $${budget.amount_usd} is ${Math.round(pct)}% used ($${totalSpend.toFixed(2)} spent).`,
-          scope: budget.scope,
-          scope_id: budget.scope_id,
-        });
+        // Check if alert already exists to prevent race condition duplicates
+        const { data: existingAlert } = await supabase
+          .from('alerts')
+          .select('id')
+          .eq('user_id', budget.user_id)
+          .eq('type', 'budget_threshold')
+          .eq('title', `Budget ${t.pct}% reached`)
+          .eq('scope', budget.scope)
+          .maybeSingle();
 
-        // Update last_alerted_threshold
-        await supabase
-          .from('budgets')
-          .update({ last_alerted_threshold: t.pct })
-          .eq('id', budget.id);
+        if (!existingAlert) {
+          await supabase.from('alerts').insert({
+            user_id: budget.user_id,
+            type: 'budget_threshold',
+            severity: t.severity,
+            title: `Budget ${t.pct}% reached`,
+            message: `Your ${budget.scope} budget of $${budget.amount_usd} is ${Math.round(pct)}% used ($${totalSpend.toFixed(2)} spent).`,
+            scope: budget.scope,
+            scope_id: budget.scope_id,
+          });
 
-        alertsCreated++;
+          await supabase
+            .from('budgets')
+            .update({ last_alerted_threshold: t.pct })
+            .eq('id', budget.id);
+
+          alertsCreated++;
+        }
       }
     }
   }

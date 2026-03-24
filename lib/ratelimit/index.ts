@@ -50,17 +50,48 @@ export const syncRateLimit = redis
     })
   : null;
 
+// In-memory fallback when Redis is unavailable
+const memoryStore = new Map<string, { count: number; resetAt: number }>();
+const MEMORY_WINDOW_MS = 60_000;
+const MEMORY_MAX_REQUESTS = 100;
+
+function cleanupMemoryStore() {
+  const now = Date.now();
+  for (const [key, entry] of memoryStore) {
+    if (now > entry.resetAt) memoryStore.delete(key);
+  }
+}
+
+function memoryRateLimit(
+  identifier: string,
+  maxRequests = MEMORY_MAX_REQUESTS,
+): { success: boolean; remaining: number; reset: number } {
+  // Periodic cleanup to prevent memory leaks
+  if (memoryStore.size > 10000) cleanupMemoryStore();
+
+  const now = Date.now();
+  const entry = memoryStore.get(identifier);
+  if (!entry || now > entry.resetAt) {
+    memoryStore.set(identifier, { count: 1, resetAt: now + MEMORY_WINDOW_MS });
+    return { success: true, remaining: maxRequests - 1, reset: now + MEMORY_WINDOW_MS };
+  }
+  entry.count++;
+  if (entry.count > maxRequests) {
+    return { success: false, remaining: 0, reset: entry.resetAt };
+  }
+  return { success: true, remaining: maxRequests - entry.count, reset: entry.resetAt };
+}
+
 /**
  * Check rate limit for a given identifier.
- * Returns { success, remaining, reset } or allows through if Redis is not configured.
+ * Falls back to in-memory rate limiting if Redis is not configured.
  */
 export async function checkRateLimit(
   limiter: Ratelimit | null,
   identifier: string,
 ): Promise<{ success: boolean; remaining: number; reset: number }> {
   if (!limiter) {
-    // Rate limiting disabled (no Redis configured)
-    return { success: true, remaining: 999, reset: 0 };
+    return memoryRateLimit(identifier);
   }
 
   const result = await limiter.limit(identifier);

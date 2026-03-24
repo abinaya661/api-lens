@@ -6,6 +6,7 @@ import { ProviderMarquee } from '@/components/landing/provider-marquee';
 import { PricingSection } from '@/components/landing/pricing-section';
 import { SecurityCallout } from '@/components/landing/security-callout';
 import { RevealOnScroll } from '@/components/landing/reveal-on-scroll';
+import { RegionalPriceText } from '@/components/landing/regional-price-text';
 
 export default function LandingPage() {
   return (
@@ -86,7 +87,7 @@ export default function LandingPage() {
             </div>
             {/* C3: Added annual pricing option */}
             <p className="text-sm text-zinc-500 mt-6">
-              $5.99/mo or $59.99/yr (2 months free). Cancel anytime.
+              <RegionalPriceText />
             </p>
           </div>
           </section>
@@ -196,7 +197,7 @@ export default function LandingPage() {
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               <p className="text-sm text-zinc-500 mt-6">
-                $5.99/mo or $59.99/yr. Cancel anytime.
+                <RegionalPriceText />
               </p>
             </RevealOnScroll>
           </div>
