@@ -40,7 +40,7 @@ export function DashboardPreview() {
         <RevealOnScroll>
           <div className="text-center mb-12 max-w-2xl mx-auto">
             <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight">
-              A dashboard you'll actually<br />want to use.
+              A dashboard you&apos;ll actually<br />want to use.
             </h2>
             <p className="text-zinc-400 text-lg">
               Interactive, lightning-fast, and deeply integrated with every major provider.
@@ -254,7 +254,7 @@ function KeysTab() {
                           HELPERS
    ──────────────────────────────────────────────────────────── */
 
-function MetricCard({ label, value, prefix = '', decimals = 0, trend, trendUp }: any) {
+function MetricCard({ label, value, prefix = '', decimals = 0, trend, trendUp }: { label: string; value: number; prefix?: string; decimals?: number; trend: string; trendUp: boolean }) {
   return (
     <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-4 hover:border-zinc-700 transition-all hover:shadow-lg cursor-default group">
       <div className="flex items-center justify-between mb-2">
@@ -270,7 +270,7 @@ function MetricCard({ label, value, prefix = '', decimals = 0, trend, trendUp }:
   );
 }
 
-function ProgressRing({ percent, size = 44, stroke = 4 }: any) {
+function ProgressRing({ percent, size = 44, stroke = 4 }: { percent: number; size?: number; stroke?: number }) {
   const radius = (size - stroke) / 2;
   const circ = 2 * Math.PI * radius;
   const [offset, setOffset] = useState(circ);
@@ -299,7 +299,7 @@ function ProgressRing({ percent, size = 44, stroke = 4 }: any) {
   );
 }
 
-function ProviderBar({ name, pct, amount, color }: any) {
+function ProviderBar({ name, pct, amount, color }: { name: string; pct: number; amount: number; color: string }) {
   const [width, setWidth] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -327,7 +327,7 @@ function ProviderBar({ name, pct, amount, color }: any) {
   );
 }
 
-function BudgetMockRow({ name, used, limit, percent, status }: any) {
+function BudgetMockRow({ name, used, limit, percent, status }: { name: string; used: number; limit: number; percent: number; status: string }) {
   return (
     <div className="p-4 rounded-xl border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/80 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer group">
       <div>
@@ -349,7 +349,7 @@ function BudgetMockRow({ name, used, limit, percent, status }: any) {
   );
 }
 
-function KeyRow({ provider, hint, status, time }: any) {
+function KeyRow({ provider, hint, status, time }: { provider: string; hint: string; status: string; time: string }) {
   return (
     <tr className="hover:bg-zinc-800/30 transition-colors cursor-pointer group">
       <td className="px-4 py-4">

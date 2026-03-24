@@ -64,7 +64,7 @@ export function PricingSection() {
                 </li>
                 <li className="text-sm text-zinc-300 leading-relaxed">
                   <strong className="text-white block mb-1">Ghost subscriptions:</strong>
-                  Teams expensing duplicate provider accounts because there's no central visibility.
+                  Teams expensing duplicate provider accounts because there&apos;s no central visibility.
                 </li>
               </ul>
               <div className="p-4 rounded-xl bg-black border border-red-500/20 text-center">

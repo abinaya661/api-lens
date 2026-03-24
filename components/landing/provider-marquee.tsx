@@ -18,7 +18,7 @@ const PROVIDERS = [
   { name: 'Moonshot', type: 'mono', color: 'text-zinc-400' },
 ];
 
-function ProviderBadge({ provider }: { provider: any }) {
+function ProviderBadge({ provider }: { provider: { name: string; type: string; color?: string; from?: string; to?: string } }) {
   const getLogoStyle = () => {
     if (provider.type === 'gradient') return `font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${provider.from} ${provider.to}`;
     if (provider.type === 'serif') return `font-serif font-semibold tracking-wide ${provider.color}`;
