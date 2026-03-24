@@ -26,6 +26,7 @@ function daysLeft(dateStr: string | null | undefined): number {
 }
 
 function getPlanLabel(plan: string | null | undefined, status?: string): string {
+  if (status === 'cancelled') return 'Cancelled';
   if (status === 'trialing') return 'Free Trial';
   switch (plan) {
     case 'monthly': return 'Monthly';

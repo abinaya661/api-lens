@@ -97,10 +97,14 @@ function CurrentPlanCard({ subscription }: { subscription: Subscription | null |
           <p className="text-sm text-zinc-500 mt-1">
             {isActive && plan
               ? `Your ${plan} subscription is active.`
-              : 'You are on the free trial. Upgrade to unlock all features.'}
+              : isCancelled
+                ? 'Your subscription has been cancelled.'
+                : 'You are on the free trial. Upgrade to unlock all features.'}
           </p>
         </div>
-        <Badge variant={getPlanBadgeVariant(isActive ? plan : null)}>{getPlanLabel(isActive ? plan : null)}</Badge>
+        <Badge variant={isCancelled ? 'destructive' : getPlanBadgeVariant(isActive ? plan : null)}>
+          {isCancelled ? 'Cancelled' : getPlanLabel(isActive ? plan : null)}
+        </Badge>
       </div>
 
       {isActive && (
