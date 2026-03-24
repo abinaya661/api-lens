@@ -1,8 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { PageHeader, SkeletonCard, ErrorState } from '@/components/shared';
 import { useSubscription, useCancelSubscription } from '@/hooks/use-subscription';
+import { useRegionalPrice } from '@/hooks/use-regional-price';
+import { formatPrice } from '@/lib/regional-pricing';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,27 +19,30 @@ import {
 } from '@/components/ui/card';
 import { Check, Crown, Zap, Shield, BarChart3, Clock, Headphones, Loader2 } from 'lucide-react';
 import type { Subscription } from '@/types/database';
+import type { RegionalPrice } from '@/lib/regional-pricing';
 
-const PLANS = [
-  {
-    id: 'monthly' as const,
-    name: 'Monthly',
-    price: '$5.99',
-    period: '/month',
-    description: 'Flexible month-to-month billing',
-    badge: null,
-    highlighted: false,
-  },
-  {
-    id: 'annual' as const,
-    name: 'Annual',
-    price: '$59.99',
-    period: '/year',
-    description: 'Best value — 2 months free',
-    badge: 'Recommended',
-    highlighted: true,
-  },
-] as const;
+function buildPlans(regional: RegionalPrice) {
+  return [
+    {
+      id: 'monthly' as const,
+      name: 'Monthly',
+      price: formatPrice(regional, 'monthly'),
+      period: '/month',
+      description: 'Flexible month-to-month billing',
+      badge: null,
+      highlighted: false,
+    },
+    {
+      id: 'annual' as const,
+      name: 'Annual',
+      price: formatPrice(regional, 'annual'),
+      period: '/year',
+      description: 'Best value — 2 months free',
+      badge: 'Recommended',
+      highlighted: true,
+    },
+  ] as const;
+}
 
 const FEATURES = [
   { icon: Zap, text: 'Unlimited API key tracking' },
@@ -185,7 +191,7 @@ function PricingCard({
   isLoading,
   loadingPlan,
 }: {
-  plan: typeof PLANS[number];
+  plan: { id: 'monthly' | 'annual'; name: string; price: string; period: string; description: string; badge: string | null; highlighted: boolean };
   currentPlan: string | undefined | null;
   onSubscribe: (planId: 'monthly' | 'annual') => void;
   isLoading: boolean;
@@ -262,6 +268,8 @@ export default function SubscriptionPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<'monthly' | 'annual' | null>(null);
   const [promoCode, setPromoCode] = useState('');
+  const regional = useRegionalPrice();
+  const PLANS = buildPlans(regional);
 
   async function handleSubscribe(plan: 'monthly' | 'annual') {
     setCheckoutLoading(true);
@@ -275,13 +283,21 @@ export default function SubscriptionPage() {
       });
 
       if (!res.ok) {
-        const err = await res.json() as { error?: string };
+        const err = await res.json().catch(() => ({})) as { error?: string };
         throw new Error(err.error ?? 'Failed to create checkout session');
       }
 
-      const { checkout_url } = await res.json() as { checkout_url: string };
-      window.location.href = checkout_url;
+      const data = await res.json() as { checkout_url?: string };
+
+      if (!data.checkout_url) {
+        throw new Error('No checkout URL returned from payment provider');
+      }
+
+      // Redirect to Dodo Payments checkout
+      window.location.href = data.checkout_url;
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      toast.error('Checkout failed', { description: message });
       console.error('Checkout error:', err);
       setCheckoutLoading(false);
       setLoadingPlan(null);
