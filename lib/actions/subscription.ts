@@ -44,17 +44,31 @@ export async function cancelSubscription(): Promise<ActionResult<null>> {
       .eq('user_id', user.id)
       .single();
 
+    // Cancel with Dodo first — only update local DB if this succeeds
     if (sub?.dodo_subscription_id) {
-      await dodo.subscriptions.update(sub.dodo_subscription_id, {
-        status: 'cancelled',
-      } as Parameters<typeof dodo.subscriptions.update>[1]);
+      try {
+        await dodo.subscriptions.update(sub.dodo_subscription_id, {
+          status: 'cancelled',
+        } as Parameters<typeof dodo.subscriptions.update>[1]);
+      } catch (dodoErr) {
+        console.error('[cancel] Dodo API call failed:', dodoErr);
+        return {
+          data: null,
+          error: 'Failed to cancel with payment provider. Please try again or contact support.',
+        };
+      }
     }
 
     const adminSupabase = createAdminClient();
-    await adminSupabase
+    const { error: dbError } = await adminSupabase
       .from('subscriptions')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() })
       .eq('user_id', user.id);
+
+    if (dbError) {
+      console.error('[cancel] DB update failed:', dbError);
+      return { data: null, error: 'Subscription cancelled but failed to update local records. Please refresh.' };
+    }
 
     return { data: null, error: null };
   } catch (e) {

@@ -1,4 +1,4 @@
-import { Shield, ShieldX, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Shield, ShieldX, XCircle, AlertTriangle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ApiKey } from '@/types/database';
 

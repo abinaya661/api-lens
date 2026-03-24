@@ -26,6 +26,7 @@ function daysLeft(dateStr: string | null | undefined): number {
 }
 
 function getPlanLabel(plan: string | null | undefined, status?: string): string {
+  if (status === 'cancelled') return 'Cancelled';
   if (status === 'trialing') return 'Free Trial';
   switch (plan) {
     case 'monthly': return 'Monthly';
@@ -132,7 +133,7 @@ export default function BillingPage() {
 
   const status = subscription?.status ?? 'trialing';
   const plan = subscription?.plan ?? null;
-  const isActive = plan === 'monthly' || plan === 'annual';
+  const isActive = status === 'active';
   const isTrialing = status === 'trialing';
   const isCancelled = status === 'cancelled';
   const trialEnd = subscription?.trial_ends_at;
