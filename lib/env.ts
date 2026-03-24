@@ -14,10 +14,10 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
 
   // Dodo Payments
-  DODO_PAYMENTS_API_KEY: z.string().min(1),
+  DODO_API_KEY: z.string().min(1),
   DODO_WEBHOOK_SECRET: z.string().min(1),
-  NEXT_PUBLIC_DODO_PRODUCT_MONTHLY: z.string().min(1),
-  NEXT_PUBLIC_DODO_PRODUCT_ANNUAL: z.string().min(1),
+  DODO_PLAN_MONTHLY_ID: z.string().min(1),
+  DODO_PLAN_ANNUAL_ID: z.string().min(1),
 
   // Resend
   RESEND_API_KEY: z.string().min(1),

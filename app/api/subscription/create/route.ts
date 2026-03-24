@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
 
     const productId =
       plan === 'annual'
-        ? process.env.NEXT_PUBLIC_DODO_PRODUCT_ANNUAL
-        : process.env.NEXT_PUBLIC_DODO_PRODUCT_MONTHLY;
+        ? process.env.DODO_PLAN_ANNUAL_ID
+        : process.env.DODO_PLAN_MONTHLY_ID;
 
     if (!productId) {
       console.error('Missing Dodo product ID env var for plan:', plan);
