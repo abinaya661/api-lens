@@ -248,10 +248,7 @@ function PricingCard({
           </Button>
         ) : (
           <Button
-            className={`w-full ${
-              plan.highlighted ? 'bg-brand-600 hover:bg-brand-700 text-white' : ''
-            }`}
-            variant={plan.highlighted ? 'default' : 'outline'}
+            className="w-full bg-white text-black hover:bg-zinc-200"
             disabled={isLoading}
             onClick={() => onSubscribe(plan.id)}
           >
