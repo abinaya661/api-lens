@@ -22,22 +22,8 @@ export async function POST(request: Request) {
     return new Response('Invalid signature', { status: 400 });
   }
 
-  const adminSupabase = createAdminClient();
-
-  // Idempotency check: skip if this webhook-id was already processed
-  const webhookId = webhookHeaders['webhook-id'];
-  if (webhookId) {
-    const { data: existing } = await adminSupabase
-      .from('webhook_events')
-      .select('webhook_id')
-      .eq('webhook_id', webhookId)
-      .single();
-    if (existing) {
-      return new Response('Already processed', { status: 200 });
-    }
-  }
-
-  const event = JSON.parse(rawBody) as {
+  // Parse and validate JSON body
+  let event: {
     type: string;
     data: {
       subscription_id?: string;
@@ -47,13 +33,38 @@ export async function POST(request: Request) {
     };
   };
 
-  // Record webhook event for idempotency
-  if (webhookId) {
-    await adminSupabase.from('webhook_events').insert({
-      webhook_id: webhookId,
-      event_type: event.type,
-    });
+  try {
+    event = JSON.parse(rawBody);
+  } catch {
+    console.error('[webhook] Invalid JSON body');
+    return new Response('Invalid JSON body', { status: 400 });
   }
+
+  if (!event?.type || !event?.data) {
+    console.error('[webhook] Missing type or data in webhook payload');
+    return new Response('Invalid webhook payload', { status: 400 });
+  }
+
+  const adminSupabase = createAdminClient();
+
+  // Race-safe idempotency: try to INSERT first — if webhook_id already exists
+  // the PRIMARY KEY constraint rejects it, meaning it was already processed.
+  const webhookId = webhookHeaders['webhook-id'];
+  if (webhookId) {
+    const { error: insertError } = await adminSupabase
+      .from('webhook_events')
+      .insert({ webhook_id: webhookId, event_type: event.type });
+
+    if (insertError) {
+      // Duplicate key = already processed; any other error = log and continue
+      if (insertError.code === '23505') {
+        return new Response('Already processed', { status: 200 });
+      }
+      console.error('[webhook] Failed to record webhook event:', insertError);
+    }
+  }
+
+  const now = new Date().toISOString();
 
   switch (event.type) {
     case 'subscription.active': {
@@ -67,15 +78,20 @@ export async function POST(request: Request) {
         break;
       }
 
-      await adminSupabase.from('subscriptions').update({
+      const { error } = await adminSupabase.from('subscriptions').update({
         status: 'active',
         dodo_subscription_id: event.data.subscription_id,
         dodo_customer_id: event.data.customer?.customer_id,
         plan: event.data.metadata?.plan ?? 'monthly',
         period_end: event.data.current_period_end,
-        last_payment_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        last_payment_at: now,
+        updated_at: now,
       }).eq('user_id', userId);
+
+      if (error) {
+        console.error('[webhook] subscription.active DB update failed:', error);
+        return new Response('Database error', { status: 500 });
+      }
       break;
     }
 
@@ -84,12 +100,17 @@ export async function POST(request: Request) {
         console.warn('[webhook] subscription.renewed missing subscription_id', { webhookId });
         break;
       }
-      await adminSupabase.from('subscriptions').update({
+      const { error } = await adminSupabase.from('subscriptions').update({
         status: 'active',
-        last_payment_at: new Date().toISOString(),
+        last_payment_at: now,
         period_end: event.data.current_period_end,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       }).eq('dodo_subscription_id', event.data.subscription_id);
+
+      if (error) {
+        console.error('[webhook] subscription.renewed DB update failed:', error);
+        return new Response('Database error', { status: 500 });
+      }
       break;
     }
 
@@ -98,13 +119,18 @@ export async function POST(request: Request) {
         console.warn('[webhook] payment.failed missing subscription_id', { webhookId });
         break;
       }
-      await adminSupabase.from('subscriptions').update({
+      const { error } = await adminSupabase.from('subscriptions').update({
         status: 'past_due',
         grace_period_ends_at: new Date(
           Date.now() + 3 * 24 * 60 * 60 * 1000,
         ).toISOString(),
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       }).eq('dodo_subscription_id', event.data.subscription_id);
+
+      if (error) {
+        console.error('[webhook] payment.failed DB update failed:', error);
+        return new Response('Database error', { status: 500 });
+      }
       break;
     }
 
@@ -113,10 +139,15 @@ export async function POST(request: Request) {
         console.warn('[webhook] subscription.canceled missing subscription_id', { webhookId });
         break;
       }
-      await adminSupabase.from('subscriptions').update({
+      const { error } = await adminSupabase.from('subscriptions').update({
         status: 'cancelled',
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       }).eq('dodo_subscription_id', event.data.subscription_id);
+
+      if (error) {
+        console.error('[webhook] subscription.canceled DB update failed:', error);
+        return new Response('Database error', { status: 500 });
+      }
       break;
     }
 
@@ -125,11 +156,16 @@ export async function POST(request: Request) {
         console.warn('[webhook] payment.completed missing subscription_id', { webhookId });
         break;
       }
-      await adminSupabase.from('subscriptions').update({
+      const { error } = await adminSupabase.from('subscriptions').update({
         status: 'active',
-        last_payment_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        last_payment_at: now,
+        updated_at: now,
       }).eq('dodo_subscription_id', event.data.subscription_id);
+
+      if (error) {
+        console.error('[webhook] payment.completed DB update failed:', error);
+        return new Response('Database error', { status: 500 });
+      }
       break;
     }
 
@@ -138,10 +174,15 @@ export async function POST(request: Request) {
         console.warn('[webhook] subscription.updated missing subscription_id', { webhookId });
         break;
       }
-      await adminSupabase.from('subscriptions').update({
+      const { error } = await adminSupabase.from('subscriptions').update({
         plan: event.data.metadata?.plan,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       }).eq('dodo_subscription_id', event.data.subscription_id);
+
+      if (error) {
+        console.error('[webhook] subscription.updated DB update failed:', error);
+        return new Response('Database error', { status: 500 });
+      }
       break;
     }
 
