@@ -16,7 +16,7 @@ const DUMMY_PROVIDERS = [
   { name: 'OpenAI', amount: 1281, pct: 45, color: '#10a37f' },
   { name: 'Anthropic', amount: 854, pct: 30, color: '#d97757' },
   { name: 'Gemini', amount: 427, pct: 15, color: '#1a73e8' },
-  { name: 'Mistral', amount: 285, pct: 10, color: '#f54e42' },
+  { name: 'DeepSeek', amount: 285, pct: 10, color: '#306CFA' },
 ];
 
 /* ─── Custom chart tooltip ─── */

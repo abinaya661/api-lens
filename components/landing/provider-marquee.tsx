@@ -6,16 +6,12 @@ const PROVIDERS = [
   { name: 'OpenAI', type: 'clean', color: 'text-white' },
   { name: 'Anthropic', type: 'serif', color: 'text-[#d97757]' },
   { name: 'Google Gemini', type: 'gradient', from: 'from-blue-400', to: 'to-indigo-400' },
-  { name: 'Meta Llama', type: 'bold', color: 'text-[#0668E1]' },
-  { name: 'Mistral AI', type: 'mono', color: 'text-[#f54e42]' },
-  { name: 'xAI', type: 'heavy', color: 'text-zinc-100' },
-  { name: 'Perplexity', type: 'clean', color: 'text-[#22d3ee]' },
+  { name: 'Grok', type: 'heavy', color: 'text-zinc-100' },
+  { name: 'Microsoft Azure', type: 'bold', color: 'text-[#0078D4]' },
+  { name: 'Moonshot', type: 'mono', color: 'text-zinc-400' },
   { name: 'DeepSeek', type: 'bold', color: 'text-[#306CFA]' },
-  { name: 'Cohere', type: 'serif', color: 'text-[#39594d]' },
-  { name: 'HuggingFace', type: 'heavy', color: 'text-[#ffd21e]' },
   { name: 'ElevenLabs', type: 'clean', color: 'text-zinc-300' },
   { name: 'OpenRouter', type: 'gradient', from: 'from-[#6366f1]', to: 'to-[#a855f7]' },
-  { name: 'Moonshot', type: 'mono', color: 'text-zinc-400' },
 ];
 
 function ProviderBadge({ provider }: { provider: { name: string; type: string; color?: string; from?: string; to?: string } }) {

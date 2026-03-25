@@ -1,10 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { Check, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Check, ArrowRight, AlertTriangle, Loader2 } from 'lucide-react';
 import { RevealOnScroll } from './reveal-on-scroll';
 import { useRegionalPrice } from '@/hooks/use-regional-price';
-import { formatPrice } from '@/lib/regional-pricing';
+import { formatPrice, formatEnterprisePrice } from '@/lib/regional-pricing';
 
 const MONTHLY_FEATURES = [
   'Unlimited API keys & providers',
@@ -24,10 +25,49 @@ const ANNUAL_FEATURES = [
   'Dedicated onboarding',
 ];
 
+const ENTERPRISE_FEATURES = [
+  'Everything in Pro',
+  'Dedicated account manager',
+  'Custom integrations',
+  'SSO (Single Sign-On)',
+  'Audit logs',
+  'SLA guarantee',
+];
+
 export function PricingSection() {
   const regional = useRegionalPrice();
   const monthlyPrice = formatPrice(regional, 'monthly');
   const annualPrice = formatPrice(regional, 'annual');
+  const enterprisePrices = formatEnterprisePrice(regional);
+
+  const [notifyEmail, setNotifyEmail] = useState('');
+  const [notifyLoading, setNotifyLoading] = useState(false);
+  const [notifyDone, setNotifyDone] = useState(false);
+  const [notifyError, setNotifyError] = useState('');
+
+  async function handleNotifyMe(e: React.FormEvent) {
+    e.preventDefault();
+    if (!notifyEmail.trim()) return;
+    setNotifyLoading(true);
+    setNotifyError('');
+    try {
+      const res = await fetch('/api/enterprise/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: notifyEmail.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error ?? 'Something went wrong');
+      }
+      setNotifyDone(true);
+      setNotifyEmail('');
+    } catch (err) {
+      setNotifyError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setNotifyLoading(false);
+    }
+  }
 
   return (
     <section className="py-16 md:py-24 px-6 border-t border-zinc-800">
@@ -44,7 +84,7 @@ export function PricingSection() {
         </RevealOnScroll>
 
         <RevealOnScroll stagger>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* The Cost of Inaction (Value Proposition Justification) */}
             <div className="lg:col-span-1 rounded-2xl border border-red-500/20 bg-red-500/5 p-8 flex flex-col justify-center">
               <div className="flex items-center gap-3 mb-5">
@@ -73,7 +113,7 @@ export function PricingSection() {
               </div>
             </div>
 
-            <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Monthly Card */}
               <div className="reveal rounded-2xl border border-zinc-800 bg-zinc-900/50 p-8 flex flex-col">
                 <div className="mb-6">
@@ -142,14 +182,79 @@ export function PricingSection() {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
+
+              {/* Enterprise Card — Coming Soon */}
+              <div className="reveal rounded-2xl border border-zinc-700 bg-zinc-900/30 p-8 flex flex-col relative overflow-hidden">
+                <div className="mb-6 relative">
+                  <div className="flex items-center gap-3 mb-1">
+                    <h3 className="text-xl font-semibold text-white">Enterprise</h3>
+                    <span className="px-2.5 py-1 rounded-md bg-zinc-700 text-zinc-300 text-[10px] font-bold uppercase tracking-wider">
+                      Coming Soon
+                    </span>
+                  </div>
+                  <p className="text-zinc-500 text-sm">For teams that need more</p>
+                </div>
+
+                <div className="mb-8 relative">
+                  <span className="text-5xl font-bold text-white font-mono">{enterprisePrices.monthly}</span>
+                  <span className="text-zinc-500 text-sm ml-1">/mo</span>
+                  <p className="text-zinc-500 text-sm mt-2">{enterprisePrices.annual}/yr</p>
+                </div>
+
+                <ul className="space-y-3 mb-8 flex-1">
+                  {ENTERPRISE_FEATURES.map((feature) => (
+                    <li key={feature} className="flex items-start gap-3 text-sm text-zinc-300">
+                      <Check className="w-4 h-4 text-zinc-500 flex-shrink-0 mt-0.5" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                {notifyDone ? (
+                  <div className="w-full py-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 font-medium text-center text-sm">
+                    You&apos;re on the list! We&apos;ll notify you.
+                  </div>
+                ) : (
+                  <form onSubmit={handleNotifyMe} className="flex flex-col gap-2">
+                    <input
+                      type="email"
+                      value={notifyEmail}
+                      onChange={(e) => setNotifyEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500/40 focus:border-zinc-500 transition-all"
+                      required
+                    />
+                    {notifyError && (
+                      <p className="text-red-400 text-xs">{notifyError}</p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={notifyLoading || !notifyEmail.trim()}
+                      className="w-full py-3 rounded-xl bg-zinc-700 text-white font-medium text-center hover:bg-zinc-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {notifyLoading ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                      ) : (
+                        'Notify Me'
+                      )}
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
         </RevealOnScroll>
 
         <RevealOnScroll>
-          <p className="text-center text-zinc-500 text-sm mt-12 flex items-center justify-center gap-2">
+          <p className="text-center text-zinc-500 text-sm mt-4">
+            Prices shown in your local currency. Final amount confirmed at checkout.
+          </p>
+        </RevealOnScroll>
+
+        <RevealOnScroll>
+          <p className="text-center text-zinc-500 text-sm mt-6 flex items-center justify-center gap-2">
             <ShieldCheck className="w-4 h-4 text-green-500" />
-            7-day risk-free trial on all plans. Cancel anytime. No credit card required upfront.
+            7-day free trial on all plans. Cancel anytime.
           </p>
         </RevealOnScroll>
       </div>

@@ -5,11 +5,13 @@ import { addKeySchema, updateKeySchema, type AddKeyInput, type UpdateKeyInput } 
 import { encryptCredentials, extractKeyHint } from '@/lib/encryption';
 import { logAudit } from '@/lib/utils/audit';
 import { checkRateLimit, apiRateLimit } from '@/lib/ratelimit';
+import { getAdapter } from '@/lib/platforms/registry';
 import type { ApiKey } from '@/types/database';
 
 interface ActionResult<T = unknown> {
   data: T | null;
   error: string | null;
+  warning?: string | null;
 }
 
 export async function listKeys(): Promise<ActionResult<ApiKey[]>> {
@@ -68,6 +70,20 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
 
     const { api_key, provider, nickname, project_id, endpoint_url, notes } = parsed.data;
 
+    // Verify the key with the provider before storing
+    let verifyWarning: string | null = null;
+    const adapter = getAdapter(provider);
+    if (adapter) {
+      const validation = await adapter.validateKey(api_key);
+      if (!validation.valid) {
+        return { data: null, error: validation.error ?? 'API key verification failed. Please check that your key is valid.' };
+      }
+      // If valid but has a warning (e.g. no billing access)
+      if (validation.error) {
+        verifyWarning = validation.error;
+      }
+    }
+
     // Encrypt the API key
     const encrypted = encryptCredentials(api_key);
     const keyHint = extractKeyHint(api_key);
@@ -104,7 +120,7 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
       metadata: { provider, nickname },
     });
 
-    return { data, error: null };
+    return { data, error: null, warning: verifyWarning };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }

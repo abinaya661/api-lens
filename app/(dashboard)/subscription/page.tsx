@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { PageHeader, SkeletonCard, ErrorState } from '@/components/shared';
 import { useSubscription, useCancelSubscription } from '@/hooks/use-subscription';
 import { useRegionalPrice } from '@/hooks/use-regional-price';
-import { formatPrice } from '@/lib/regional-pricing';
+import { formatPrice, formatEnterprisePrice } from '@/lib/regional-pricing';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,15 @@ const FEATURES = [
   { icon: Clock, text: 'Real-time budget alerts' },
   { icon: Crown, text: 'Priority access to new features' },
   { icon: Headphones, text: 'Email support' },
+];
+
+const ENTERPRISE_FEATURES = [
+  'Everything in Pro',
+  'Dedicated account manager',
+  'Custom integrations',
+  'SSO (Single Sign-On)',
+  'Audit logs',
+  'SLA guarantee',
 ];
 
 function getPlanLabel(plan: string | undefined | null): string {
@@ -177,10 +186,11 @@ function CurrentPlanCard({ subscription }: { subscription: Subscription | null |
         <>
           <hr className="border-zinc-800" />
           <p className="text-sm text-zinc-400">
-            Trial ends on{' '}
+            Your card will be charged automatically on{' '}
             <span className="text-zinc-200 font-medium">
               {formatDate(subscription.trial_ends_at)}
             </span>
+            . Cancel anytime before.
           </p>
         </>
       )}
@@ -258,6 +268,102 @@ function PricingCard({
               'Subscribe'
             )}
           </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+}
+
+function EnterpriseCard({ regional }: { regional: RegionalPrice }) {
+  const enterprisePrices = formatEnterprisePrice(regional);
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleNotify(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/enterprise/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error ?? 'Something went wrong');
+      }
+      setDone(true);
+      setEmail('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Card className="relative flex flex-col border-zinc-700 bg-zinc-900/30">
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+        <Badge className="bg-zinc-700 text-zinc-300 border-0 shadow-md px-3 py-0.5 text-xs">
+          Coming Soon
+        </Badge>
+      </div>
+
+      <CardHeader className="text-center pb-2 pt-8">
+        <CardTitle className="text-xl text-white">Enterprise</CardTitle>
+        <CardDescription className="text-zinc-400">For teams that need more</CardDescription>
+      </CardHeader>
+
+      <CardContent className="text-center flex-1">
+        <div className="my-6">
+          <span className="text-4xl font-bold text-white">{enterprisePrices.monthly}</span>
+          <span className="text-zinc-500 text-sm ml-1">/month</span>
+          <p className="text-zinc-500 text-xs mt-1">{enterprisePrices.annual}/year</p>
+        </div>
+
+        <ul className="space-y-3 text-left">
+          {ENTERPRISE_FEATURES.map((feature) => (
+            <li key={feature} className="flex items-start gap-3 text-sm">
+              <Check className="w-4 h-4 text-zinc-500 mt-0.5 shrink-0" />
+              <span className="text-zinc-400">{feature}</span>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+
+      <CardFooter className="pt-4">
+        {done ? (
+          <div className="w-full py-2.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 font-medium text-center text-sm">
+            You&apos;re on the list!
+          </div>
+        ) : (
+          <form onSubmit={handleNotify} className="w-full flex flex-col gap-2">
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+              required
+            />
+            {error && <p className="text-red-400 text-xs">{error}</p>}
+            <Button
+              type="submit"
+              variant="outline"
+              className="w-full"
+              disabled={loading || !email.trim()}
+            >
+              {loading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+              ) : (
+                'Notify Me'
+              )}
+            </Button>
+          </form>
         )}
       </CardFooter>
     </Card>
@@ -352,7 +458,7 @@ export default function SubscriptionPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
           {PLANS.map((plan) => (
             <PricingCard
               key={plan.id}
@@ -363,8 +469,12 @@ export default function SubscriptionPage() {
               loadingPlan={loadingPlan}
             />
           ))}
+          <EnterpriseCard regional={regional} />
         </div>
-        <p className="text-xs text-zinc-500 mt-3">
+        <p className="text-xs text-zinc-500 mt-2">
+          Prices shown in your local currency. Final amount confirmed at checkout.
+        </p>
+        <p className="text-xs text-zinc-500 mt-1">
           You can also enter a promo code directly on the checkout page.
         </p>
       </div>

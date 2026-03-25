@@ -11,13 +11,10 @@ const KEY_PATTERNS: { provider: string; regex: RegExp; confidence: 'high' | 'med
   { provider: 'openai', regex: /^sk-[a-zA-Z0-9]{20,}$/, confidence: 'high' },
   { provider: 'openai', regex: /^sk-proj-[a-zA-Z0-9_-]+$/, confidence: 'high' },
   { provider: 'anthropic', regex: /^sk-ant-[a-zA-Z0-9_-]+$/, confidence: 'high' },
-  { provider: 'mistral', regex: /^[a-zA-Z0-9]{32}$/, confidence: 'medium' },
-  { provider: 'cohere', regex: /^[a-zA-Z0-9]{40}$/, confidence: 'medium' },
   { provider: 'openrouter', regex: /^sk-or-[a-zA-Z0-9_-]+$/, confidence: 'high' },
-  { provider: 'replicate', regex: /^r8_[a-zA-Z0-9]{37}$/, confidence: 'high' },
-  { provider: 'deepgram', regex: /^[a-f0-9]{40}$/, confidence: 'medium' },
+  { provider: 'grok', regex: /^xai-[a-zA-Z0-9_-]+$/, confidence: 'high' },
+  { provider: 'deepseek', regex: /^sk-[a-f0-9]{48,}$/, confidence: 'medium' },
   { provider: 'elevenlabs', regex: /^[a-f0-9]{32}$/, confidence: 'medium' },
-  { provider: 'fal', regex: /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}:[a-f0-9]+$/, confidence: 'high' },
 ];
 
 function detectProvider(keyPrefix: string): DetectionResult | null {

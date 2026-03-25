@@ -1,6 +1,6 @@
-import type { Provider, NormalizedUsage, ProviderSyncResult } from '@/types';
+import type { ProviderSyncResult } from '@/types';
 
-export async function validateGemini(serviceAccountJson: string, projectId: string): Promise<{ valid: boolean; error?: string }> {
+export async function validateGemini(serviceAccountJson: string, _projectId: string): Promise<{ valid: boolean; error?: string }> {
   try {
     const parsed = JSON.parse(serviceAccountJson);
     if (!parsed.private_key || !parsed.client_email) {
@@ -8,16 +8,16 @@ export async function validateGemini(serviceAccountJson: string, projectId: stri
     }
     // Deep validation requires Google Auth Client, returning true based on format
     return { valid: true };
-  } catch (err) {
+  } catch {
     return { valid: false, error: 'Invalid JSON string' };
   }
 }
 
 export async function fetchGeminiUsage(
-  serviceAccountJson: string,
-  projectId: string,
-  keyId: string,
-  since?: Date,
+  _serviceAccountJson: string,
+  _projectId: string,
+  _keyId: string,
+  _since?: Date,
 ): Promise<ProviderSyncResult> {
   // Requires Google Cloud Billing API which is complex without the google-auth-library SDK.
   return { success: true, usage: [], error: 'GCP Billing integration requires Google Auth SDK.' };
