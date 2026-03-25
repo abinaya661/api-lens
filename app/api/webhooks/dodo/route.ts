@@ -186,6 +186,25 @@ export async function POST(request: Request) {
       break;
     }
 
+    case 'subscription.trialing': {
+      // Card collected, trial started — mark payment method as collected
+      const userId = event.data.metadata?.user_id;
+      if (!userId) {
+        console.warn('[webhook] subscription.trialing missing user_id', { webhookId });
+        break;
+      }
+      const { error } = await adminSupabase.from('subscriptions').update({
+        payment_method_collected: true,
+        updated_at: now,
+      }).eq('user_id', userId);
+
+      if (error) {
+        console.error('[webhook] subscription.trialing DB update failed:', error);
+        return new Response('Database error', { status: 500 });
+      }
+      break;
+    }
+
     default:
       break;
   }

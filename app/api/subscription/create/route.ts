@@ -22,10 +22,24 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
+    // Detect user's region from geo cookie to select correct product + currency
+    const geoCountry = req.cookies.get('geo_country')?.value ?? '';
+    const euCountries = ['DE','FR','IT','ES','NL','BE','AT','PT','IE','FI','GR','LU','LT','LV','EE','SK','SI','CY','MT'];
+    const CURRENCY_MAP: Record<string, string> = {
+      IN: 'INR', GB: 'GBP', CA: 'CAD',
+    };
+    const billingCurrency =
+      CURRENCY_MAP[geoCountry] ?? (euCountries.includes(geoCountry) ? 'EUR' : 'USD');
+
+    // Use region-specific product IDs when available, fall back to default
+    const regionKey = geoCountry;
+    const regionalMonthlyId = process.env[`DODO_PLAN_MONTHLY_ID_${regionKey}`];
+    const regionalAnnualId = process.env[`DODO_PLAN_ANNUAL_ID_${regionKey}`];
+
     const productId =
       plan === 'annual'
-        ? process.env.DODO_PLAN_ANNUAL_ID
-        : process.env.DODO_PLAN_MONTHLY_ID;
+        ? (regionalAnnualId ?? process.env.DODO_PLAN_ANNUAL_ID)
+        : (regionalMonthlyId ?? process.env.DODO_PLAN_MONTHLY_ID);
 
     if (!productId) {
       console.error('Missing Dodo product ID env var for plan:', plan);
@@ -39,6 +53,8 @@ export async function POST(req: NextRequest) {
 
     const session = await dodo.checkoutSessions.create({
       product_cart: [{ product_id: productId, quantity: 1 }],
+      billing_currency: billingCurrency as Parameters<typeof dodo.checkoutSessions.create>[0]['billing_currency'],
+      subscription_data: { trial_period_days: 7 },
       customer: {
         email: user.email!,
         name:
