@@ -25,16 +25,17 @@ export async function POST(req: NextRequest) {
     // Detect user's region from geo cookie to select correct product + currency
     const geoCountry = req.cookies.get('geo_country')?.value ?? '';
     const euCountries = ['DE','FR','IT','ES','NL','BE','AT','PT','IE','FI','GR','LU','LT','LV','EE','SK','SI','CY','MT'];
-    const CURRENCY_MAP: Record<string, string> = {
-      IN: 'INR', GB: 'GBP', CA: 'CAD',
+
+    // Known-region currencies. ROW is intentionally omitted so Dodo auto-converts
+    // the USD price into the user's local currency at checkout.
+    const REGION_CURRENCIES: Record<string, string> = {
+      IN: 'INR', US: 'USD', GB: 'GBP', CA: 'CAD',
     };
-    const billingCurrency =
-      CURRENCY_MAP[geoCountry] ?? (euCountries.includes(geoCountry) ? 'EUR' : 'USD');
+    const billingCurrency = REGION_CURRENCIES[geoCountry] ?? (euCountries.includes(geoCountry) ? 'EUR' : undefined);
 
     // Use region-specific product IDs when available, fall back to default.
     // EU countries share one EUR product (DODO_PLAN_MONTHLY_ID_EU) unless a
     // country-specific override exists (e.g. DODO_PLAN_MONTHLY_ID_DE).
-    const euCountries = ['DE','FR','IT','ES','NL','BE','AT','PT','IE','FI','GR','LU','LT','LV','EE','SK','SI','CY','MT'];
     const regionKey = euCountries.includes(geoCountry) && !process.env[`DODO_PLAN_MONTHLY_ID_${geoCountry}`]
       ? 'EU'
       : geoCountry;
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     const session = await dodo.checkoutSessions.create({
       product_cart: [{ product_id: productId, quantity: 1 }],
-      billing_currency: billingCurrency as Parameters<typeof dodo.checkoutSessions.create>[0]['billing_currency'],
+      ...(billingCurrency ? { billing_currency: billingCurrency as Parameters<typeof dodo.checkoutSessions.create>[0]['billing_currency'] } : {}),
       subscription_data: { trial_period_days: 7 },
       customer: {
         email: user.email!,
