@@ -22,33 +22,31 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
-    // Detect user's region from geo cookie to select correct product + currency.
-    // Each region has a fixed local price product in Dodo (Netflix-style pricing).
-    // ROW falls back to the default USD product; billing_currency is omitted so
-    // Dodo auto-converts the USD price to the user's local currency.
+    // Map user's country to a regional collection.
+    // Each collection contains both monthly + annual products for that region,
+    // so the customer picks their plan on the Dodo checkout page.
+    // Discount codes entered on the Dodo checkout page still work (allow_discount_code: true).
     const geoCountry = req.cookies.get('geo_country')?.value ?? '';
-    const euCountries = ['DE','FR','IT','ES','NL','BE','AT','PT','IE','FI','GR','LU','LT','LV','EE','SK','SI','CY','MT'];
+    const euCountries = ['DE','FR','IT','ES','NL','BE','AT','PT','IE','FI','GR','LU','LT','LV','EE','SK','SI','CY','MT','GB'];
 
-    // Known-region currencies. ROW intentionally omitted — Dodo auto-converts.
-    const REGION_CURRENCIES: Record<string, string> = {
-      IN: 'INR', US: 'USD', GB: 'GBP', CA: 'CAD',
-    };
-    const billingCurrency = REGION_CURRENCIES[geoCountry] ?? (euCountries.includes(geoCountry) ? 'EUR' : undefined);
+    let collectionId: string | undefined;
+    if (geoCountry === 'IN') {
+      collectionId = process.env.DODO_COLLECTION_INDIA_ID;
+    } else if (geoCountry === 'US' || geoCountry === 'CA') {
+      collectionId = process.env.DODO_COLLECTION_NA_ID;
+    } else if (euCountries.includes(geoCountry)) {
+      collectionId = process.env.DODO_COLLECTION_EU_ID;
+    } else {
+      collectionId = process.env.DODO_COLLECTION_ROW_ID;
+    }
 
-    // EU countries share one EUR product unless a country-specific override exists.
-    const regionKey = euCountries.includes(geoCountry) && !process.env[`DODO_PLAN_MONTHLY_ID_${geoCountry}`]
-      ? 'EU'
-      : geoCountry;
-    const regionalMonthlyId = process.env[`DODO_PLAN_MONTHLY_ID_${regionKey}`];
-    const regionalAnnualId  = process.env[`DODO_PLAN_ANNUAL_ID_${regionKey}`];
+    // Fallback to direct product routing if collections are not configured yet.
+    const fallbackProductId = plan === 'annual'
+      ? process.env.DODO_PLAN_ANNUAL_ID
+      : process.env.DODO_PLAN_MONTHLY_ID;
 
-    const productId =
-      plan === 'annual'
-        ? (regionalAnnualId ?? process.env.DODO_PLAN_ANNUAL_ID)
-        : (regionalMonthlyId ?? process.env.DODO_PLAN_MONTHLY_ID);
-
-    if (!productId) {
-      console.error('Missing Dodo product ID env var for plan:', plan);
+    if (!collectionId && !fallbackProductId) {
+      console.error('Missing Dodo collection and product ID env vars for plan:', plan);
       return Response.json(
         { error: 'Payment configuration error. Please contact support.' },
         { status: 500 },
@@ -57,9 +55,17 @@ export async function POST(req: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
 
+    // Collection checkout: product_cart must be empty, discount_code not pre-applied
+    // (customer enters discount code on Dodo's checkout page via allow_discount_code: true).
+    // Fallback checkout: single product + pre-applied discount code.
     const session = await dodo.checkoutSessions.create({
-      product_cart: [{ product_id: productId, quantity: 1 }],
-      ...(billingCurrency ? { billing_currency: billingCurrency as Parameters<typeof dodo.checkoutSessions.create>[0]['billing_currency'] } : {}),
+      ...(collectionId
+        ? { product_collection_id: collectionId, product_cart: [] }
+        : {
+            product_cart: [{ product_id: fallbackProductId!, quantity: 1 }],
+            ...(discountCode ? { discount_code: discountCode } : {}),
+          }
+      ),
       subscription_data: { trial_period_days: 7 },
       customer: {
         email: user.email!,
@@ -67,7 +73,6 @@ export async function POST(req: NextRequest) {
           (user.user_metadata?.full_name as string | undefined) ||
           user.email!.split('@')[0],
       },
-      ...(discountCode ? { discount_code: discountCode } : {}),
       feature_flags: { allow_discount_code: true },
       return_url: `${appUrl}/dashboard?subscribed=true`,
       metadata: {
