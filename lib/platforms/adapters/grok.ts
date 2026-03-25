@@ -5,8 +5,11 @@ export class GrokAdapter extends BaseAdapter {
   provider = 'grok';
 
   async fetchUsage(_apiKey: string, _dateFrom: string, _dateTo: string): Promise<SyncResult> {
-    // xAI does not yet expose a public billing/usage API
-    return this.makeSyncResult(this.provider, []);
+    return this.makeSyncResult(
+      this.provider,
+      [],
+      'xAI usage tracking requires the Management API, not a standard inference API key.',
+    );
   }
 
   async validateKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
@@ -15,16 +18,15 @@ export class GrokAdapter extends BaseAdapter {
         headers: { 'Authorization': `Bearer ${apiKey}` },
       });
 
-      if (res.ok) {
-        return { valid: true };
+      if (!res.ok) {
+        const body = await res.text();
+        return { valid: false, error: `xAI returned ${res.status}: ${body}` };
       }
 
-      if (res.status === 401 || res.status === 403) {
-        return { valid: false, error: 'Invalid or unauthorized API key' };
-      }
-
-      const body = await res.text();
-      return { valid: false, error: `xAI returned ${res.status}: ${body}` };
+      return {
+        valid: false,
+        error: 'This xAI key is valid for inference, but API Lens needs an xAI Management API key plus team-level billing access to track usage.',
+      };
     } catch (e: unknown) {
       return { valid: false, error: e instanceof Error ? e.message : 'Validation failed' };
     }

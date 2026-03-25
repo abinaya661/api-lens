@@ -5,7 +5,11 @@ export class GeminiAdapter extends BaseAdapter {
   provider = 'gemini';
 
   async fetchUsage(_apiKey: string, _dateFrom: string, _dateTo: string): Promise<SyncResult> {
-    return this.makeSyncResult(this.provider, []);
+    return this.makeSyncResult(
+      this.provider,
+      [],
+      'Gemini API keys do not expose a usage/billing endpoint that API Lens can sync today.',
+    );
   }
 
   async validateKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
@@ -14,12 +18,15 @@ export class GeminiAdapter extends BaseAdapter {
         `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
       );
 
-      if (res.ok) {
-        return { valid: true };
+      if (!res.ok) {
+        const body = await res.text();
+        return { valid: false, error: `Gemini returned ${res.status}: ${body}` };
       }
 
-      const body = await res.text();
-      return { valid: false, error: `Gemini returned ${res.status}: ${body}` };
+      return {
+        valid: false,
+        error: 'This Gemini API key is valid, but Google does not expose the billing/usage API surface API Lens needs for key-based tracking with this credential.',
+      };
     } catch (e: unknown) {
       return { valid: false, error: e instanceof Error ? e.message : 'Validation failed' };
     }

@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { addKeySchema, updateKeySchema, type AddKeyInput, type UpdateKeyInput } from '@/lib/validations/key';
-import { encryptCredentials, extractKeyHint } from '@/lib/encryption';
+import { decryptCredentials, encryptCredentials, extractKeyHint, type EncryptedPayload } from '@/lib/encryption';
 import { logAudit } from '@/lib/utils/audit';
 import { checkRateLimit, apiRateLimit } from '@/lib/ratelimit';
 import { getAdapter } from '@/lib/platforms/registry';
@@ -11,7 +11,17 @@ import type { ApiKey } from '@/types/database';
 interface ActionResult<T = unknown> {
   data: T | null;
   error: string | null;
-  warning?: string | null;
+}
+
+function getValidationWindow() {
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  return {
+    dateFrom: yesterday.toISOString().slice(0, 10),
+    dateTo: now.toISOString().slice(0, 10),
+  };
 }
 
 export async function listKeys(): Promise<ActionResult<ApiKey[]>> {
@@ -70,23 +80,23 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
 
     const { api_key, provider, nickname, project_id, endpoint_url, notes } = parsed.data;
 
-    // Verify the key with the provider before storing
-    let verifyWarning: string | null = null;
     const adapter = getAdapter(provider);
-    if (adapter) {
-      const validation = await adapter.validateKey(api_key);
-      if (!validation.valid) {
-        return { data: null, error: validation.error ?? 'API key verification failed. Please check that your key is valid.' };
-      }
-      // If valid but has a warning (e.g. no billing access)
-      if (validation.error) {
-        verifyWarning = validation.error;
-      }
+    if (!adapter) {
+      return { data: null, error: 'This provider is not supported for API key tracking yet.' };
+    }
+
+    const validation = await adapter.validateKey(api_key);
+    if (!validation.valid) {
+      return {
+        data: null,
+        error: validation.error ?? 'API key verification failed. We could not verify usage/billing access for this provider.',
+      };
     }
 
     // Encrypt the API key
     const encrypted = encryptCredentials(api_key);
     const keyHint = extractKeyHint(api_key);
+    const validatedAt = new Date().toISOString();
 
     const { data, error } = await supabase
       .from('api_keys')
@@ -96,6 +106,11 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
         nickname,
         encrypted_key: JSON.stringify(encrypted),
         key_hint: keyHint,
+        is_valid: true,
+        has_usage_api: true,
+        last_validated: validatedAt,
+        last_failure_reason: null,
+        consecutive_failures: 0,
         endpoint_url: endpoint_url || null,
         notes: notes ?? null,
       })
@@ -106,10 +121,15 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
 
     // If project_id provided, create project_keys link
     if (project_id && data) {
-      await supabase.from('project_keys').insert({
+      const { error: projectKeyError } = await supabase.from('project_keys').insert({
         project_id,
         key_id: data.id,
       });
+
+      if (projectKeyError) {
+        await supabase.from('api_keys').delete().eq('id', data.id).eq('user_id', user.id);
+        return { data: null, error: projectKeyError.message };
+      }
     }
 
     await logAudit(supabase, {
@@ -120,7 +140,7 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
       metadata: { provider, nickname },
     });
 
-    return { data, error: null, warning: verifyWarning };
+    return { data, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }
@@ -153,6 +173,154 @@ export async function updateKey(input: UpdateKeyInput): Promise<ActionResult<Api
       entityType: 'api_key',
       entityId: id,
       metadata: updates,
+    });
+
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
+export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Not authenticated' };
+
+    const { data: key, error: keyError } = await supabase
+      .from('api_keys')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (keyError || !key) {
+      return { data: null, error: keyError?.message ?? 'Key not found' };
+    }
+
+    const validatedAt = new Date().toISOString();
+    const adapter = getAdapter(key.provider);
+
+    if (!adapter) {
+      const { data, error } = await supabase
+        .from('api_keys')
+        .update({
+          is_valid: false,
+          is_active: false,
+          has_usage_api: false,
+          last_validated: validatedAt,
+          last_failure_reason: 'This provider is not supported for API key tracking yet.',
+          consecutive_failures: Math.min((key.consecutive_failures ?? 0) + 1, 10),
+        })
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) return { data: null, error: error.message };
+      return { data, error: null };
+    }
+
+    const encryptedPayload: EncryptedPayload = JSON.parse(key.encrypted_key);
+    const plainKey = decryptCredentials(encryptedPayload);
+    const validation = await adapter.validateKey(plainKey);
+
+    if (!validation.valid) {
+      const { data, error } = await supabase
+        .from('api_keys')
+        .update({
+          is_valid: false,
+          is_active: false,
+          has_usage_api: false,
+          last_validated: validatedAt,
+          last_failure_reason: validation.error ?? 'The provider rejected this key during manual refresh.',
+          consecutive_failures: Math.min((key.consecutive_failures ?? 0) + 1, 10),
+        })
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) return { data: null, error: error.message };
+
+      await logAudit(supabase, {
+        userId: user.id,
+        action: 'key.updated',
+        entityType: 'api_key',
+        entityId: id,
+        metadata: {
+          refresh: true,
+          result: 'inactive',
+          reason: validation.error ?? 'validation_failed',
+        },
+      });
+
+      return { data, error: null };
+    }
+
+    const { dateFrom, dateTo } = getValidationWindow();
+    const syncCheck = await adapter.fetchUsage(plainKey, dateFrom, dateTo);
+
+    if (!syncCheck.success) {
+      const { data, error } = await supabase
+        .from('api_keys')
+        .update({
+          is_valid: false,
+          is_active: false,
+          has_usage_api: false,
+          last_validated: validatedAt,
+          last_failure_reason: syncCheck.error ?? 'The provider usage check failed during manual refresh.',
+          consecutive_failures: Math.min((key.consecutive_failures ?? 0) + 1, 10),
+        })
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) return { data: null, error: error.message };
+
+      await logAudit(supabase, {
+        userId: user.id,
+        action: 'key.updated',
+        entityType: 'api_key',
+        entityId: id,
+        metadata: {
+          refresh: true,
+          result: 'inactive',
+          reason: syncCheck.error ?? 'usage_check_failed',
+        },
+      });
+
+      return { data, error: null };
+    }
+
+    const shouldReactivate = !key.is_active && !!key.last_failure_reason;
+    const { data, error } = await supabase
+      .from('api_keys')
+      .update({
+        is_valid: true,
+        is_active: key.is_active || shouldReactivate,
+        has_usage_api: true,
+        last_validated: validatedAt,
+        last_failure_reason: null,
+        consecutive_failures: 0,
+      })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) return { data: null, error: error.message };
+
+    await logAudit(supabase, {
+      userId: user.id,
+      action: 'key.updated',
+      entityType: 'api_key',
+      entityId: id,
+      metadata: {
+        refresh: true,
+        result: 'healthy',
+      },
     });
 
     return { data, error: null };

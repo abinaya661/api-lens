@@ -1,7 +1,11 @@
 import { z } from 'zod';
+import { PROVIDERS } from '@/types/providers';
 
 export const addKeySchema = z.object({
-  provider: z.string().min(1, 'Provider is required'),
+  provider: z.enum(PROVIDERS, {
+    required_error: 'Provider is required',
+    invalid_type_error: 'Unsupported provider selected',
+  }),
   nickname: z.string().min(1, 'Label is required').max(100),
   api_key: z.string().min(1, 'API key is required'),
   project_id: z.string().uuid().optional(),

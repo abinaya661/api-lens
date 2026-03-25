@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useProfile, useUpdateProfile } from '@/hooks/use-profile';
 import { useAddKey } from '@/hooks/use-keys';
 import { useCreateBudget } from '@/hooks/use-budgets';
+import type { Provider } from '@/types/providers';
 import {
   Sparkles,
   Key,
@@ -45,7 +46,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
 
   // Key form
-  const [provider, setProvider] = useState('openai');
+  const [provider, setProvider] = useState<Provider>('openai');
   const [nickname, setNickname] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -204,7 +205,7 @@ export default function OnboardingPage() {
                 </label>
                 <select
                   value={provider}
-                  onChange={(e) => setProvider(e.target.value)}
+                  onChange={(e) => setProvider(e.target.value as Provider)}
                   className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
                 >
                   {PROVIDERS.map((p) => (

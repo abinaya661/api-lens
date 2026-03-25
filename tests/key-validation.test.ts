@@ -20,6 +20,15 @@ describe('addKeySchema', () => {
     expect(result.success).toBe(false);
   });
 
+  test('rejects unsupported provider', () => {
+    const result = addKeySchema.safeParse({
+      provider: 'not-a-provider',
+      nickname: 'My Key',
+      api_key: 'sk-1234567890',
+    });
+    expect(result.success).toBe(false);
+  });
+
   test('rejects empty nickname', () => {
     const result = addKeySchema.safeParse({
       provider: 'openai',

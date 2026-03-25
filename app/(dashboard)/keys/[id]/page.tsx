@@ -6,14 +6,17 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { getKey } from '@/lib/actions/keys';
 import { listBudgets } from '@/lib/actions/budgets';
-import { useUpdateKey, useDeleteKey } from '@/hooks/use-keys';
+import { useUpdateKey, useDeleteKey, useRefreshKeyStatus } from '@/hooks/use-keys';
 import { useProjects } from '@/hooks/use-projects';
 import { SkeletonCard, ErrorState } from '@/components/shared';
 import { timeAgo, formatCurrency } from '@/lib/utils';
 import type { ApiKey } from '@/types/database';
 import {
   ArrowLeft,
+  Ban,
+  CheckCircle2,
   Key,
+  RefreshCw,
   Shield,
   Clock,
   Trash2,
@@ -23,7 +26,7 @@ import {
   Check,
 } from 'lucide-react';
 import { PROVIDER_NAMES, PROVIDER_COLORS } from '@/lib/utils/provider-config';
-import { getHealthConfig } from '@/lib/utils/key-health';
+import { getHealthConfig, getTrackabilityConfig, getVerificationConfig } from '@/lib/utils/key-health';
 
 export default function KeyDetailPage() {
   const params = useParams();
@@ -32,6 +35,7 @@ export default function KeyDetailPage() {
 
   const updateKeyMutation = useUpdateKey();
   const deleteKeyMutation = useDeleteKey();
+  const refreshKeyMutation = useRefreshKeyStatus();
   const { data: projects } = useProjects();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -97,6 +101,10 @@ export default function KeyDetailPage() {
 
   const health = getHealthConfig(apiKey);
   const HealthIcon = health.icon;
+  const verification = getVerificationConfig(apiKey);
+  const VerificationIcon = verification.icon;
+  const trackability = getTrackabilityConfig(apiKey);
+  const TrackabilityIcon = trackability.icon;
   const providerLabel = PROVIDER_NAMES[apiKey.provider] || apiKey.provider;
   const providerColor =
     PROVIDER_COLORS[apiKey.provider] || 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20';
@@ -128,6 +136,14 @@ export default function KeyDetailPage() {
     deleteKeyMutation.mutate(id, {
       onSuccess: () => {
         router.push('/keys');
+      },
+    });
+  }
+
+  function handleRefresh() {
+    refreshKeyMutation.mutate(id, {
+      onSuccess: () => {
+        refetch();
       },
     });
   }
@@ -174,6 +190,14 @@ export default function KeyDetailPage() {
           {/* Action buttons */}
           <div className="flex items-center gap-2 shrink-0">
             <button
+              onClick={handleRefresh}
+              disabled={refreshKeyMutation.isPending}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshKeyMutation.isPending ? 'animate-spin' : ''}`} />
+              Refresh Status
+            </button>
+            <button
               onClick={openEditModal}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
             >
@@ -191,8 +215,22 @@ export default function KeyDetailPage() {
         </div>
       </div>
 
+      {apiKey.last_failure_reason && (
+        <div className="glass-card p-4 mb-4 border border-red-500/10">
+          <div className="flex items-start gap-3">
+            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-red-500/10 text-red-400 shrink-0">
+              <Ban className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-red-400">Attention required</p>
+              <p className="text-sm text-zinc-300 mt-1">{apiKey.last_failure_reason}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         {/* Created */}
         <div className="glass-card p-5">
           <div className="flex items-center gap-2 mb-1">
@@ -209,7 +247,27 @@ export default function KeyDetailPage() {
           <p className="text-xs text-zinc-500 mt-0.5">{timeAgo(apiKey.created_at)}</p>
         </div>
 
-        {/* Last used */}
+        {/* Last checked */}
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle2 className="w-4 h-4 text-zinc-500" />
+            <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Last Checked</span>
+          </div>
+          <p className="text-sm font-medium text-zinc-200 mt-2">
+            {apiKey.last_validated
+              ? new Date(apiKey.last_validated).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })
+              : 'Never checked'}
+          </p>
+          {apiKey.last_validated && (
+            <p className="text-xs text-zinc-500 mt-0.5">{timeAgo(apiKey.last_validated)}</p>
+          )}
+        </div>
+
+        {/* Last synced */}
         <div className="glass-card p-5">
           <div className="flex items-center gap-2 mb-1">
             <Shield className="w-4 h-4 text-zinc-500" />
@@ -246,6 +304,20 @@ export default function KeyDetailPage() {
           <div>
             <span className="text-xs text-zinc-500 block mb-1">Status</span>
             <span className={`text-sm font-medium ${health.color}`}>{health.label}</span>
+          </div>
+          <div>
+            <span className="text-xs text-zinc-500 block mb-1">Verification</span>
+            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border ${verification.bg} ${verification.color}`}>
+              <VerificationIcon className="w-3.5 h-3.5" />
+              {verification.label}
+            </span>
+          </div>
+          <div>
+            <span className="text-xs text-zinc-500 block mb-1">Trackability</span>
+            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border ${trackability.bg} ${trackability.color}`}>
+              <TrackabilityIcon className="w-3.5 h-3.5" />
+              {trackability.label}
+            </span>
           </div>
           <div>
             <span className="text-xs text-zinc-500 block mb-1">Consecutive Failures</span>

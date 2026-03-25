@@ -5,27 +5,28 @@ export class MoonshotAdapter extends BaseAdapter {
   provider = 'moonshot';
 
   async fetchUsage(_apiKey: string, _dateFrom: string, _dateTo: string): Promise<SyncResult> {
-    // Moonshot (Kimi) does not expose a public usage/billing API
-    return this.makeSyncResult(this.provider, []);
+    return this.makeSyncResult(
+      this.provider,
+      [],
+      'Moonshot does not expose a public usage/billing API that API Lens can sync with an API key today.',
+    );
   }
 
   async validateKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
     try {
-      // Moonshot is OpenAI-compatible; validate by listing models
       const res = await fetch('https://api.moonshot.cn/v1/models', {
         headers: { 'Authorization': `Bearer ${apiKey}` },
       });
 
-      if (res.ok) {
-        return { valid: true };
+      if (!res.ok) {
+        const body = await res.text();
+        return { valid: false, error: `Moonshot returned ${res.status}: ${body}` };
       }
 
-      if (res.status === 401 || res.status === 403) {
-        return { valid: false, error: 'Invalid or unauthorized API key' };
-      }
-
-      const body = await res.text();
-      return { valid: false, error: `Moonshot returned ${res.status}: ${body}` };
+      return {
+        valid: false,
+        error: 'This Moonshot key is valid for inference, but API Lens cannot verify usage/billing tracking because Moonshot does not expose a public usage API for this credential.',
+      };
     } catch (e: unknown) {
       return { valid: false, error: e instanceof Error ? e.message : 'Validation failed' };
     }

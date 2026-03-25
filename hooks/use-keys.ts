@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { listKeys, addKey, updateKey, deleteKey } from '@/lib/actions/keys';
+import { listKeys, addKey, updateKey, deleteKey, refreshKeyStatus } from '@/lib/actions/keys';
 import type { AddKeyInput, UpdateKeyInput } from '@/lib/validations/key';
 import { toast } from 'sonner';
 
@@ -22,16 +22,12 @@ export function useAddKey() {
     mutationFn: async (input: AddKeyInput) => {
       const result = await addKey(input);
       if (result.error) throw new Error(result.error);
-      return { data: result.data!, warning: result.warning };
+      return result.data!;
     },
-    onSuccess: (result) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['keys'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      if (result.warning) {
-        toast.success('API key added successfully', { description: result.warning });
-      } else {
-        toast.success('API key verified & added successfully');
-      }
+      toast.success('Key verified and added successfully');
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -64,6 +60,32 @@ export function useDeleteKey() {
       queryClient.invalidateQueries({ queryKey: ['keys'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Key deleted');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useRefreshKeyStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const result = await refreshKeyStatus(id);
+      if (result.error) throw new Error(result.error);
+      return result.data!;
+    },
+    onSuccess: (key) => {
+      queryClient.invalidateQueries({ queryKey: ['keys'] });
+      queryClient.invalidateQueries({ queryKey: ['keys', key.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+
+      if (key.is_valid && key.is_active) {
+        toast.success('Key is healthy and active');
+        return;
+      }
+
+      toast.error('Key is inactive', {
+        description: key.last_failure_reason ?? 'The provider rejected the key during refresh.',
+      });
     },
     onError: (error: Error) => toast.error(error.message),
   });
