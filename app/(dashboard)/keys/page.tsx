@@ -5,7 +5,7 @@ import { PageHeader, EmptyState, ErrorState, SkeletonTable } from '@/components/
 import { useKeys, useAddKey, useUpdateKey, useDeleteKey } from '@/hooks/use-keys';
 import { useProjects, useCreateProject } from '@/hooks/use-projects';
 import { timeAgo } from '@/lib/utils';
-import type { ApiKey } from '@/types/database';
+
 import {
   Plus,
   ShieldX,

@@ -10,7 +10,6 @@ import { useUpdateKey, useDeleteKey } from '@/hooks/use-keys';
 import { useProjects } from '@/hooks/use-projects';
 import { SkeletonCard, ErrorState } from '@/components/shared';
 import { timeAgo, formatCurrency } from '@/lib/utils';
-import type { ApiKey } from '@/types/database';
 import {
   ArrowLeft,
   Key,
@@ -20,7 +19,6 @@ import {
   Edit2,
   XCircle,
   X,
-  Check,
 } from 'lucide-react';
 import { PROVIDER_NAMES, PROVIDER_COLORS } from '@/lib/utils/provider-config';
 import { getHealthConfig } from '@/lib/utils/key-health';
@@ -32,7 +30,7 @@ export default function KeyDetailPage() {
 
   const updateKeyMutation = useUpdateKey();
   const deleteKeyMutation = useDeleteKey();
-  const { data: projects } = useProjects();
+  const { data: _projects } = useProjects();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);

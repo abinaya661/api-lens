@@ -1,6 +1,6 @@
-import type { Provider, NormalizedUsage, ProviderSyncResult } from '@/types';
+import type { ProviderSyncResult } from '@/types';
 
-export async function validateAzureOpenAI(apiKey: string, endpoint: string, subscriptionId: string): Promise<{ valid: boolean; error?: string }> {
+export async function validateAzureOpenAI(apiKey: string, endpoint: string, _subscriptionId: string): Promise<{ valid: boolean; error?: string }> {
   try {
     const url = new URL(endpoint);
     url.pathname = '/openai/models';
@@ -19,11 +19,11 @@ export async function validateAzureOpenAI(apiKey: string, endpoint: string, subs
 }
 
 export async function fetchAzureOpenAIUsage(
-  apiKey: string,
-  endpoint: string,
-  subscriptionId: string,
-  keyId: string,
-  since?: Date,
+  _apiKey: string,
+  _endpoint: string,
+  _subscriptionId: string,
+  _keyId: string,
+  _since?: Date,
 ): Promise<ProviderSyncResult> {
   // Requires Azure Cost Management API and Azure AD token exchange which is complex without the SDK.
   // Returning empty usage for now as a stub.
