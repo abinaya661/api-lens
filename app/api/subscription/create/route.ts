@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
 
     const session = await dodo.checkoutSessions.create({
       product_cart: [{ product_id: productId, quantity: 1 }],
+      subscription_data: { trial_period_days: 7 },
       customer: {
         email: user.email!,
         name:
