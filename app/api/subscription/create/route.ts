@@ -22,25 +22,25 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
-    // Detect user's region from geo cookie to select correct product + currency
+    // Detect user's region from geo cookie to select correct product + currency.
+    // Each region has a fixed local price product in Dodo (Netflix-style pricing).
+    // ROW falls back to the default USD product; billing_currency is omitted so
+    // Dodo auto-converts the USD price to the user's local currency.
     const geoCountry = req.cookies.get('geo_country')?.value ?? '';
     const euCountries = ['DE','FR','IT','ES','NL','BE','AT','PT','IE','FI','GR','LU','LT','LV','EE','SK','SI','CY','MT'];
 
-    // Known-region currencies. ROW is intentionally omitted so Dodo auto-converts
-    // the USD price into the user's local currency at checkout.
+    // Known-region currencies. ROW intentionally omitted — Dodo auto-converts.
     const REGION_CURRENCIES: Record<string, string> = {
       IN: 'INR', US: 'USD', GB: 'GBP', CA: 'CAD',
     };
     const billingCurrency = REGION_CURRENCIES[geoCountry] ?? (euCountries.includes(geoCountry) ? 'EUR' : undefined);
 
-    // Use region-specific product IDs when available, fall back to default.
-    // EU countries share one EUR product (DODO_PLAN_MONTHLY_ID_EU) unless a
-    // country-specific override exists (e.g. DODO_PLAN_MONTHLY_ID_DE).
+    // EU countries share one EUR product unless a country-specific override exists.
     const regionKey = euCountries.includes(geoCountry) && !process.env[`DODO_PLAN_MONTHLY_ID_${geoCountry}`]
       ? 'EU'
       : geoCountry;
     const regionalMonthlyId = process.env[`DODO_PLAN_MONTHLY_ID_${regionKey}`];
-    const regionalAnnualId = process.env[`DODO_PLAN_ANNUAL_ID_${regionKey}`];
+    const regionalAnnualId  = process.env[`DODO_PLAN_ANNUAL_ID_${regionKey}`];
 
     const productId =
       plan === 'annual'
