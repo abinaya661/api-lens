@@ -16,17 +16,21 @@ const envSchema = z.object({
   // Dodo Payments
   DODO_API_KEY: z.string().min(1),
   DODO_WEBHOOK_SECRET: z.string().min(1),
-  DODO_PLAN_MONTHLY_ID: z.string().min(1),
-  DODO_PLAN_ANNUAL_ID: z.string().min(1),
-  DODO_COLLECTION_INDIA_ID: z.string().optional(),
-  DODO_COLLECTION_NA_ID: z.string().optional(),
-  DODO_COLLECTION_CA_ID: z.string().optional(),
-  DODO_COLLECTION_EU_ID: z.string().optional(),
-  DODO_COLLECTION_ROW_ID: z.string().optional(),
+  // Per-region product IDs (monthly + annual for each region)
+  DODO_PRODUCT_MONTHLY_IN: z.string().min(1),
+  DODO_PRODUCT_ANNUAL_IN: z.string().min(1),
+  DODO_PRODUCT_MONTHLY_US: z.string().min(1),
+  DODO_PRODUCT_ANNUAL_US: z.string().min(1),
+  DODO_PRODUCT_MONTHLY_CA: z.string().min(1),
+  DODO_PRODUCT_ANNUAL_CA: z.string().min(1),
+  DODO_PRODUCT_MONTHLY_EU: z.string().min(1),
+  DODO_PRODUCT_ANNUAL_EU: z.string().min(1),
+  DODO_PRODUCT_MONTHLY_ROW: z.string().min(1),
+  DODO_PRODUCT_ANNUAL_ROW: z.string().min(1),
 
-  // Resend
-  RESEND_API_KEY: z.string().min(1),
-  RESEND_FROM_EMAIL: z.string().email(),
+  // Resend (optional — email features disabled if not set)
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().optional(),
 
   // Upstash Redis (optional)
   UPSTASH_REDIS_REST_URL: z.string().optional(),
