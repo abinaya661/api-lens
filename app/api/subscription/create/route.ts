@@ -40,7 +40,6 @@ export async function POST(req: NextRequest) {
       collectionId = process.env.DODO_COLLECTION_ROW_ID;
     }
 
-    // Fallback to direct product routing if collections are not configured yet.
     const fallbackProductId = plan === 'annual'
       ? process.env.DODO_PLAN_ANNUAL_ID
       : process.env.DODO_PLAN_MONTHLY_ID;
