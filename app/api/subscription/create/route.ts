@@ -31,8 +31,13 @@ export async function POST(req: NextRequest) {
     const billingCurrency =
       CURRENCY_MAP[geoCountry] ?? (euCountries.includes(geoCountry) ? 'EUR' : 'USD');
 
-    // Use region-specific product IDs when available, fall back to default
-    const regionKey = geoCountry;
+    // Use region-specific product IDs when available, fall back to default.
+    // EU countries share one EUR product (DODO_PLAN_MONTHLY_ID_EU) unless a
+    // country-specific override exists (e.g. DODO_PLAN_MONTHLY_ID_DE).
+    const euCountries = ['DE','FR','IT','ES','NL','BE','AT','PT','IE','FI','GR','LU','LT','LV','EE','SK','SI','CY','MT'];
+    const regionKey = euCountries.includes(geoCountry) && !process.env[`DODO_PLAN_MONTHLY_ID_${geoCountry}`]
+      ? 'EU'
+      : geoCountry;
     const regionalMonthlyId = process.env[`DODO_PLAN_MONTHLY_ID_${regionKey}`];
     const regionalAnnualId = process.env[`DODO_PLAN_ANNUAL_ID_${regionKey}`];
 
