@@ -69,7 +69,7 @@ export default function TermsPage() {
               <ul className="space-y-2 text-zinc-400">
                 <li className="flex gap-3">
                   <span className="text-brand-500 mt-1 shrink-0">&bull;</span>
-                  <span>API Lens is a subscription service priced at <span className="text-zinc-200 font-medium">$5.99/month</span> after a 7-day free trial.</span>
+                  <span>API Lens is a subscription service priced at <span className="text-zinc-200 font-medium">starting at $4.99/month (varies by region)</span> after a 7-day free trial.</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="text-brand-500 mt-1 shrink-0">&bull;</span>

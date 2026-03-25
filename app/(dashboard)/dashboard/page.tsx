@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -14,7 +14,7 @@ import {
 import { useDashboard } from '@/hooks/use-dashboard';
 import { BarChart3 } from 'lucide-react';
 
-export default function DashboardPage() {
+function DashboardPageInner() {
   const { data, isLoading, error, refetch } = useDashboard();
   const searchParams = useSearchParams();
 
@@ -83,5 +83,13 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardPageInner />
+    </Suspense>
   );
 }

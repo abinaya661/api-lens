@@ -15,34 +15,29 @@ export interface RegionalPrice {
 
 const REGIONAL_PRICES: Record<string, RegionalPrice> = {
   // India
-  IN: { monthly: '499', annual: '4,999', currency: 'INR', symbol: '₹' },
+  IN: { monthly: '399', annual: '3,999', currency: 'INR', symbol: '₹' },
+  // North America
+  US: { monthly: '5.99', annual: '59.99', currency: 'USD', symbol: '$' },
+  CA: { monthly: '5.99', annual: '59.99', currency: 'CAD', symbol: 'CA$' },
   // Eurozone
-  EU: { monthly: '5.49', annual: '54.99', currency: 'EUR', symbol: '€' },
-  DE: { monthly: '5.49', annual: '54.99', currency: 'EUR', symbol: '€' },
-  FR: { monthly: '5.49', annual: '54.99', currency: 'EUR', symbol: '€' },
-  IT: { monthly: '5.49', annual: '54.99', currency: 'EUR', symbol: '€' },
-  ES: { monthly: '5.49', annual: '54.99', currency: 'EUR', symbol: '€' },
-  NL: { monthly: '5.49', annual: '54.99', currency: 'EUR', symbol: '€' },
-  BE: { monthly: '5.49', annual: '54.99', currency: 'EUR', symbol: '€' },
-  AT: { monthly: '5.49', annual: '54.99', currency: 'EUR', symbol: '€' },
-  PT: { monthly: '5.49', annual: '54.99', currency: 'EUR', symbol: '€' },
-  IE: { monthly: '5.49', annual: '54.99', currency: 'EUR', symbol: '€' },
-  FI: { monthly: '5.49', annual: '54.99', currency: 'EUR', symbol: '€' },
+  EU: { monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€' },
+  DE: { monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€' },
+  FR: { monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€' },
+  IT: { monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€' },
+  ES: { monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€' },
+  NL: { monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€' },
+  BE: { monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€' },
+  AT: { monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€' },
+  PT: { monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€' },
+  IE: { monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€' },
+  FI: { monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€' },
   // United Kingdom
-  GB: { monthly: '4.79', annual: '47.99', currency: 'GBP', symbol: '£' },
-  // Japan
-  JP: { monthly: '890', annual: '8,900', currency: 'JPY', symbol: '¥' },
-  // Brazil
-  BR: { monthly: '29.90', annual: '299', currency: 'BRL', symbol: 'R$' },
-  // Canada
-  CA: { monthly: '7.99', annual: '79.99', currency: 'CAD', symbol: 'CA$' },
-  // Australia
-  AU: { monthly: '8.99', annual: '89.99', currency: 'AUD', symbol: 'A$' },
+  GB: { monthly: '5.99', annual: '59.99', currency: 'GBP', symbol: '£' },
 };
 
 const DEFAULT_PRICE: RegionalPrice = {
-  monthly: '5.99',
-  annual: '59.99',
+  monthly: '4.99',
+  annual: '49.99',
   currency: 'USD',
   symbol: '$',
 };
