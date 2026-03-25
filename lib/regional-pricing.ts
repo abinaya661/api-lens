@@ -15,71 +15,31 @@ export interface RegionalPrice {
   enterprise_annual?: string;
 }
 
+const EUR: RegionalPrice = {
+  monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€',
+  enterprise_monthly: '9.99', enterprise_annual: '99.99',
+};
+
 const REGIONAL_PRICES: Record<string, RegionalPrice> = {
-  // India
-  IN: {
-    monthly: '399', annual: '3,999', currency: 'INR', symbol: '₹',
-    enterprise_monthly: '799', enterprise_annual: '7,999',
-  },
+  // India — fixed INR pricing
+  IN: { monthly: '399', annual: '3,999', currency: 'INR', symbol: '₹', enterprise_monthly: '799', enterprise_annual: '7,999' },
+
   // North America
-  US: {
-    monthly: '5.99', annual: '59.99', currency: 'USD', symbol: '$',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
-  CA: {
-    monthly: '5.99', annual: '59.99', currency: 'CAD', symbol: 'CA$',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
-  // Eurozone
-  EU: {
-    monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
-  DE: {
-    monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
-  FR: {
-    monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
-  IT: {
-    monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
-  ES: {
-    monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
-  NL: {
-    monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
-  BE: {
-    monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
-  AT: {
-    monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
-  PT: {
-    monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
-  IE: {
-    monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
-  FI: {
-    monthly: '5.99', annual: '59.99', currency: 'EUR', symbol: '€',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
-  // United Kingdom
-  GB: {
-    monthly: '5.99', annual: '59.99', currency: 'GBP', symbol: '£',
-    enterprise_monthly: '9.99', enterprise_annual: '99.99',
-  },
+  US: { monthly: '5.99', annual: '59.99', currency: 'USD', symbol: '$', enterprise_monthly: '9.99', enterprise_annual: '99.99' },
+  CA: { monthly: '5.99', annual: '59.99', currency: 'CAD', symbol: 'CA$', enterprise_monthly: '9.99', enterprise_annual: '99.99' },
+
+  // Europe — Eurozone (all use EUR)
+  EU: { ...EUR }, DE: { ...EUR }, FR: { ...EUR }, IT: { ...EUR },
+  ES: { ...EUR }, NL: { ...EUR }, BE: { ...EUR }, AT: { ...EUR },
+  PT: { ...EUR }, IE: { ...EUR }, FI: { ...EUR }, GR: { ...EUR },
+  LU: { ...EUR }, LT: { ...EUR }, LV: { ...EUR }, EE: { ...EUR },
+  SK: { ...EUR }, SI: { ...EUR }, CY: { ...EUR }, MT: { ...EUR },
+
+  // United Kingdom — GBP
+  GB: { monthly: '5.99', annual: '59.99', currency: 'GBP', symbol: '£', enterprise_monthly: '9.99', enterprise_annual: '99.99' },
+
+  // All other countries → DEFAULT_PRICE ($4.99 USD).
+  // Dodo Payments (as MoR) converts $4.99 to the customer's local currency at checkout.
 };
 
 const DEFAULT_PRICE: RegionalPrice = {
