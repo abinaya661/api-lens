@@ -32,8 +32,10 @@ export async function POST(req: NextRequest) {
     let collectionId: string | undefined;
     if (geoCountry === 'IN') {
       collectionId = process.env.DODO_COLLECTION_INDIA_ID;
-    } else if (geoCountry === 'US' || geoCountry === 'CA') {
+    } else if (geoCountry === 'US') {
       collectionId = process.env.DODO_COLLECTION_NA_ID;
+    } else if (geoCountry === 'CA') {
+      collectionId = process.env.DODO_COLLECTION_CA_ID;
     } else if (euCountries.includes(geoCountry)) {
       collectionId = process.env.DODO_COLLECTION_EU_ID;
     } else {

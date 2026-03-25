@@ -18,6 +18,11 @@ const envSchema = z.object({
   DODO_WEBHOOK_SECRET: z.string().min(1),
   DODO_PLAN_MONTHLY_ID: z.string().min(1),
   DODO_PLAN_ANNUAL_ID: z.string().min(1),
+  DODO_COLLECTION_INDIA_ID: z.string().optional(),
+  DODO_COLLECTION_NA_ID: z.string().optional(),
+  DODO_COLLECTION_CA_ID: z.string().optional(),
+  DODO_COLLECTION_EU_ID: z.string().optional(),
+  DODO_COLLECTION_ROW_ID: z.string().optional(),
 
   // Resend
   RESEND_API_KEY: z.string().min(1),
