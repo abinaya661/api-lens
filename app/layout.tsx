@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { Toaster } from 'sonner';
 import { Providers } from '@/app/providers';
 
-const inter = Inter({
-  subsets: ['latin'],
+const inter = localFont({
+  src: [
+    { path: '../public/fonts/geist-latin-ext.woff2', weight: '100 900' },
+    { path: '../public/fonts/geist-latin.woff2', weight: '100 900' },
+  ],
   variable: '--font-inter',
 });
 

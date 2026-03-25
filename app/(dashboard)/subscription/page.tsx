@@ -364,7 +364,10 @@ export default function SubscriptionPage() {
             />
           ))}
         </div>
-        <p className="text-xs text-zinc-500 mt-3">
+        <p className="text-xs text-zinc-500 mt-2">
+          Prices shown in your local currency. Final amount confirmed at checkout.
+        </p>
+        <p className="text-xs text-zinc-500 mt-1">
           You can also enter a promo code directly on the checkout page.
         </p>
       </div>

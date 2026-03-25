@@ -147,7 +147,13 @@ export function PricingSection() {
         </RevealOnScroll>
 
         <RevealOnScroll>
-          <p className="text-center text-zinc-500 text-sm mt-12 flex items-center justify-center gap-2">
+          <p className="text-center text-zinc-500 text-sm mt-4">
+            Prices shown in your local currency. Final amount confirmed at checkout.
+          </p>
+        </RevealOnScroll>
+
+        <RevealOnScroll>
+          <p className="text-center text-zinc-500 text-sm mt-6 flex items-center justify-center gap-2">
             <ShieldCheck className="w-4 h-4 text-green-500" />
             7-day risk-free trial on all plans. Cancel anytime. No credit card required upfront.
           </p>
