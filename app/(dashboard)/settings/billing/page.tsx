@@ -187,7 +187,9 @@ export default function BillingPage() {
               {trialEnd ? (
                 <>
                   <p className="text-sm text-zinc-300">
-                    Your free trial ends on <span className="text-white font-medium">{formatDate(trialEnd)}</span>.
+                    Your card will be charged automatically on{' '}
+                    <span className="text-white font-medium">{formatDate(trialEnd)}</span>.
+                    Cancel anytime before.
                   </p>
                   <p className="text-xs text-zinc-500">
                     {daysLeft(trialEnd)} day{daysLeft(trialEnd) !== 1 ? 's' : ''} remaining.
