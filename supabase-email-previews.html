@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Lens - Email Template Previews</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f4f4f5;
+    margin: 0;
+    padding: 40px 20px;
+    color: #09090b;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .header h1 {
+    font-size: 24px;
+    font-weight: 600;
+  }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  .preview-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    overflow: hidden;
+  }
+  .preview-header {
+    background: #fafafa;
+    border-bottom: 1px solid #eaeaea;
+    padding: 16px 24px;
+    font-size: 14px;
+    color: #52525b;
+  }
+  .preview-header strong {
+    color: #09090b;
+  }
+  .email-body {
+    padding: 0;
+  }
+  
+  /* Actual Email Template Styles below (these go into Supabase) */
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Supabase Email Template Previews</h1>
+  <p style="color: #71717a;">Here is exactly how your users will see the emails.</p>
+</div>
+
+<div class="container">
+
+  <!-- 1. Confirm Signup -->
+  <div class="preview-card">
+    <div class="preview-header">
+      <div><strong>Subject:</strong> Welcome to API Lens - Please confirm your email</div>
+      <div style="margin-top: 4px;"><strong>From:</strong> API Lens &lt;noreply@apilens.tech&gt;</div>
+    </div>
+    <div class="email-body">
+      <!-- SUPABASE HTML START -->
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px; color: #111;">
+        <div style="margin-bottom: 30px;">
+          <h2 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">API Lens</h2>
+        </div>
+        <h3 style="font-size: 20px; margin-top: 0; font-weight: 600;">Confirm your email address</h3>
+        <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+          You're almost there! We're excited to have you on board. Please confirm your email address to activate your 7-day free trial and start managing your API keys instantly.
+        </p>
+        <div style="margin: 30px 0;">
+          <a href="{{ .ConfirmationURL }}" style="background-color: #000; color: #fff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 15px; display: inline-block;">
+            Verify Email
+          </a>
+        </div>
+        <hr style="border: none; border-top: 1px solid #eaeaea; margin: 40px 0 20px 0;" />
+        <p style="color: #888; font-size: 13px; line-height: 1.5; margin: 0;">
+          If the button doesn't work, copy and paste this link into your browser:<br/>
+          <a href="{{ .ConfirmationURL }}" style="color: #666; word-break: break-all;">https://apilens.tech/auth/confirm?token=xyz123</a>
+        </p>
+        <p style="color: #aaa; font-size: 12px; margin-top: 20px;">
+          If you didn't attempt to sign up for API Lens, you can safely ignore this email.
+        </p>
+      </div>
+      <!-- SUPABASE HTML END -->
+    </div>
+  </div>
+
+  <!-- 2. Reset Password -->
+  <div class="preview-card">
+    <div class="preview-header">
+      <div><strong>Subject:</strong> Reset your API Lens password</div>
+      <div style="margin-top: 4px;"><strong>From:</strong> API Lens &lt;noreply@apilens.tech&gt;</div>
+    </div>
+    <div class="email-body">
+      <!-- SUPABASE HTML START -->
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px; color: #111;">
+        <div style="margin-bottom: 30px;">
+          <h2 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">API Lens</h2>
+        </div>
+        <h3 style="font-size: 20px; margin-top: 0; font-weight: 600;">Reset your password</h3>
+        <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+          We received a request to reset the password for your API Lens account. Click the secure link below to choose a new password.
+        </p>
+        <div style="margin: 30px 0;">
+          <a href="{{ .ConfirmationURL }}" style="background-color: #000; color: #fff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 15px; display: inline-block;">
+            Reset Password
+          </a>
+        </div>
+        <hr style="border: none; border-top: 1px solid #eaeaea; margin: 40px 0 20px 0;" />
+        <p style="color: #aaa; font-size: 12px; margin-top: 20px;">
+          If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+        </p>
+      </div>
+      <!-- SUPABASE HTML END -->
+    </div>
+  </div>
+
+  <!-- 3. Magic Link / Login -->
+  <div class="preview-card">
+    <div class="preview-header">
+      <div><strong>Subject:</strong> Your API Lens login link</div>
+      <div style="margin-top: 4px;"><strong>From:</strong> API Lens &lt;noreply@apilens.tech&gt;</div>
+    </div>
+    <div class="email-body">
+      <!-- SUPABASE HTML START -->
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px; color: #111;">
+        <div style="margin-bottom: 30px;">
+          <h2 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">API Lens</h2>
+        </div>
+        <h3 style="font-size: 20px; margin-top: 0; font-weight: 600;">Log in without a password</h3>
+        <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+          Click the magic link below to instantly and securely log into your API Lens dashboard.
+        </p>
+        <div style="margin: 30px 0;">
+          <a href="{{ .ConfirmationURL }}" style="background-color: #000; color: #fff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 15px; display: inline-block;">
+            Sign In to API Lens
+          </a>
+        </div>
+        <hr style="border: none; border-top: 1px solid #eaeaea; margin: 40px 0 20px 0;" />
+        <p style="color: #aaa; font-size: 12px; margin-top: 20px;">
+          This link expires quickly. If you didn't request to log in, you can safely ignore this email.
+        </p>
+      </div>
+      <!-- SUPABASE HTML END -->
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

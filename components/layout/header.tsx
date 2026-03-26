@@ -14,7 +14,7 @@ interface HeaderProps {
 }
 
 export function Header({
-  companyName = 'API Lens',
+  companyName: _companyName = 'API Lens',
   lastSyncedAt,
   unreadAlertCount = 0,
   userInitial = 'U',

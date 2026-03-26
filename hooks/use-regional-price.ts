@@ -1,7 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { getRegionalPrice, type RegionalPrice } from '@/lib/regional-pricing';
+
+const DEFAULT_PRICE = getRegionalPrice(null);
 
 function getCountryCookie(): string | null {
   if (typeof document === 'undefined') return null;
@@ -10,5 +12,14 @@ function getCountryCookie(): string | null {
 }
 
 export function useRegionalPrice(): RegionalPrice {
-  return useMemo(() => getRegionalPrice(getCountryCookie()), []);
+  const [price, setPrice] = useState<RegionalPrice>(DEFAULT_PRICE);
+
+  useEffect(() => {
+    const country = getCountryCookie();
+    if (country) {
+      setPrice(getRegionalPrice(country));
+    }
+  }, []);
+
+  return price;
 }

@@ -1,9 +1,7 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import Link from 'next/link';
-import { toast } from 'sonner';
 import { PageHeader } from '@/components/shared';
 import { DashboardSkeleton, EmptyState, ErrorState } from '@/components/shared';
 import {
@@ -16,17 +14,6 @@ import { BarChart3 } from 'lucide-react';
 
 function DashboardPageInner() {
   const { data, isLoading, error, refetch } = useDashboard();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    if (searchParams.get('subscribed') === 'true') {
-      toast.success('Subscription activated!', {
-        description: 'Thank you for subscribing. Your plan is now active.',
-      });
-      // Clean up the URL
-      window.history.replaceState({}, '', '/dashboard');
-    }
-  }, [searchParams]);
 
   if (isLoading) return <DashboardSkeleton />;
 

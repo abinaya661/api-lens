@@ -1,6 +1,7 @@
 import { Webhook } from 'standardwebhooks';
 import { headers } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendEmail, getTransactionEmailHtml } from '@/lib/email/resend';
 
 export const runtime = 'nodejs';
 
@@ -92,6 +93,20 @@ export async function POST(request: Request) {
         console.error('[webhook] subscription.active DB update failed:', error);
         return new Response('Database error', { status: 500 });
       }
+
+      const { data: userResponse } = await adminSupabase.auth.admin.getUserById(userId);
+      const email = userResponse.user?.email;
+      if (email) {
+        await sendEmail({
+          to: email,
+          subject: 'Welcome to API Lens! Your Subscription is Active',
+          html: getTransactionEmailHtml({
+            title: 'Your Subscription is Active! 🎉',
+            message: 'You have successfully subscribed. Your payment was processed and your account is now fully active.',
+            plan: event.data.metadata?.plan ?? 'monthly',
+          }),
+        }).catch((err: unknown) => console.error('[Webhook Email]', err));
+      }
       break;
     }
 
@@ -131,6 +146,22 @@ export async function POST(request: Request) {
         console.error('[webhook] payment.failed DB update failed:', error);
         return new Response('Database error', { status: 500 });
       }
+
+      const { data: sub } = await adminSupabase.from('subscriptions').select('user_id').eq('dodo_subscription_id', event.data.subscription_id).single();
+      if (sub?.user_id) {
+        const { data: userResponse } = await adminSupabase.auth.admin.getUserById(sub.user_id);
+        const email = userResponse.user?.email;
+        if (email) {
+          await sendEmail({
+            to: email,
+            subject: 'API Lens Payment Failed',
+            html: getTransactionEmailHtml({
+              title: 'Your payment was unsuccessful',
+              message: 'Your recent payment did not go through. Your access will continue for a 3-day grace period. Please update your payment method to avoid interruption.',
+            }),
+          }).catch((err: unknown) => console.error('[Webhook Email]', err));
+        }
+      }
       break;
     }
 
@@ -165,6 +196,22 @@ export async function POST(request: Request) {
       if (error) {
         console.error('[webhook] payment.completed DB update failed:', error);
         return new Response('Database error', { status: 500 });
+      }
+
+      const { data: subComp } = await adminSupabase.from('subscriptions').select('user_id').eq('dodo_subscription_id', event.data.subscription_id).single();
+      if (subComp?.user_id) {
+        const { data: userResponse } = await adminSupabase.auth.admin.getUserById(subComp.user_id);
+        const email = userResponse.user?.email;
+        if (email) {
+          await sendEmail({
+            to: email,
+            subject: 'API Lens Payment Successful',
+            html: getTransactionEmailHtml({
+              title: 'Payment Successful',
+              message: 'Your subscription renewal payment was successfully processed. Thank you for using API Lens!',
+            }),
+          }).catch((err: unknown) => console.error('[Webhook Email]', err));
+        }
       }
       break;
     }

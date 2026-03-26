@@ -49,7 +49,7 @@ export default function SignupPage() {
   return (
     <div className="glass-card p-8 animate-fade-in">
       <h2 className="text-xl font-semibold text-white mb-1">Start your free trial</h2>
-      <p className="text-sm text-zinc-500 mb-6">7 days free, all features included. Cancel anytime.</p>
+      <p className="text-sm text-zinc-500 mb-6">7 days free. No credit card needed. All features included.</p>
 
       <form onSubmit={handleSignup} className="space-y-4">
         <div>

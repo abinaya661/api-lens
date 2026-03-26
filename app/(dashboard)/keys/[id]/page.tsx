@@ -10,7 +10,6 @@ import { useUpdateKey, useDeleteKey, useRefreshKeyStatus } from '@/hooks/use-key
 import { useProjects } from '@/hooks/use-projects';
 import { SkeletonCard, ErrorState } from '@/components/shared';
 import { timeAgo, formatCurrency } from '@/lib/utils';
-import type { ApiKey } from '@/types/database';
 import {
   ArrowLeft,
   Ban,
@@ -23,7 +22,6 @@ import {
   Edit2,
   XCircle,
   X,
-  Check,
 } from 'lucide-react';
 import { PROVIDER_NAMES, PROVIDER_COLORS } from '@/lib/utils/provider-config';
 import { getHealthConfig, getTrackabilityConfig, getVerificationConfig } from '@/lib/utils/key-health';
