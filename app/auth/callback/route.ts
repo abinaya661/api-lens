@@ -4,6 +4,7 @@ import { getSafeRedirect } from '@/lib/utils/safe-redirect';
 import { sendEmail, getWelcomeEmailHtml } from '@/lib/email/resend';
 import { cookies } from 'next/headers';
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
