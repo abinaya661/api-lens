@@ -202,7 +202,7 @@ export function PricingSection() {
 
                 {notifyDone ? (
                   <div className="w-full py-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 font-medium text-center text-sm">
-                    Thanks! We'll reach out soon.
+                    Thanks! We&apos;ll reach out soon.
                   </div>
                 ) : (
                   <form onSubmit={handleNotifyMe} className="flex flex-col gap-2">

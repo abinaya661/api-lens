@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       .or(`last_used.is.null,last_used.lt.${thirtyDaysAgo.toISOString()}`);
 
     if (wasteKeys && wasteKeys.length > 0) {
-      const alertInserts = wasteKeys.map((key: any) => ({
+      const alertInserts = wasteKeys.map((key: { id: string; nickname: string; user_id: string; provider: string }) => ({
         user_id: key.user_id,
         type: 'key_inactive' as const,
         severity: 'info' as const,
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
       .lt('created_at', ninetyDaysAgo.toISOString());
 
     if (oldKeys && oldKeys.length > 0) {
-      const rotationAlerts = oldKeys.map((key: any) => ({
+      const rotationAlerts = oldKeys.map((key: { id: string; nickname: string; user_id: string; provider: string; created_at: string }) => ({
         user_id: key.user_id,
         type: 'key_rotation_due' as const,
         severity: 'warning' as const,
@@ -84,12 +84,12 @@ export async function GET(request: NextRequest) {
       await supabase.from('alerts').insert(rotationAlerts);
 
       // Dispatch Warning Emails
-      const uniqueUsers = Array.from(new Set(oldKeys.map((k: any) => k.user_id)));
+      const uniqueUsers = Array.from(new Set(oldKeys.map((k: { user_id: string }) => k.user_id)));
       for (const uid of uniqueUsers) {
         const { data: uData } = await supabase.auth.admin.getUserById(uid as string);
         const email = uData.user?.email;
         if (email) {
-          const userKey = oldKeys.find((k: any) => k.user_id === uid);
+          const userKey = oldKeys.find((k: { user_id: string; nickname: string; provider: string }) => k.user_id === uid);
           await sendEmail({
             to: email,
             subject: `Action Required: Key Rotation Due for ${userKey?.nickname}`,
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
       for (const sub of expiringTrials) {
         const is24Hours = new Date(sub.trial_ends_at!).getTime() < new Date(now.getTime() + 48 * 60 * 60 * 1000).getTime();
         const daysLeft = is24Hours ? 1 : 2;
-        const ownerId = (sub.companies as any)?.owner_id;
+        const ownerId = (sub.companies as { owner_id: string })?.owner_id;
         
         if (ownerId) {
           const { data: uData } = await supabase.auth.admin.getUserById(ownerId);

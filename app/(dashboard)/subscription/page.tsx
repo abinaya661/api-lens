@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/card';
 import { Check, Loader2, CheckCircle2 } from 'lucide-react';
 import type { Subscription } from '@/types/database';
-import type { RegionalPrice } from '@/lib/regional-pricing';
+
 
 const BASE_FEATURES = [
   '10 API keys on any supported platform',
@@ -182,7 +182,7 @@ function PaymentSuccessOverlay() {
   useEffect(() => {
     window.history.replaceState({}, '', '/subscription');
     const timer = setInterval(() => {
-      setCountdown((prev) => {
+      setCountdown((prev: number) => {
         if (prev <= 1) {
           clearInterval(timer);
           router.push('/dashboard');
@@ -279,7 +279,7 @@ function SubscriptionPageInner() {
       if (!res.ok) throw new Error('Something went wrong');
       setWaitlistDone(true);
       setEmail('');
-    } catch (err) {
+    } catch {
       setWaitlistError('Failed to save. Please try again.');
     } finally {
       setWaitlistLoading(false);
@@ -329,7 +329,7 @@ function SubscriptionPageInner() {
             <Input
               placeholder="Promo code (optional)"
               value={promoCode}
-              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPromoCode(e.target.value.toUpperCase())}
               className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
             />
           </div>
@@ -430,14 +430,14 @@ function SubscriptionPageInner() {
               <CardFooter className="pt-4">
                 {waitlistDone ? (
                   <div className="w-full py-2.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 font-medium text-center text-sm">
-                    Thanks! We'll reach out soon.
+                    Thanks! We&apos;ll reach out soon.
                   </div>
                 ) : (
                   <form onSubmit={handleNotify} className="w-full flex flex-col gap-2">
                     <Input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                       placeholder="your@email.com"
                       className="bg-zinc-950 border-zinc-800"
                       required

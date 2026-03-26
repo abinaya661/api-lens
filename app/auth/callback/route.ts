@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       to: user.email!,
       subject: 'Welcome to API Lens! 🚀',
       html: getWelcomeEmailHtml(),
-    }).catch((err: any) => console.error('[Welcome Email]', err));
+    }).catch((err: unknown) => console.error('[Welcome Email]', err));
   }
 
   if (needsUpdate) {

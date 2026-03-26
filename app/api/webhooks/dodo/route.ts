@@ -159,7 +159,7 @@ export async function POST(request: Request) {
               title: 'Your payment was unsuccessful',
               message: 'Your recent payment did not go through. Your access will continue for a 3-day grace period. Please update your payment method to avoid interruption.',
             }),
-          }).catch((err: any) => console.error('[Webhook Email]', err));
+          }).catch((err: unknown) => console.error('[Webhook Email]', err));
         }
       }
       break;
@@ -210,7 +210,7 @@ export async function POST(request: Request) {
               title: 'Payment Successful',
               message: 'Your subscription renewal payment was successfully processed. Thank you for using API Lens!',
             }),
-          }).catch(err => console.error('[Webhook Email]', err));
+          }).catch((err: unknown) => console.error('[Webhook Email]', err));
         }
       }
       break;

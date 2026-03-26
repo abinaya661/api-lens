@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     await resend.contacts.create({
       email,
       audienceId: process.env.RESEND_PRO_WAITLIST_ID,
-    }).catch((err: any) => console.error('[Resend Contact]', err));
+    }).catch((err: unknown) => console.error('[Resend Contact]', err));
   }
 
   return Response.json({ success: true });
