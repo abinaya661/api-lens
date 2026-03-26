@@ -1,6 +1,6 @@
 # API Lens — Internal Team Guide
 
-**Version:** 1.1 | **Date:** March 26, 2026 | **Classification:** Internal — Engineering & Product
+**Version:** 1.2 | **Date:** March 26, 2026 | **Classification:** Internal — Engineering & Product
 
 ---
 
@@ -61,9 +61,11 @@ API Lens is a **SaaS dashboard for monitoring, managing, and optimizing AI API s
 └─────────────┘ └───────────┘ └────────────┘ └────────────┘
        │
 ┌──────▼───────────────────────────────────────────────────┐
-│  Vercel Cron: sync-and-check (daily) │ daily-tasks       │
+│  Vercel Cron (4 jobs):                                   │
+│  sync-and-check (every 6h) │ daily-tasks (7AM UTC)      │
+│  key-health-check (6AM UTC) │ weekly-report (Mon 8AM)   │
 │  Syncs usage from providers → Upserts to usage_records   │
-│  Checks budgets → Creates alerts                         │
+│  Checks budgets → Creates alerts → Sends emails          │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -228,7 +230,7 @@ api-lens/
 - [x] Blog post page (`/blog/[slug]`) — full article render, custom prose dark styles
 - [x] JSON-LD structured data: BlogPosting + BreadcrumbList per post, ItemList on index
 - [x] Dynamic sitemap auto-generates blog routes from MDX files
-- [x] Blog link in main landing page nav
+-  - `Blog` in page nav renamed to **`Insights`** (href still `/blog`); **`Pricing`** link added (scrolls to `#pricing` anchor)
 - [x] 5 SEO/GEO-optimized posts published (insider-knowledge angle, real incident anchors):
   - `ai-billing-alerts-wont-stop-charges` — $82K Gemini theft, alerts ≠ circuit breakers
   - `ai-agent-infinite-loop-billing-disaster` — $47K agent loop, silent failures
@@ -236,11 +238,19 @@ api-lens/
   - `ai-api-budget-alerts-50-70-90-rule` — 4-tier alert pattern, attribution layer
   - `unified-ai-api-dashboard-multi-provider` — fragmentation tax, unified view
 
-### Currently Uncommitted Work (In Progress)
-- Key health UI improvements (status badges, verification, trackability indicators)
-- Enhanced `refreshKeyStatus` with detailed validation + sync verification
-- Adapter improvements across all 9 providers (better error messages, validation logic)
-- New tests: key-health, provider-adapters
+### Phase 8 — Bug Fixes & Polish (COMPLETE — March 26, 2026)
+- [x] Fixed all schema field name bugs in sync engine, cron routes (user_id→company_id, encrypted_key→encrypted_credentials, last_used→last_synced_at)
+- [x] Fixed alert inserts (scope/scope_id→related_key_id/related_budget_id)
+- [x] Fixed weekly-report cron: broken import from non-existent `@/lib/email/templates`, undefined `userIds` variable  
+- [x] Added missing `webhook_events` table (migration 007) — prevented Dodo webhook crash
+- [x] Added `payment_method_collected` column to subscriptions (migration 007)
+- [x] Wired notification preferences to Supabase (`profiles.notification_prefs` JSONB, migration 008)
+- [x] Middleware: `/blog` added to public routes (was accidentally auth-gated), geo_country cookie preserved through setAll()
+- [x] Blog dependencies installed: `gray-matter`, `remark`, `remark-html`
+- [x] Structured data prices corrected ($5.99→$4.99, $59.99→$49.99) + Pro plan offers added
+- [x] Landing page nav: Blog→Insights, Pricing link added
+- [x] 4 cron jobs now configured in vercel.json (added key-health-check + weekly-report)
+- [x] Notification prefs UI now actually saves/loads from DB (was fake setTimeout before)
 
 ---
 
@@ -249,12 +259,12 @@ api-lens/
 ### Immediate Blockers (Must Do Before Launch)
 | # | Task | Owner | Status |
 |---|------|-------|--------|
-| 1 | Run `supabase db push` to apply all migrations | DevOps/Backend | Blocked |
+| 1 | Run migration 008 SQL in Supabase SQL editor (`notification_prefs` column on profiles) | DevOps | Pending |
 | 2 | Create Dodo per-region products → set all `DODO_PRODUCT_*` env vars (10 vars: IN, US, CA, EU, ROW × monthly/annual) | Product/Backend | Blocked |
 | 3 | Set up Dodo webhook endpoint → set `DODO_WEBHOOK_SECRET` | Backend | Blocked |
 | 4 | Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL=API Lens <noreply@apilens.tech>` in Vercel | DevOps | Blocked |
-| 5 | Phase 7: End-to-end smoke tests (signup → checkout → webhook → cancel) | QA/Backend | Not Started |
-| 6 | Phase 8: Production deployment (prod Supabase + Dodo live mode + Vercel prod) | DevOps | Not Started |
+| 5 | End-to-end smoke tests (signup → checkout → webhook → cancel) | QA/Backend | Not Started |
+| 6 | Production deployment (prod Supabase + Dodo live mode + Vercel prod) | DevOps | Not Started |
 
 ### Known Gaps
 - **Sync frequency:** Vercel cron runs daily (00:00 UTC). For real-time, need upgrade to Pro plan or external scheduler.
@@ -464,10 +474,11 @@ if (!success) return { error: 'Too many attempts' };
 | Project organization | Live | Group keys by project |
 | Cost estimator | Live | Compare model pricing |
 | Reports + CSV export | Live | Date-filtered usage data |
-| Subscription billing | Live | Base Monthly/Annual via Dodo Payments (per-region product IDs) |
+| Subscription billing | Live | Base $4.99/mo or $49.99/yr via Dodo Payments (per-region product IDs) |
 | Regional pricing | Live | 50+ countries, local currency |
 | Transactional emails | Live | Welcome, payment success/fail, budget alerts, key health, rotation, weekly digest |
-| Pro plan waitlist | Live | "Invite Only" — notify me button, stored in Resend audience |
+| Pro plan waitlist | Live | "Invite Only" $9.99/mo — notify me button, stored in Resend audience |
+| Notification preferences | Live | Per-user email toggle prefs stored in `profiles.notification_prefs` JSONB |
 | Promo codes / discounts | Live | Admin API for management |
 | Access passes | Live | 15/30-day trial extensions |
 | Enterprise tier | Placeholder | "Coming soon" with email notify |
@@ -505,7 +516,7 @@ if (!success) return { error: 'Too many attempts' };
 ### Core Tables
 
 ```
-profiles          — User profile (name, company, timezone, currency)
+profiles          — User profile (name, company, timezone, currency, notification_prefs JSONB)
 projects          — Project groupings for keys
 api_keys          — Encrypted API keys with health metadata
 project_keys      — Join table: key ↔ project
@@ -559,8 +570,10 @@ audit_log         — Action audit trail
 | GET | `/api/health` | None | System health check |
 | GET | `/api/platforms` | User session | List active providers |
 | POST | `/api/platforms/detect` | User session | Auto-detect key provider |
-| GET | `/api/cron/sync-and-check` | CRON_SECRET | Sync usage + check budgets |
-| GET | `/api/cron/daily-tasks` | CRON_SECRET | Waste detection + rotation reminders |
+| GET | `/api/cron/sync-and-check` | CRON_SECRET | Sync usage (every 6h) + check budgets |
+| GET | `/api/cron/daily-tasks` | CRON_SECRET | Waste detection + rotation reminders (7AM UTC) |
+| GET | `/api/cron/key-health-check` | CRON_SECRET | Key health alerts + emails (6AM UTC daily) |
+| GET | `/api/cron/weekly-report` | CRON_SECRET | Weekly usage digest email (Mon 8AM UTC) |
 | GET/POST/DELETE | `/api/admin/discounts` | CRON_SECRET | Discount management |
 | GET/PATCH | `/api/admin/passes` | CRON_SECRET | Access pass management |
 
@@ -671,9 +684,11 @@ pnpm dev                      # → http://localhost:3000
 ### Vercel (Production)
 1. Push to `main` branch → auto-deploys via Vercel
 2. Set all env vars in Vercel dashboard
-3. Cron jobs configured in `vercel.json`:
-   - `sync-and-check`: daily 00:00 UTC
+3. Cron jobs configured in `vercel.json` (4 total):
+   - `sync-and-check`: every 6 hours UTC
    - `daily-tasks`: daily 07:00 UTC
+   - `key-health-check`: daily 06:00 UTC
+   - `weekly-report`: Mondays 08:00 UTC
 
 ### Pre-Production Checklist
 - [ ] Supabase: Run all migrations (`supabase db push`)
@@ -687,4 +702,4 @@ pnpm dev                      # → http://localhost:3000
 
 ---
 
-*Last updated: March 26, 2026. For the latest code, always refer to the repository.*
+*Last updated: March 26, 2026 (v1.2). For the latest code, always refer to the repository.*

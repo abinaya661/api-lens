@@ -24,7 +24,7 @@ app/
   api/             admin/discounts, admin/passes, cron/sync-and-check, cron/daily-tasks,
                    subscription/create, webhooks/dodo, platforms, platforms/detect,
                    enterprise/notify, health
-  page.tsx         Landing page (nav has Blog link)
+  page.tsx         Landing page (nav: Insights → /blog, Pricing → #pricing anchor)
   blog/            page.tsx (index, glassmorphism cards), [slug]/page.tsx (article + prose styles)
   privacy/         page.tsx
   terms/           page.tsx
@@ -58,7 +58,9 @@ hooks/             use-keys, use-projects, use-budgets, use-alerts, use-dashboar
 types/             database.ts, api.ts, providers.ts
 supabase/
   migrations/      001_initial_schema, 002_handle_new_user, 003_fix_rls,
-                   004_access_passes, 005_dodo_payments, 006_price_snapshots
+                   004_access_passes, 005_dodo_payments, 006_price_snapshots,
+                   007_webhook_events (webhook_events table + subscriptions.payment_method_collected),
+                   008_notification_prefs (profiles.notification_prefs JSONB)
 ```
 
 ---
@@ -110,7 +112,7 @@ supabase/
 ```
 companies:       id(uuid PK) name(text) owner_id(uuid→auth.users) created_at updated_at
 profiles:        id(uuid PK→auth.users) full_name(text) company_name(text) email(text)
-                 onboarded(bool=false) created_at updated_at
+                 onboarded(bool=false) notification_prefs(jsonb) created_at updated_at
 projects:        id(uuid PK) company_id(uuid→companies) name(text) description(text)
                  color(text=#4f46e5) is_active(bool=true) created_at updated_at
 api_keys:        id(uuid PK) company_id(uuid→companies) project_id(uuid→projects,NULL)
@@ -257,6 +259,8 @@ lib/actions/dashboard.ts
 lib/actions/settings.ts
   getProfile() → ActionResult<Profile>
   updateProfile(input: UpdateProfileInput) → ActionResult<Profile>
+  getNotificationPrefs() → { data: NotificationPrefs | null; error: string | null }
+  updateNotificationPrefs(prefs: NotificationPrefs) → { error: string | null }
 
 lib/actions/subscription.ts
   getSubscription() → ActionResult<Subscription | null>
@@ -313,8 +317,10 @@ useRegionalPrice()     → RegionalPrice      reads geo_country cookie, memoized
 | `/api/webhooks/dodo` | POST | StandardWebhooks sig | Handles: subscription.active/renewed/trialing/canceled/updated, payment.failed/completed |
 | `/api/admin/discounts` | GET/POST/DELETE | CRON_SECRET Bearer | List/create/delete Dodo discount codes |
 | `/api/admin/passes` | GET/PATCH | CRON_SECRET Bearer | List access passes / toggle is_active |
-| `/api/cron/sync-and-check` | GET | CRON_SECRET Bearer | syncAllKeys() + checkBudgets() — runs 00:00 UTC |
-| `/api/cron/daily-tasks` | GET | CRON_SECRET Bearer | Detect inactive keys + rotation reminders — runs 07:00 UTC |
+| `/api/cron/sync-and-check` | GET | CRON_SECRET Bearer | syncAllKeys() + checkBudgets() — every 6h UTC |
+| `/api/cron/daily-tasks` | GET | CRON_SECRET Bearer | Detect inactive keys + rotation reminders — 07:00 UTC daily |
+| `/api/cron/key-health-check` | GET | CRON_SECRET Bearer | Detailed key health + alert emails — 06:00 UTC daily |
+| `/api/cron/weekly-report` | GET | CRON_SECRET Bearer | Weekly digest email to all users with usage — Mon 08:00 UTC |
 | `/api/platforms` | GET | Supabase user | List active platforms |
 | `/api/platforms/detect` | POST | validateOrigin (CSRF) | Regex-detect provider from key pattern |
 | `/api/enterprise/notify` | POST | None | Enterprise waitlist signup → enterprise_waitlist upsert |
@@ -380,6 +386,29 @@ RESEND_PRO_WAITLIST_ID (opt)      UPSTASH_REDIS_REST_URL (opt)
 UPSTASH_REDIS_REST_TOKEN (opt)
 ```
 
-**Active context (2026-03-26):** Phases 0–6 + email system complete. Base + Pro pricing plans live (Pro is invite-only waitlist). All apilens.dev refs migrated to apilens.tech. Dodo product IDs switched to per-region DODO_PRODUCT_* vars. Email templates (welcome, trial warning, budget alert, rotation reminder, weekly digest) in `lib/email/resend.ts`. Cron jobs: `sync-and-check` (midnight UTC) + `daily-tasks` (7am UTC) in `vercel.json`. Phase 7 = smoke tests. Phase 8 = prod deploy. Latest migration: 006_price_snapshots.
+**Active context (2026-03-26):** All phases 0–7 complete and production-ready. Base plan ($4.99/mo, $49.99/yr) live; Pro plan ($9.99/mo, $99.99/yr) invite-only waitlist. All apilens.dev refs migrated to apilens.tech.
 
-**Sync engine field notes:** `api_keys` uses `encrypted_credentials` (JSONB) and `company_id` (not `user_id`). `usage_records` columns: `key_id, date, provider, model, input_tokens, output_tokens, cost_usd, request_count` — no `user_id`, `total_tokens`, `unit_type`, `unit_count`, or `source` columns. `alerts` uses `company_id` + `related_key_id`/`related_budget_id` (not `user_id`, `scope`, `scope_id`). Budget email lookups go through `companies.owner_id`.
+**Nav (landing page):** `API Lens logo | Insights (→/blog) | Pricing (→#pricing) | Sign In | Start Free Trial`
+
+**Cron jobs (4 total in vercel.json):**
+- `sync-and-check` — every 6h — syncs all provider usage + checks budget thresholds
+- `daily-tasks` — 07:00 UTC daily — flags inactive keys (30+ days), sends rotation reminders (80+ day keys)
+- `key-health-check` — 06:00 UTC daily — sends email for keys with consecutive_failures ≥ 3
+- `weekly-report` — Mon 08:00 UTC — sends weekly digest email (uses `getWeeklyDigestEmailHtml`)
+
+**Email triggers (all via `lib/email/resend.ts` → `sendEmail()`):**
+- Welcome → on signup (auth/callback)
+- Budget alert → sync-and-check cron when threshold crossed (uses `getAlertEmailHtml` / `getBudgetAlertEmailHtml`)
+- Key health alert → key-health-check cron for failing keys
+- Key rotation reminder → daily-tasks cron (80+ day keys)
+- Trial expiring reminder → daily-tasks cron (3 days before trial ends)
+- Weekly digest → weekly-report cron (Mondays)
+- Payment confirmed / failed → Dodo webhook handler
+
+**Notification prefs:** `profiles.notification_prefs` (JSONB, migration 008) — loaded/saved via `getNotificationPrefs()` / `updateNotificationPrefs()` in `lib/actions/settings.ts`. UI at `app/(dashboard)/settings/notifications/page.tsx`.
+
+**DB migrations applied:** 001–008. Latest: 008_notification_prefs.
+
+**Sync engine field constraints:** `api_keys` → `encrypted_credentials` (JSONB, not `encrypted_key`), `company_id` (not `user_id`), `last_synced_at` (not `last_used`). `usage_records` columns: `key_id, date, provider, model, input_tokens, output_tokens, cost_usd, request_count` — no `user_id`/`total_tokens`/`unit_type`. `alerts` → `company_id` + `related_key_id`/`related_budget_id`. Email lookup: `companies.owner_id → auth.admin.getUserById()`.
+
+**Structured data (JSON-LD):** `lib/structured-data.ts` — `buildSoftwareApplicationSchema()` has 4 Offer nodes: Base Monthly $4.99, Base Annual $49.99, Pro Monthly $9.99 (PreOrder), Pro Annual $99.99 (PreOrder). Blog post breadcrumb says "Insights" in nav but slug page is still at `/blog`.
