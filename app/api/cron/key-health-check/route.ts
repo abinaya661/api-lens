@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     // --- Step 1: Warn about active keys with consecutive failures >= 2 ---
     const { data: strugglingKeys } = await supabase
       .from('api_keys')
-      .select('id, nickname, user_id, provider, consecutive_failures, last_failure_reason')
+      .select('id, nickname, company_id, provider, consecutive_failures, last_failure_reason')
       .eq('is_active', true)
       .gte('consecutive_failures', 2);
 
@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
       const { data: recentAlert } = await supabase
         .from('alerts')
         .select('id')
-        .eq('user_id', key.user_id)
+        .eq('company_id', key.company_id)
         .eq('type', 'key_inactive')
-        .eq('scope_id', key.id)
+        .eq('related_key_id', key.id)
         .gte('created_at', oneDayAgo)
         .maybeSingle();
 
@@ -57,24 +57,31 @@ export async function GET(request: NextRequest) {
         ' Please check this key in your dashboard.';
 
       await supabase.from('alerts').insert({
-        user_id: key.user_id,
+        company_id: key.company_id,
         type: 'key_inactive',
         severity,
         title,
         message,
-        scope: 'key',
-        scope_id: key.id,
-        scope_name: key.nickname,
+        related_key_id: key.id,
       });
 
-      const { data: uData } = await supabase.auth.admin.getUserById(key.user_id);
-      if (uData.user?.email) {
-        await sendEmail({
-          to: uData.user.email,
-          subject: `Action Required: API Key Health Warning — ${key.nickname}`,
-          html: getAlertEmailHtml({ title, message, severity }),
-        });
-        alertsSent++;
+      // Look up owner email via companies table
+      const { data: company } = await supabase
+        .from('companies')
+        .select('owner_id')
+        .eq('id', key.company_id)
+        .single();
+
+      if (company?.owner_id) {
+        const { data: uData } = await supabase.auth.admin.getUserById(company.owner_id);
+        if (uData.user?.email) {
+          await sendEmail({
+            to: uData.user.email,
+            subject: `Action Required: API Key Health Warning — ${key.nickname}`,
+            html: getAlertEmailHtml({ title, message, severity }),
+          });
+          alertsSent++;
+        }
       }
     }
 
@@ -83,9 +90,8 @@ export async function GET(request: NextRequest) {
     // We notify once per deactivation event by checking for an existing deactivation alert.
     const { data: deactivatedKeys } = await supabase
       .from('api_keys')
-      .select('id, nickname, user_id, provider, last_failure_reason, updated_at')
+      .select('id, nickname, company_id, provider, last_failure_reason, updated_at')
       .eq('is_active', false)
-      .eq('is_valid', false)
       .not('last_failure_reason', 'is', null);
 
     for (const key of deactivatedKeys ?? []) {
@@ -100,9 +106,9 @@ export async function GET(request: NextRequest) {
       const { data: existingDeactivationAlert } = await supabase
         .from('alerts')
         .select('id')
-        .eq('user_id', key.user_id)
+        .eq('company_id', key.company_id)
         .eq('type', 'key_inactive')
-        .eq('scope_id', key.id)
+        .eq('related_key_id', key.id)
         .eq('title', deactivationTitle)
         .maybeSingle();
 
@@ -115,28 +121,35 @@ export async function GET(request: NextRequest) {
         ' Please verify and re-activate it in your dashboard.';
 
       await supabase.from('alerts').insert({
-        user_id: key.user_id,
+        company_id: key.company_id,
         type: 'key_inactive',
         severity: 'critical',
         title: deactivationTitle,
         message: deactivationMessage,
-        scope: 'key',
-        scope_id: key.id,
-        scope_name: key.nickname,
+        related_key_id: key.id,
       });
 
-      const { data: uData } = await supabase.auth.admin.getUserById(key.user_id);
-      if (uData.user?.email) {
-        await sendEmail({
-          to: uData.user.email,
-          subject: `Action Required: API Key Deactivated — ${key.nickname}`,
-          html: getAlertEmailHtml({
-            title: deactivationTitle,
-            message: deactivationMessage,
-            severity: 'critical',
-          }),
-        });
-        alertsSent++;
+      // Look up owner email via companies table
+      const { data: company } = await supabase
+        .from('companies')
+        .select('owner_id')
+        .eq('id', key.company_id)
+        .single();
+
+      if (company?.owner_id) {
+        const { data: uData } = await supabase.auth.admin.getUserById(company.owner_id);
+        if (uData.user?.email) {
+          await sendEmail({
+            to: uData.user.email,
+            subject: `Action Required: API Key Deactivated — ${key.nickname}`,
+            html: getAlertEmailHtml({
+              title: deactivationTitle,
+              message: deactivationMessage,
+              severity: 'critical',
+            }),
+          });
+          alertsSent++;
+        }
       }
     }
 

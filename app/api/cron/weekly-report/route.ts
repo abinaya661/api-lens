@@ -46,32 +46,37 @@ export async function GET(request: NextRequest) {
       '\u2013' +
       yesterday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 
-    // Get all distinct user_ids with usage this past week
+    // usage_records has no user_id — get key_ids with usage, then join to api_keys for company_id
     const { data: usageRows } = await supabase
       .from('usage_records')
-      .select('user_id')
+      .select('key_id, provider, cost_usd')
       .gte('date', sevenDaysAgoStr)
       .lte('date', yesterdayStr);
 
-    const userIds = [...new Set((usageRows ?? []).map((r: { user_id: string }) => r.user_id))];
+    const usedKeyIds = [...new Set((usageRows ?? []).map((r: { key_id: string }) => r.key_id))];
+    const { data: usedKeys } = usedKeyIds.length > 0
+      ? await supabase.from('api_keys').select('id, company_id').in('id', usedKeyIds)
+      : { data: [] };
+
+    const companyIds = [...new Set((usedKeys ?? []).map((k: { company_id: string }) => k.company_id))];
     let emailsSent = 0;
 
-    for (const userId of userIds) {
-      // Fetch current week's usage for this user
-      const { data: thisWeek } = await supabase
-        .from('usage_records')
-        .select('provider, cost_usd, key_id')
-        .eq('user_id', userId)
-        .gte('date', sevenDaysAgoStr)
-        .lte('date', yesterdayStr);
+    for (const companyId of companyIds) {
+      const companyKeyIds = (usedKeys ?? [])
+        .filter((k: { company_id: string }) => k.company_id === companyId)
+        .map((k: { id: string }) => k.id);
 
-      if (!thisWeek || thisWeek.length === 0) continue;
+      const thisWeek = (usageRows ?? []).filter(
+        (r: { key_id: string }) => companyKeyIds.includes(r.key_id)
+      ) as { key_id: string; provider: string; cost_usd: number }[];
+
+      if (thisWeek.length === 0) continue;
 
       // Fetch previous week's usage for week-over-week comparison
       const { data: lastWeekRows } = await supabase
         .from('usage_records')
         .select('cost_usd')
-        .eq('user_id', userId)
+        .in('key_id', companyKeyIds)
         .gte('date', fourteenDaysAgoStr)
         .lt('date', sevenDaysAgoStr);
 
@@ -91,7 +96,7 @@ export async function GET(request: NextRequest) {
       const { data: projects } = await supabase
         .from('projects')
         .select('id, name')
-        .eq('user_id', userId)
+        .eq('company_id', companyId)
         .eq('is_active', true);
 
       const projectBreakdown: { name: string; spent: string }[] = [];
@@ -113,8 +118,15 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Fetch user email and send
-      const { data: uData } = await supabase.auth.admin.getUserById(userId);
+      // Look up owner email via companies table
+      const { data: company } = await supabase
+        .from('companies')
+        .select('owner_id')
+        .eq('id', companyId)
+        .single();
+
+      if (!company?.owner_id) continue;
+      const { data: uData } = await supabase.auth.admin.getUserById(company.owner_id);
       const email = uData.user?.email;
       if (!email) continue;
 
