@@ -126,7 +126,9 @@ export async function GET(request: NextRequest) {
       for (const sub of expiringTrials) {
         const is24Hours = new Date(sub.trial_ends_at!).getTime() < new Date(now.getTime() + 48 * 60 * 60 * 1000).getTime();
         const daysLeft = is24Hours ? 1 : 2;
-        const ownerId = (sub.companies as { owner_id: string })?.owner_id;
+        const ownerId = Array.isArray(sub.companies)
+          ? (sub.companies as unknown as { owner_id: string }[])[0]?.owner_id
+          : (sub.companies as unknown as { owner_id: string })?.owner_id;
         
         if (ownerId) {
           const { data: uData } = await supabase.auth.admin.getUserById(ownerId);
