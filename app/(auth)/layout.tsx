@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function AuthLayout({
   children,
 }: {
@@ -8,10 +10,12 @@ export default function AuthLayout({
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-brand-600 text-white font-bold text-xl mb-4">
-            🔍
-          </div>
-          <h1 className="text-2xl font-bold text-white">API Lens</h1>
+          <Link href="/" className="inline-block">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-brand-600 text-white font-bold text-xl mb-4">
+              🔍
+            </div>
+            <h1 className="text-2xl font-bold text-white">API Lens</h1>
+          </Link>
           <p className="text-sm text-zinc-500 mt-1">
             Monitor, budget, and attribute AI API costs
           </p>

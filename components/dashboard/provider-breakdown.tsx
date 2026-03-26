@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { formatCurrency, formatPercentage } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
@@ -47,7 +48,7 @@ const PROVIDER_NAMES: Record<string, string> = {
   vertex_ai: 'Vertex AI',
 };
 
-export function ProviderBreakdownList({ data }: ProviderBreakdownProps) {
+export const ProviderBreakdownList = memo(function ProviderBreakdownList({ data }: ProviderBreakdownProps) {
   return (
     <div className="glass-card p-6 h-[400px] flex flex-col animate-fade-in group">
       <div className="flex items-center justify-between mb-6">
@@ -90,4 +91,4 @@ export function ProviderBreakdownList({ data }: ProviderBreakdownProps) {
       </div>
     </div>
   );
-}
+});

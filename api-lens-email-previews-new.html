@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Lens - Next.js Email Previews</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f4f4f5;
+    margin: 0;
+    padding: 40px 20px;
+    color: #09090b;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  .preview-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    overflow: hidden;
+  }
+  .preview-header {
+    background: #fafafa;
+    border-bottom: 1px solid #eaeaea;
+    padding: 16px 24px;
+    font-size: 14px;
+    color: #52525b;
+  }
+  .preview-header strong { color: #09090b; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>New Platform Previews</h1>
+  <p style="color: #71717a;">Trials, Budgets, and Digests built using our standard layouts.</p>
+</div>
+
+<div class="container">
+
+  <!-- Trial Warning -->
+  <div class="preview-card">
+    <div class="preview-header">
+      <div><strong>Subject:</strong> Action Required: Trial ends in 24 hours</div>
+    </div>
+    <div class="email-body">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="margin-bottom: 32px;">
+          <h2 style="margin: 0; color: #111; font-size: 22px;">API Lens</h2>
+        </div>
+        <h2 style="color: #111; margin-top: 0; font-size: 22px;">Your Free Trial Ends Soon ⏱️</h2>
+        <p style="font-size: 16px; color: #444; line-height: 1.6;">
+          Your API Lens free trial will expire in <strong>24 hours</strong>. 
+        </p>
+        <p style="font-size: 16px; color: #444; line-height: 1.6;">
+          To ensure uninterrupted access to your API keys and analytics, please select a plan and securely add a payment method before your trial concludes.
+        </p>
+        <div style="margin: 36px 0;">
+          <a href="#" style="background-color: #000; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
+            Select a Plan
+          </a>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #eaeaea; margin: 36px 0 24px 0;" />
+        <p style="color: #666666; font-size: 14px; line-height: 24px; margin: 0;">
+          Need help or have questions?<br/>
+          Contact our support team at <a href="mailto:support@apilens.tech" style="color: #000000; text-decoration: underline; font-weight: 500;">support@apilens.tech</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Budget Alert -->
+  <div class="preview-card">
+    <div class="preview-header">
+      <div><strong>Subject:</strong> Budget Alert: 90% Threshold Reached</div>
+    </div>
+    <div style="padding: 20px; background: #fafafa;">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; border-top: 4px solid #d97706; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="margin-bottom: 32px;">
+          <h2 style="margin: 0; color: #111; font-size: 22px;">API Lens</h2>
+        </div>
+        <h2 style="color: #d97706; margin-top: 0; font-size: 22px;">Budget Alert: 90% Reached</h2>
+        <p style="font-size: 16px; color: #444; line-height: 1.6;">
+          Your budget <strong>"Global Engineering Target"</strong> has reached 90% of its defined limit.
+        </p>
+        <div style="background: #fafafa; border: 1px solid #eaeaea; padding: 16px; border-radius: 8px; margin: 24px 0;">
+          <p style="font-size: 15px; color: #111; margin: 0 0 8px 0;"><strong>Current Spend:</strong> $4,500.00</p>
+          <p style="font-size: 15px; color: #111; margin: 0;"><strong>Budget Limit:</strong> $5,000.00</p>
+        </div>
+        <p style="font-size: 16px; color: #444; line-height: 1.6;">
+          Keep an eye on this project to ensure you do not exceed your limit before the billing cycle resets.
+        </p>
+        <div style="margin: 32px 0;">
+          <a href="#" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
+            Manage Budgets
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weekly Digest -->
+  <div class="preview-card">
+    <div class="preview-header">
+      <div><strong>Subject:</strong> Your Weekly API Lens Digest 📊</div>
+    </div>
+    <div class="email-body">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="margin-bottom: 32px;">
+          <h2 style="margin: 0; color: #111; font-size: 22px;">API Lens</h2>
+        </div>
+        <h2 style="color: #111; margin-top: 0; font-size: 22px;">Your Weekly API Digest 📊</h2>
+        <p style="font-size: 16px; color: #444; line-height: 1.6;">
+          Here is a quick snapshot of your team's AI API usage over the past 7 days across all active keys.
+        </p>
+        <div style="background: #fafafa; border: 1px solid #eaeaea; padding: 20px; border-radius: 8px; margin: 24px 0;">
+          <p style="font-size: 16px; color: #111; margin: 0 0 12px 0;"><strong>Total API Requests:</strong> 1,204,500</p>
+          <p style="font-size: 16px; color: #111; margin: 0;"><strong>Estimated Cost:</strong> $342.92</p>
+        </div>
+        <p style="font-size: 16px; color: #444; line-height: 1.6;">
+          Log in to your API Lens dashboard to view deep-dive analytics, break down spending by provider, and tweak rate limits.
+        </p>
+        <div style="margin: 36px 0;">
+          <a href="#" style="background-color: #000; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
+            View Full Analytics
+          </a>
+        </div>
+        <hr style="border: none; border-top: 1px solid #eaeaea; margin: 36px 0 24px 0;" />
+        <p style="color: #666666; font-size: 14px; line-height: 24px; margin: 0;">
+          Need help or have questions?<br/>
+          Contact our support team at <a href="mailto:support@apilens.tech" style="color: #000000; text-decoration: underline; font-weight: 500;">support@apilens.tech</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, authRateLimit } from '@/lib/ratelimit';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 interface AuthResult {
@@ -36,13 +36,19 @@ export async function signupWithEmail(
   const headersList = await headers();
   const origin = headersList.get('origin') ?? '';
 
+  const cookieStore = await cookies();
+  const geoCountry = cookieStore.get('geo_country')?.value;
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       emailRedirectTo: `${origin}/auth/callback`,
-      data: { company_name: companyName },
+      data: { 
+        company_name: companyName,
+        ...(geoCountry && { geo_country: geoCountry }),
+      },
     },
   });
 
