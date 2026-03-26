@@ -7,10 +7,15 @@ import { PricingSection } from '@/components/landing/pricing-section';
 import { SecurityCallout } from '@/components/landing/security-callout';
 import { RevealOnScroll } from '@/components/landing/reveal-on-scroll';
 import { RegionalPriceText } from '@/components/landing/regional-price-text';
+import { JsonLd } from '@/components/shared/json-ld';
+import { buildSoftwareApplicationSchema, buildHomepageFAQSchema } from '@/lib/structured-data';
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-black text-zinc-300 selection:bg-brand-500/30 relative overflow-x-hidden">
+      {/* Homepage structured data */}
+      <JsonLd data={buildSoftwareApplicationSchema()} />
+      <JsonLd data={buildHomepageFAQSchema()} />
       {/* Global dot grid background */}
       <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/cubes.png')] opacity-[0.015] pointer-events-none" />
       {/* ─── S1: Sticky Nav ─── */}
