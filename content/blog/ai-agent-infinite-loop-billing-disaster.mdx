@@ -1,0 +1,122 @@
+---
+title: "The $47,000 Bug That Doesn't Fail Loudly"
+slug: "ai-agent-infinite-loop-billing-disaster"
+description: "AI agent loops don't crash — they silently burn through API tokens. Here's how an 11-day ping-pong loop cost $47,000, and the five signals that catch it before the invoice."
+date: "2026-03-26"
+author: "API Lens Team"
+tags: ["AI agent", "infinite loop", "API cost", "LLM agent billing", "agent retry logic"]
+readTime: "8 min read"
+---
+
+Most software bugs are loud. They throw exceptions. They return 500 errors. They crash a process and wake someone up at 2am. You know something is wrong because the system tells you.
+
+AI agent loops are different. They don't fail. They succeed — over and over, at every step, in perfect silence — while the bill grows by the hour.
+
+## What Makes This Failure Mode So Dangerous
+
+A traditional bug has a symptom. A crashed process. A failed health check. A user-facing error. Something that creates pressure to investigate.
+
+An agent loop has none of these. Every API call returns `200 OK`. The logs are clean. The agents are responding. Work is being done. From the outside, the system looks completely healthy.
+
+The only signal is the billing dashboard — and most teams aren't watching that in real time.
+
+By the time someone notices, the damage is done. There's no rollback for an API bill. The tokens were consumed. The compute ran. The charges are final.
+
+## How a Ping-Pong Loop Forms
+
+Multi-agent pipelines are built around coordination. Agents are assigned roles. They pass outputs to each other. One agent evaluates another's work and requests revisions. This is intentional design — it produces better outputs than any single agent working alone.
+
+The problem is what happens when that revision cycle has no exit condition.
+
+Here is the pattern in its simplest form:
+
+1. **Agent A** (Analyzer) processes a dataset and produces a report.
+2. **Agent B** (Verifier) evaluates the report and identifies issues. It requests a revision.
+3. **Agent A** receives the revision request, re-analyzes, and produces a new report.
+4. **Agent B** evaluates the new report. Still not satisfied. Requests another revision.
+5. Repeat.
+
+Neither agent is malfunctioning. Both are doing exactly what they were designed to do. The Analyzer is analyzing. The Verifier is verifying. The loop is not an error state — it's a legitimate workflow that never terminates.
+
+Each iteration is billable. Each revision request sends a full context window to the Analyzer. Each re-analysis sends a full context window to the Verifier. The cost compounds with every pass.
+
+If the agents are working with large documents, complex reasoning chains, or expensive models, a single iteration can cost several dollars. A loop running hundreds of iterations doesn't need to be fast to be catastrophic.
+
+## The $47,000 Incident
+
+A research pipeline had four AI agents. The architecture was reasonable: specialized agents for different parts of the analysis workflow, with a Verifier role to catch errors before results were finalized.
+
+Two of those agents — the Analyzer and the Verifier — entered a ping-pong loop. The Verifier's criteria were strict enough that the Analyzer's output never fully satisfied them. The Analyzer kept revising. The Verifier kept requesting changes.
+
+The loop ran for **11 days**.
+
+No crashes. No errors. No alerts that stopped anything. The pipeline logs showed steady, continuous activity — which looked identical to the pipeline working correctly. Nobody was monitoring token spend in real time. The budget alerts, if any existed, weren't calibrated for this failure mode.
+
+The final bill: **$47,000**.
+
+This is not a fringe case. The pattern — Analyzer/Verifier or Planner/Executor ping-pong — is well-documented across agent frameworks. It is easy to build accidentally. It is hard to notice until you're looking at an invoice that should not exist.
+
+## Why Retry Logic Makes It Worse
+
+When developers first encounter agent reliability problems, the instinct is to add retry logic. A tool call fails? Retry it. An agent times out? Try again. This is standard practice for distributed systems. Retries handle transient failures gracefully and prevent cascading breakdowns.
+
+In an agent context, that same logic becomes an accelerant.
+
+Every retry in an agent loop is not a cheap no-op. It is a full context window of tokens, sent to an LLM that charges per token, triggering another full response, which triggers the next step in the loop, which may trigger another retry.
+
+The numbers compound fast. A documented case involving a failed tool call with standard retry configuration resulted in **2.3 million API calls over a single weekend**. The retries were doing their job — retrying the failure. But the failure was structural, not transient. No number of retries was going to resolve it.
+
+Retry logic is a circuit breaker for reliability. In a billing context, it is gasoline.
+
+This is not an argument against retries. It is an argument for understanding what you are retrying, and setting hard limits on how many times any given operation can be attempted within a budget window.
+
+## Five Signals an Agent Is Looping
+
+You cannot rely on error logs to catch a looping agent. The loop does not produce errors. You need to watch for behavioral signals that indicate circular activity.
+
+**1. Repeated identical tool calls in logs.**
+If the same tool is being called with the same arguments more than three or four times in a short window, the agent is not making progress — it is stuck. Log tool call signatures and alert on repetition.
+
+**2. Context window growing without task progress.**
+In a healthy pipeline, the context window expands as new information is added. In a loop, it grows because each revision cycle appends to the existing context. Watch the ratio of tokens consumed to task completion percentage. If the tokens-per-step figure keeps rising without a corresponding advance in state, something is wrong.
+
+**3. Token velocity trending upward.**
+A functioning agent pipeline has a spend rate that plateaus or winds down as it approaches completion. A looping pipeline has a spend rate that is constant or accelerating. Plot token spend per minute over time. A horizontal or rising line over a sustained period is a warning sign.
+
+**4. The same output being passed back repeatedly.**
+Agent pipelines that log inter-agent messages make this visible: if Agent B is receiving outputs from Agent A that are structurally or semantically near-identical across multiple iterations, the loop is not converging. Implement output fingerprinting — hash the key fields of each agent's output and alert on repeated hashes within a session.
+
+**5. No terminal state being reached.**
+Every agent pipeline should have a defined completion condition. If a pipeline is still running at 2x, 3x, or 5x its expected runtime without having reached a terminal state, that is not a feature — it is a failure. Set expected completion windows and treat overruns as incidents.
+
+## What Actually Stops a Runaway Agent
+
+Detection matters. But detection only helps if something acts on it. The interventions that reliably terminate runaway agents share one characteristic: they are hard stops, not soft warnings.
+
+**Hard step limits.** Define a maximum number of iterations at the orchestration layer. Not "warn after N steps." Stop after N steps. The number should be derived from real pipeline data — what does a healthy run actually require? Set the hard limit at twice that. Any run exceeding it is abnormal by definition.
+
+**Spend-based stops.** Each agent or pipeline should have a per-run budget. If this pipeline consumes more than $X in a single execution, halt it and alert. This is orthogonal to step limits — a single expensive iteration might not trip a step limit but will trip a spend limit. Both are necessary.
+
+**Timeout limits at the orchestration layer.** Clock time is a useful proxy for runaway behavior. A pipeline with a known expected duration of 15 minutes that is still running at 90 minutes is almost certainly looping. Hard timeouts at the orchestration layer are one of the simplest and most reliable controls available.
+
+**Idempotency checks.** Before passing an input to an agent, check whether that exact input has already been processed in the current session. Hash the input and store the hash. If you have seen this input before, do not process it again. This is the cleanest technical solution to pure ping-pong loops — the same input going through the same agent twice is almost never intentional.
+
+## The Uncomfortable Truth About Rate Limits
+
+Many developers assume that provider rate limits are their last line of defense against runaway costs. They are not.
+
+Rate limits exist to protect the provider's infrastructure. They cap the volume of requests per minute or per day to prevent any single customer from degrading service for others. That is what they are designed to do.
+
+A loop running at moderate velocity — well under your tier's rate limits — will not be caught by rate limits. It will run indefinitely. The provider's systems will continue accepting and billing every request, because from their perspective, every request is legitimate. You have not violated any terms. You have not exceeded any thresholds. You are simply a customer making a lot of API calls.
+
+This is not a criticism of providers. Rate limits are not billing controls and were never meant to be. But it means the responsibility for cost containment is entirely on the builder. The infrastructure layer will not save you.
+
+Your safety net has to be at the application layer — in the pipeline design, in the orchestration logic, in the monitoring stack watching token velocity in real time.
+
+---
+
+An agent that doesn't have a spend limit isn't an agent — it's an open tab.
+
+---
+
+If your AI pipelines are running without per-agent spend limits and real-time token velocity monitoring, the $47,000 incident is a scenario, not just a story. [API Lens](https://apilens.tech) watches token spend across your providers in real time, so a runaway agent shows up in your dashboard — not your invoice.
