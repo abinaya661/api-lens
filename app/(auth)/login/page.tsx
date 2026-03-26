@@ -39,7 +39,8 @@ function LoginForm() {
         return;
       }
 
-      router.push('/dashboard');
+      const redirectTo = searchParams.get('redirect') || '/dashboard';
+      router.push(redirectTo);
       router.refresh();
     } catch {
       toast.error('An unexpected error occurred. Please try again.');
@@ -53,7 +54,7 @@ function LoginForm() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(searchParams.get('redirect') || '/dashboard')}`,
       },
     });
     if (error) toast.error(error.message);
@@ -143,6 +144,11 @@ function LoginForm() {
         Don&apos;t have an account?{' '}
         <Link href="/signup" className="text-brand-400 hover:text-brand-300 transition-colors">
           Start free trial
+        </Link>
+      </p>
+      <p className="text-center text-sm text-zinc-500 mt-3">
+        <Link href="/" className="text-zinc-400 hover:text-zinc-300 transition-colors">
+          &larr; Back to home
         </Link>
       </p>
     </div>

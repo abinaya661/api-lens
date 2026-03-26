@@ -78,7 +78,10 @@ export async function middleware(request: NextRequest) {
     // Redirect authenticated users away from auth pages
     if (user && (pathname === '/login' || pathname === '/signup')) {
       const url = request.nextUrl.clone();
-      url.pathname = '/dashboard';
+      // Honour the redirect param so users land where they intended
+      const redirectTo = request.nextUrl.searchParams.get('redirect');
+      url.pathname = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : '/dashboard';
+      url.search = '';
       return NextResponse.redirect(url);
     }
     return supabaseResponse;
