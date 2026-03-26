@@ -28,11 +28,25 @@ export const metadata: Metadata = {
     url: 'https://apilens.tech',
     siteName: 'API Lens',
     type: 'website',
+    images: [
+      {
+        url: 'https://apilens.tech/logo.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'API Lens — Ultimate AI API Key Manager',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'API Lens — Track Your AI API Spending',
     description: 'Monitor and optimize your AI API costs across 14+ providers.',
+    images: ['https://apilens.tech/logo.jpg'],
+  },
+  icons: {
+    icon: '/logo.jpg',
+    shortcut: '/logo.jpg',
+    apple: '/logo.jpg',
   },
   robots: {
     index: true,

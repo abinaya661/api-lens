@@ -1,47 +1,22 @@
-import type { MetadataRoute } from 'next';
-import { getAllPosts } from '@/lib/blog';
+import { MetadataRoute } from 'next';
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const posts = await getAllPosts();
-
-  const blogEntries: MetadataRoute.Sitemap = posts.map((post) => ({
-    url: `https://apilens.tech/blog/${post.slug}`,
-    lastModified: new Date(post.date),
-    changeFrequency: 'monthly',
-    priority: 0.7,
+export default function sitemap(): MetadataRoute.Sitemap {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://apilens.tech';
+  
+  const routes = [
+    '',
+    '/blog',
+    '/pricing',
+    '/estimator',
+    '/security',
+    '/terms',
+    '/privacy',
+  ].map((route) => ({
+    url: `${baseUrl}${route}`,
+    lastModified: new Date(),
+    changeFrequency: route.includes('blog') ? 'daily' : ('monthly' as any),
+    priority: route === '' ? 1 : 0.8,
   }));
 
-  return [
-    {
-      url: 'https://apilens.tech',
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
-    {
-      url: 'https://apilens.tech/blog',
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: 'https://apilens.tech/login',
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
-    {
-      url: 'https://apilens.tech/signup',
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
-    {
-      url: 'https://apilens.tech/estimator',
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    ...blogEntries,
-  ];
+  return routes;
 }
