@@ -56,7 +56,6 @@ export class DeepSeekAdapter extends BaseAdapter {
 
   async validateKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
     try {
-      // Validate by checking balance (billing access)
       const res = await fetch('https://api.deepseek.com/user/balance', {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -72,13 +71,15 @@ export class DeepSeekAdapter extends BaseAdapter {
         return { valid: false, error: 'Invalid or unauthorized API key' };
       }
 
-      // Fall back to models endpoint
       const modelsRes = await fetch('https://api.deepseek.com/models', {
         headers: { 'Authorization': `Bearer ${apiKey}` },
       });
 
       if (modelsRes.ok) {
-        return { valid: true };
+        return {
+          valid: false,
+          error: 'This DeepSeek key is valid for inference, but API Lens could not access DeepSeek billing data through the balance API.',
+        };
       }
 
       const body = await modelsRes.text();

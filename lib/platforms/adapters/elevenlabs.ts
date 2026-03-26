@@ -24,7 +24,6 @@ export class ElevenLabsAdapter extends BaseAdapter {
       const data = await res.json();
       const rows: UsageRow[] = [];
 
-      // data is typically an array of daily character usage
       if (Array.isArray(data)) {
         for (const entry of data) {
           const characters = entry.character_count ?? 0;
@@ -41,7 +40,6 @@ export class ElevenLabsAdapter extends BaseAdapter {
           });
         }
       } else if (data && typeof data === 'object') {
-        // Some responses wrap in an object
         const entries = data.usage ?? data.data ?? [];
         for (const entry of Array.isArray(entries) ? entries : []) {
           rows.push({
@@ -70,16 +68,33 @@ export class ElevenLabsAdapter extends BaseAdapter {
 
   async validateKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
     try {
-      const res = await fetch('https://api.elevenlabs.io/v1/user', {
-        headers: { 'xi-api-key': apiKey },
-      });
+      const now = Math.floor(Date.now() / 1000);
+      const oneDayAgo = now - 86400;
+      const usageRes = await fetch(
+        `https://api.elevenlabs.io/v1/usage/character-stats?start_unix=${oneDayAgo}&end_unix=${now}`,
+        {
+          headers: { 'xi-api-key': apiKey },
+        },
+      );
 
-      if (res.ok) {
+      if (usageRes.ok) {
         return { valid: true };
       }
 
-      const body = await res.text();
-      return { valid: false, error: `ElevenLabs returned ${res.status}: ${body}` };
+      const userRes = await fetch('https://api.elevenlabs.io/v1/user', {
+        headers: { 'xi-api-key': apiKey },
+      });
+
+      if (userRes.ok) {
+        const body = await usageRes.text();
+        return {
+          valid: false,
+          error: `This ElevenLabs key is valid, but API Lens could not access ElevenLabs usage analytics with it. ElevenLabs returned ${usageRes.status}: ${body}`,
+        };
+      }
+
+      const body = await userRes.text();
+      return { valid: false, error: `ElevenLabs returned ${userRes.status}: ${body}` };
     } catch (e: unknown) {
       return { valid: false, error: e instanceof Error ? e.message : 'Validation failed' };
     }

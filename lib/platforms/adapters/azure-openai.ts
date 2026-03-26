@@ -5,17 +5,20 @@ export class AzureOpenAIAdapter extends BaseAdapter {
   provider = 'azure_openai';
 
   async fetchUsage(_apiKey: string, _dateFrom: string, _dateTo: string): Promise<SyncResult> {
-    return this.makeSyncResult(this.provider, []);
+    return this.makeSyncResult(
+      this.provider,
+      [],
+      'Azure OpenAI usage tracking requires Azure Monitor or Cost Management access beyond a plain API key.',
+    );
   }
 
   async validateKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
     try {
-      // apiKey format expected: "endpoint|key" (e.g. "https://myresource.openai.azure.com|abc123")
       const separatorIndex = apiKey.indexOf('|');
       if (separatorIndex === -1) {
         return {
           valid: false,
-          error: 'Azure OpenAI key must be in format "endpoint|api-key" (e.g. https://myresource.openai.azure.com|your-key)',
+          error: 'Azure OpenAI key must be in format "endpoint|api-key" (for example https://your-resource.openai.azure.com|your-key)',
         };
       }
 
@@ -27,16 +30,15 @@ export class AzureOpenAIAdapter extends BaseAdapter {
         headers: { 'api-key': key },
       });
 
-      if (res.ok) {
-        return { valid: true };
+      if (!res.ok) {
+        const body = await res.text();
+        return { valid: false, error: `Azure OpenAI returned ${res.status}: ${body}` };
       }
 
-      if (res.status === 401 || res.status === 403) {
-        return { valid: false, error: 'Invalid or unauthorized API key' };
-      }
-
-      const body = await res.text();
-      return { valid: false, error: `Azure OpenAI returned ${res.status}: ${body}` };
+      return {
+        valid: false,
+        error: 'This Azure OpenAI key is valid for inference, but API Lens cannot track Azure usage/billing with only an endpoint and API key. Azure Monitor or Cost Management integration is required.',
+      };
     } catch (e: unknown) {
       return { valid: false, error: e instanceof Error ? e.message : 'Validation failed' };
     }

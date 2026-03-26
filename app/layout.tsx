@@ -3,6 +3,8 @@ import localFont from 'next/font/local';
 import './globals.css';
 import { Toaster } from 'sonner';
 import { Providers } from '@/app/providers';
+import { JsonLd } from '@/components/shared/json-ld';
+import { buildWebSiteSchema, buildOrganizationSchema } from '@/lib/structured-data';
 
 const inter = localFont({
   src: [
@@ -23,7 +25,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'API Lens — Track Your AI API Spending',
     description: 'Monitor and optimize your AI API costs across 14+ providers.',
-    url: 'https://apilens.dev',
+    url: 'https://apilens.tech',
     siteName: 'API Lens',
     type: 'website',
   },
@@ -45,6 +47,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        {/* Global structured data — present on every page */}
+        <JsonLd data={buildWebSiteSchema()} />
+        <JsonLd data={buildOrganizationSchema()} />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <Providers>
           {children}

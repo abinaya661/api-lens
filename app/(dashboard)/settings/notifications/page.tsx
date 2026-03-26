@@ -1,14 +1,13 @@
 'use client';
 
-// TODO - wire toggles to user_preferences table in future.
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Bell, Mail, AlertCircle, Clock, BarChart2, RefreshCw, Save } from 'lucide-react';
 import { PageHeader } from '@/components/shared';
+import { getNotificationPrefs, updateNotificationPrefs, type NotificationPrefs } from '@/lib/actions/settings';
 
 interface NotificationPref {
-  key: string;
+  key: keyof NotificationPrefs;
   icon: React.ElementType;
   label: string;
   description: string;
@@ -47,9 +46,7 @@ const NOTIFICATION_PREFS: NotificationPref[] = [
   },
 ];
 
-type PrefsState = Record<string, boolean>;
-
-const DEFAULT_PREFS: PrefsState = {
+const DEFAULT_PREFS: NotificationPrefs = {
   budget_alerts_email: true,
   key_validation_failure_email: true,
   trial_ending_reminder_email: true,
@@ -92,19 +89,48 @@ function Toggle({
 }
 
 export default function NotificationsPage() {
-  const [prefs, setPrefs] = useState<PrefsState>(DEFAULT_PREFS);
+  const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  function setKey(key: string, value: boolean) {
+  // Load saved preferences from DB on mount
+  useEffect(() => {
+    getNotificationPrefs().then(({ data }) => {
+      if (data) setPrefs(data);
+      setLoading(false);
+    });
+  }, []);
+
+  function setKey(key: keyof NotificationPrefs, value: boolean) {
     setPrefs((p) => ({ ...p, [key]: value }));
   }
 
   async function handleSave() {
     setSaving(true);
-    // Simulate async save (wired to DB in future)
-    await new Promise((r) => setTimeout(r, 400));
+    const { error } = await updateNotificationPrefs(prefs);
     setSaving(false);
-    toast.success('Notification preferences saved.');
+    if (error) {
+      toast.error(`Failed to save: ${error}`);
+    } else {
+      toast.success('Notification preferences saved.');
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="animate-fade-in space-y-6">
+        <PageHeader
+          title="Notification Preferences"
+          description="Choose which email notifications you receive from API Lens."
+        />
+        <div className="glass-card p-6 h-64 flex items-center justify-center">
+          <svg className="w-6 h-6 animate-spin text-zinc-500" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+          </svg>
+        </div>
+      </div>
+    );
   }
 
   return (

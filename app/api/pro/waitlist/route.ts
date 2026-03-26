@@ -1,0 +1,43 @@
+import { NextRequest } from 'next/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { resend } from '@/lib/email/resend';
+
+export const dynamic = 'force-dynamic';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export async function POST(req: NextRequest) {
+  let body: { email?: string; country_code?: string };
+  try {
+    body = await req.json() as { email?: string; country_code?: string };
+  } catch {
+    return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const email = (body.email ?? '').trim().toLowerCase();
+  if (!email || !EMAIL_RE.test(email)) {
+    return Response.json({ error: 'Valid email is required' }, { status: 400 });
+  }
+
+  const adminSupabase = createAdminClient();
+
+  const { error } = await adminSupabase
+    .from('pro_waitlist')
+    .upsert(
+      { email, country_code: body.country_code ?? null },
+      { onConflict: 'email', ignoreDuplicates: true },
+    );
+
+  if (error) {
+    console.error('[pro/waitlist] DB error:', error);
+    return Response.json({ error: 'Failed to save. Please try again.' }, { status: 500 });
+  }
+
+  if (resend && process.env.RESEND_PRO_WAITLIST_ID) {
+    await resend.contacts.create({
+      email,
+      audienceId: process.env.RESEND_PRO_WAITLIST_ID,
+    }).catch((err: unknown) => console.error('[Resend Contact]', err));
+  }
+
+  return Response.json({ success: true });
+}

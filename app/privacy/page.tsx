@@ -51,8 +51,8 @@ export default function PrivacyPage() {
                 <p>
                   By using API Lens, you agree to the practices described in this policy. If you have any
                   questions, contact us at{' '}
-                  <a href="mailto:privacy@apilens.dev" className="text-brand-400 hover:text-brand-300 transition-colors">
-                    privacy@apilens.dev
+                  <a href="mailto:privacy@apilens.tech" className="text-brand-400 hover:text-brand-300 transition-colors">
+                    privacy@apilens.tech
                   </a>.
                 </p>
               </div>
@@ -268,8 +268,8 @@ export default function PrivacyPage() {
                 <li className="flex gap-3">
                   <span className="text-brand-500 mt-1 shrink-0">&bull;</span>
                   <span>Contact us at{' '}
-                    <a href="mailto:privacy@apilens.dev" className="text-brand-400 hover:text-brand-300 transition-colors">
-                      privacy@apilens.dev
+                    <a href="mailto:privacy@apilens.tech" className="text-brand-400 hover:text-brand-300 transition-colors">
+                      privacy@apilens.tech
                     </a>{' '}
                     for any data requests, corrections, or concerns.
                   </span>
@@ -284,8 +284,8 @@ export default function PrivacyPage() {
               </h2>
               <p className="text-zinc-400 leading-relaxed">
                 For privacy-related inquiries, email us at{' '}
-                <a href="mailto:privacy@apilens.dev" className="text-brand-400 hover:text-brand-300 transition-colors font-medium">
-                  privacy@apilens.dev
+                <a href="mailto:privacy@apilens.tech" className="text-brand-400 hover:text-brand-300 transition-colors font-medium">
+                  privacy@apilens.tech
                 </a>
                 . We aim to respond within 5 business days.
               </p>

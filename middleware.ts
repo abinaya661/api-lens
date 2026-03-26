@@ -19,6 +19,7 @@ const publicRoutes = [
   '/privacy',
   '/terms',
   '/security',
+  '/blog',
 ];
 
 function isPublicRoute(pathname: string): boolean {
@@ -30,20 +31,13 @@ function isPublicRoute(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  // Set geo country cookie for region-specific pricing display.
+  // Detect geo country for region-specific pricing display.
   // Vercel provides x-vercel-ip-country, Cloudflare provides cf-ipcountry.
   const country =
     request.headers.get('x-vercel-ip-country') ??
     request.headers.get('cf-ipcountry') ??
     null;
-  if (country && !request.cookies.get('geo_country')) {
-    supabaseResponse.cookies.set('geo_country', country, {
-      httpOnly: false, // readable by client JS
-      sameSite: 'lax',
-      maxAge: 86400, // 1 day
-      path: '/',
-    });
-  }
+  const needsGeoCookie = !!country && !request.cookies.get('geo_country');
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,10 +55,29 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           );
+          // Re-apply geo_country whenever setAll creates a new response object
+          if (needsGeoCookie) {
+            supabaseResponse.cookies.set('geo_country', country!, {
+              httpOnly: false, // readable by client JS
+              sameSite: 'lax',
+              maxAge: 86400, // 1 day
+              path: '/',
+            });
+          }
         },
       },
     },
   );
+
+  // Set geo cookie on the initial response (covers requests where setAll is never called)
+  if (needsGeoCookie) {
+    supabaseResponse.cookies.set('geo_country', country!, {
+      httpOnly: false,
+      sameSite: 'lax',
+      maxAge: 86400,
+      path: '/',
+    });
+  }
 
   // Refresh auth token
   const {
@@ -78,7 +91,10 @@ export async function middleware(request: NextRequest) {
     // Redirect authenticated users away from auth pages
     if (user && (pathname === '/login' || pathname === '/signup')) {
       const url = request.nextUrl.clone();
-      url.pathname = '/dashboard';
+      // Honour the redirect param so users land where they intended
+      const redirectTo = request.nextUrl.searchParams.get('redirect');
+      url.pathname = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : '/dashboard';
+      url.search = '';
       return NextResponse.redirect(url);
     }
     return supabaseResponse;

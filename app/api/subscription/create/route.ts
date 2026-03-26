@@ -3,6 +3,39 @@ import { dodo } from '@/lib/dodo/client';
 import { createClient } from '@/lib/supabase/server';
 import { validateOrigin } from '@/lib/utils/csrf';
 
+const EU_COUNTRIES = ['DE','FR','IT','ES','NL','BE','AT','PT','IE','FI','GR','LU','LT','LV','EE','SK','SI','CY','MT','GB'];
+
+/**
+ * Resolve the correct Dodo product ID based on user's region and chosen plan.
+ * Each region has its own monthly + annual product with local-currency pricing.
+ */
+function getProductId(geoCountry: string, plan: 'monthly' | 'annual'): string | undefined {
+  if (geoCountry === 'IN') {
+    return plan === 'annual'
+      ? process.env.DODO_PRODUCT_ANNUAL_IN
+      : process.env.DODO_PRODUCT_MONTHLY_IN;
+  }
+  if (geoCountry === 'US') {
+    return plan === 'annual'
+      ? process.env.DODO_PRODUCT_ANNUAL_US
+      : process.env.DODO_PRODUCT_MONTHLY_US;
+  }
+  if (geoCountry === 'CA') {
+    return plan === 'annual'
+      ? process.env.DODO_PRODUCT_ANNUAL_CA
+      : process.env.DODO_PRODUCT_MONTHLY_CA;
+  }
+  if (EU_COUNTRIES.includes(geoCountry)) {
+    return plan === 'annual'
+      ? process.env.DODO_PRODUCT_ANNUAL_EU
+      : process.env.DODO_PRODUCT_MONTHLY_EU;
+  }
+  // Rest of World (default)
+  return plan === 'annual'
+    ? process.env.DODO_PRODUCT_ANNUAL_ROW
+    : process.env.DODO_PRODUCT_MONTHLY_ROW;
+}
+
 export async function POST(req: NextRequest) {
   if (!validateOrigin(req)) {
     return Response.json({ error: 'Invalid origin' }, { status: 403 });
@@ -22,13 +55,11 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
-    const productId =
-      plan === 'annual'
-        ? process.env.DODO_PLAN_ANNUAL_ID
-        : process.env.DODO_PLAN_MONTHLY_ID;
+    const geoCountry = req.cookies.get('geo_country')?.value ?? '';
+    const productId = getProductId(geoCountry, plan);
 
     if (!productId) {
-      console.error('Missing Dodo product ID env var for plan:', plan);
+      console.error('Missing Dodo product ID for region:', geoCountry, 'plan:', plan);
       return Response.json(
         { error: 'Payment configuration error. Please contact support.' },
         { status: 500 },
@@ -39,15 +70,15 @@ export async function POST(req: NextRequest) {
 
     const session = await dodo.checkoutSessions.create({
       product_cart: [{ product_id: productId, quantity: 1 }],
+      ...(discountCode ? { discount_code: discountCode } : {}),
       customer: {
         email: user.email!,
         name:
           (user.user_metadata?.full_name as string | undefined) ||
           user.email!.split('@')[0],
       },
-      ...(discountCode ? { discount_code: discountCode } : {}),
       feature_flags: { allow_discount_code: true },
-      return_url: `${appUrl}/dashboard?subscribed=true`,
+      return_url: `${appUrl}/subscription?payment=success`,
       metadata: {
         user_id: user.id,
         plan,

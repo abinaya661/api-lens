@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Lens - Next.js Email Previews</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f4f4f5;
+    margin: 0;
+    padding: 40px 20px;
+    color: #09090b;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  .preview-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    overflow: hidden;
+  }
+  .preview-header {
+    background: #fafafa;
+    border-bottom: 1px solid #eaeaea;
+    padding: 16px 24px;
+    font-size: 14px;
+    color: #52525b;
+  }
+  .preview-header strong { color: #09090b; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Your Codebase Email Templates</h1>
+  <p style="color: #71717a;">These are the automated templates we built into lib/email/resend.ts</p>
+</div>
+
+<div class="container">
+
+  <!-- Welcome Email -->
+  <div class="preview-card">
+    <div class="preview-header">
+      <div><strong>Subject:</strong> Welcome to API Lens! 🚀</div>
+    </div>
+    <div class="email-body">
+      <!-- CODEBASE HTML START -->
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="margin-bottom: 32px;">
+          <h2 style="margin: 0; color: #111; font-size: 22px;">API Lens</h2>
+        </div>
+        <h1 style="color: #111; margin-top: 0; font-size: 24px;">Welcome to API Lens! 🚀</h1>
+        <p style="font-size: 16px; color: #444; line-height: 1.6;">
+          We're incredibly thrilled to have you onboard. Your 7-day free trial has officially started &mdash; no credit card required.
+        </p>
+        <p style="font-size: 16px; color: #444; line-height: 1.6;">
+          With API Lens, you can instantly monitor, manage, and optimize all your AI API keys (OpenAI, Anthropic, Gemini, etc.) in one unified, beautiful dashboard.
+        </p>
+        <div style="margin: 36px 0;">
+          <a href="#" style="background-color: #000; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
+            Go to Dashboard
+          </a>
+        </div>
+        <p style="font-size: 16px; color: #444;">Happy building!</p>
+
+        <hr style="border: none; border-top: 1px solid #eaeaea; margin: 36px 0 24px 0;" />
+        <p style="color: #666666; font-size: 14px; line-height: 24px; margin: 0;">
+          Need help or have questions?<br/>
+          Reply directly to this email or contact our support team at <a href="mailto:support@apilens.tech" style="color: #000000; text-decoration: underline; font-weight: 500;">support@apilens.tech</a>
+        </p>
+        <p style="color: #999999; font-size: 12px; margin-top: 16px;">
+          &copy; 2026 API Lens. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Billing Failed -->
+  <div class="preview-card">
+    <div class="preview-header">
+      <div><strong>Subject:</strong> Action Required: API Lens Payment Failed</div>
+    </div>
+    <div class="email-body">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="margin-bottom: 32px;">
+          <h2 style="margin: 0; color: #111; font-size: 22px;">API Lens</h2>
+        </div>
+        <h2 style="color: #111; margin-top: 0; font-size: 22px;">Your payment was unsuccessful</h2>
+        <p style="font-size: 16px; color: #444; line-height: 1.6;">Your recent payment did not go through. Your access will continue for a 3-day grace period. Please update your payment method to avoid interruption.</p>
+        
+        <hr style="border: none; border-top: 1px solid #eaeaea; margin: 36px 0 24px 0;" />
+        <p style="color: #666666; font-size: 14px; line-height: 24px; margin: 0;">
+          Need help or have questions?<br/>
+          Reply directly to this email or contact our support team at <a href="mailto:support@apilens.tech" style="color: #000000; text-decoration: underline; font-weight: 500;">support@apilens.tech</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Rotation Alert -->
+  <div class="preview-card">
+    <div class="preview-header">
+      <div><strong>Subject:</strong> Action Required: Key Rotation Due for Prod-OpenAI</div>
+    </div>
+    <div style="padding: 20px; background: #fafafa;">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; border-top: 4px solid #d97706; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="margin-bottom: 32px;">
+          <h2 style="margin: 0; color: #111; font-size: 22px;">API Lens</h2>
+        </div>
+        <h2 style="color: #d97706; margin-top: 0; font-size: 22px;">API Key Rotation Required</h2>
+        <p style="font-size: 16px; color: #444; line-height: 1.6;">Your OpenAI API key "Prod-OpenAI" is over 90 days old. For security reasons, please log into API Lens and rotate it immediately.</p>
+        <div style="margin: 32px 0;">
+          <a href="#" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
+            View details in Dashboard
+          </a>
+        </div>
+        <hr style="border: none; border-top: 1px solid #eaeaea; margin: 36px 0 24px 0;" />
+        <p style="color: #666666; font-size: 14px; line-height: 24px; margin: 0;">
+          Need help or have questions?<br/>
+          Reply directly to this email or contact our support team at <a href="mailto:support@apilens.tech" style="color: #000000; text-decoration: underline; font-weight: 500;">support@apilens.tech</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

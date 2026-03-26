@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
-  Shield, Lock, Eye, Server, CheckCircle, KeyRound, FileSearch, ArrowRight, ArrowDown,
-  EyeOff, AlertTriangle, Mail, Activity,
+  Shield, Lock, Eye, Server, CheckCircle, FileSearch, ArrowRight, ArrowDown,
+  EyeOff, Activity,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -41,14 +41,6 @@ const SECURITY_FEATURES = [
     description: 'Every create, view, rotate, and delete operation on an API key is recorded in a tamper-evident audit log.',
     detail: 'The log captures: the acting user, a timestamp, the action type, and the key identifier — never the key value itself. Logs are retained for 90 days.',
   },
-];
-
-const TRUST_BULLETS = [
-  'Encryption keys are scoped per-account and rotated on a schedule.',
-  'No third-party analytics scripts have access to your API key data.',
-  'Service accounts use minimal-privilege roles.',
-  'Security patches are applied within 24 hours of upstream disclosure.',
-  'We do not sell or share your data with any third party.',
 ];
 
 const FLOW_STEPS = [

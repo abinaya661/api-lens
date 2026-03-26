@@ -7,23 +7,32 @@ import { PricingSection } from '@/components/landing/pricing-section';
 import { SecurityCallout } from '@/components/landing/security-callout';
 import { RevealOnScroll } from '@/components/landing/reveal-on-scroll';
 import { RegionalPriceText } from '@/components/landing/regional-price-text';
+import { JsonLd } from '@/components/shared/json-ld';
+import { buildSoftwareApplicationSchema, buildHomepageFAQSchema } from '@/lib/structured-data';
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-black text-zinc-300 selection:bg-brand-500/30 relative overflow-x-hidden">
+      {/* Homepage structured data */}
+      <JsonLd data={buildSoftwareApplicationSchema()} />
+      <JsonLd data={buildHomepageFAQSchema()} />
       {/* Global dot grid background */}
       <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/cubes.png')] opacity-[0.015] pointer-events-none" />
       {/* ─── S1: Sticky Nav ─── */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-800/50 bg-black/60 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </div>
+              <span className="font-bold text-lg text-white tracking-tight">API Lens</span>
             </div>
-            <span className="font-bold text-lg text-white tracking-tight">API Lens</span>
+            <Link href="/blog" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors hidden sm:block">Insights</Link>
+            <Link href="#pricing" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors hidden sm:block">Pricing</Link>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm font-medium hover:text-white transition-colors">

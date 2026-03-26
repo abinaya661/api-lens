@@ -6,7 +6,7 @@ export class OpenRouterAdapter extends BaseAdapter {
 
   async fetchUsage(apiKey: string, dateFrom: string, _dateTo: string): Promise<SyncResult> {
     try {
-      const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
+      const res = await fetch('https://openrouter.ai/api/v1/key', {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
         },
@@ -20,9 +20,8 @@ export class OpenRouterAdapter extends BaseAdapter {
       const data = await res.json();
       const rows: UsageRow[] = [];
 
-      // OpenRouter returns credit-based usage info
       if (data.data) {
-        const usage = data.data.usage ?? 0;
+        const usage = Number(data.data.usage ?? data.data.usage_monthly ?? 0);
 
         rows.push({
           date: dateFrom,
@@ -31,9 +30,9 @@ export class OpenRouterAdapter extends BaseAdapter {
           output_tokens: 0,
           total_tokens: 0,
           cost_usd: usage,
-          request_count: data.data.requests ?? 0,
-          unit_type: 'tokens',
-          unit_count: 0,
+          request_count: 0,
+          unit_type: 'usd',
+          unit_count: usage,
         });
       }
 
@@ -49,7 +48,7 @@ export class OpenRouterAdapter extends BaseAdapter {
 
   async validateKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
     try {
-      const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
+      const res = await fetch('https://openrouter.ai/api/v1/key', {
         headers: { 'Authorization': `Bearer ${apiKey}` },
       });
 

@@ -92,7 +92,7 @@ export function DashboardPreview() {
               <div className="flex-1 flex justify-center px-4">
                 <div className="px-5 py-1.5 rounded-md bg-zinc-900/80 border border-zinc-800/80 text-xs text-zinc-500 font-mono w-full max-w-sm text-center flex items-center justify-center gap-2 group cursor-text">
                   <LockIcon className="w-3 h-3" />
-                  apilens.dev/dashboard/{activeTab}
+                  apilens.tech/dashboard/{activeTab}
                 </div>
               </div>
               <div className="w-12" /> {/* spacer for center alignment */}

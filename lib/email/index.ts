@@ -5,7 +5,7 @@ interface EmailOptions {
 }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'API Lens <noreply@apilens.dev>';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'API Lens <noreply@apilens.tech>';
 
 export async function sendEmail({ to, subject, html }: EmailOptions): Promise<{ success: boolean; error?: string }> {
   if (!RESEND_API_KEY) {

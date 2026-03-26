@@ -19,7 +19,30 @@
       "Bash(grep -r \"price_snapshot\\\\|PriceSnapshot\" '/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens' --include=*.sql --include=*.ts --include=*.tsx)",
       "Bash(grep -E \"CREATE TABLE|CREATE VIEW\" supabase/migrations/*.sql)",
       "Bash(npx supabase:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(auth\\)/layout.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/layout.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(auth\\)/login/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(auth\\)/signup/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/onboarding/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/dashboard/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/keys/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/subscription/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/budgets/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/alerts/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/projects/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/settings/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/reports/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/estimator/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/projects/\\\\[id\\\\]/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/keys/\\\\[id\\\\]/page.tsx\")",
+      "Bash(ls -la \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/projects/\")",
+      "Bash(ls -la \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/keys/\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/projects/[id]/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/keys/[id]/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(auth\\)/verify-email/page.tsx\")",
+      "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(auth\\)/forgot-password/page.tsx\")",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }

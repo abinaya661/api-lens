@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/', '/dashboard/', '/keys/', '/projects/', '/budgets/', '/alerts/', '/settings/', '/onboarding/'],
       },
     ],
-    sitemap: 'https://apilens.dev/sitemap.xml',
+    sitemap: 'https://apilens.tech/sitemap.xml',
   };
 }
