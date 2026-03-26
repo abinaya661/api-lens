@@ -186,11 +186,11 @@ function CurrentPlanCard({ subscription }: { subscription: Subscription | null |
         <>
           <hr className="border-zinc-800" />
           <p className="text-sm text-zinc-400">
-            Your card will be charged automatically on{' '}
+            Your free trial ends on{' '}
             <span className="text-zinc-200 font-medium">
               {formatDate(subscription.trial_ends_at)}
             </span>
-            . Cancel anytime before.
+            . Subscribe to any plan to keep access — no card needed until then.
           </p>
         </>
       )}
@@ -445,7 +445,7 @@ export default function SubscriptionPage() {
           {currentPlan ? 'Change Plan' : 'Choose a Plan'}
         </h3>
         <p className="text-sm text-zinc-500 mb-4">
-          All plans include every feature. No hidden fees. Global checkout powered by Dodo Payments.
+          All plans include every feature. No hidden fees. No card required for your 7-day free trial.
         </p>
 
         {/* Promo code input */}

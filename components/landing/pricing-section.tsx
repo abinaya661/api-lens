@@ -80,6 +80,9 @@ export function PricingSection() {
             <p className="text-zinc-400 text-lg">
               One plan. Everything included. Stop losing money to shadow AI sprawl and ghost API keys.
             </p>
+            <div className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20">
+              <span className="text-green-400 font-semibold text-sm">7 days free. No credit card required.</span>
+            </div>
           </div>
         </RevealOnScroll>
 
@@ -139,7 +142,7 @@ export function PricingSection() {
                   href="/signup"
                   className="w-full py-4 rounded-xl bg-zinc-800 text-white font-medium text-center hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2"
                 >
-                  Start Free Trial
+                  Start Free Trial — No Card Needed
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -178,7 +181,7 @@ export function PricingSection() {
                   href="/signup"
                   className="w-full py-4 rounded-xl bg-brand-600 text-white font-medium text-center hover:bg-brand-700 transition-colors flex items-center justify-center gap-2 relative shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)]"
                 >
-                  Start Free Trial
+                  Start Free Trial — No Card Needed
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -254,7 +257,7 @@ export function PricingSection() {
         <RevealOnScroll>
           <p className="text-center text-zinc-500 text-sm mt-6 flex items-center justify-center gap-2">
             <ShieldCheck className="w-4 h-4 text-green-500" />
-            7-day free trial on all plans. Cancel anytime.
+            7-day free trial on all plans. No credit card. No strings attached.
           </p>
         </RevealOnScroll>
       </div>
