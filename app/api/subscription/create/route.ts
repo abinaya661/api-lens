@@ -56,33 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     const geoCountry = req.cookies.get('geo_country')?.value ?? '';
-    const euCountries = ['DE','FR','IT','ES','NL','BE','AT','PT','IE','FI','GR','LU','LT','LV','EE','SK','SI','CY','MT','GB'];
-
-<<<<<<< Updated upstream
-    let collectionId: string | undefined;
-    if (geoCountry === 'IN') {
-      collectionId = process.env.DODO_COLLECTION_INDIA_ID;
-    } else if (geoCountry === 'US' || geoCountry === 'CA') {
-      collectionId = process.env.DODO_COLLECTION_NA_ID;
-    } else if (euCountries.includes(geoCountry)) {
-      collectionId = process.env.DODO_COLLECTION_EU_ID;
-    } else {
-      collectionId = process.env.DODO_COLLECTION_ROW_ID;
-    }
-=======
-    // Use region-specific product IDs when available, fall back to default.
-    // EU countries share one EUR product (DODO_PLAN_MONTHLY_ID_EU) unless a
-    // country-specific override exists (e.g. DODO_PLAN_MONTHLY_ID_DE).
-    const regionKey = euCountries.includes(geoCountry) && !process.env[`DODO_PLAN_MONTHLY_ID_${geoCountry}`]
-      ? 'EU'
-      : geoCountry;
-    const regionalMonthlyId = process.env[`DODO_PLAN_MONTHLY_ID_${regionKey}`];
-    const regionalAnnualId = process.env[`DODO_PLAN_ANNUAL_ID_${regionKey}`];
->>>>>>> Stashed changes
-
-    const fallbackProductId = plan === 'annual'
-      ? process.env.DODO_PLAN_ANNUAL_ID
-      : process.env.DODO_PLAN_MONTHLY_ID;
+    const productId = getProductId(geoCountry, plan);
 
     if (!productId) {
       console.error('Missing Dodo product ID for region:', geoCountry, 'plan:', plan);
