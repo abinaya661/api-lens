@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { decryptCredentials, type EncryptedPayload } from '@/lib/encryption';
+import { sendEmail, getAlertEmailHtml } from '@/lib/email/resend';
 import { getAdapter } from './registry';
 import type { UsageRow } from './types';
 
@@ -149,68 +150,131 @@ export async function checkBudgets(): Promise<{ alerts_created: number }> {
   const today = now.toISOString().slice(0, 10);
 
   for (const budget of budgets) {
-    // Calculate current spend for this budget's scope
-    let query = supabase
-      .from('usage_records')
-      .select('cost_usd')
-      .eq('user_id', budget.user_id)
-      .gte('date', monthStart)
-      .lte('date', today);
+    let totalSpend = 0;
 
-    if (budget.scope === 'platform' && budget.platform) {
-      query = query.eq('provider', budget.platform);
-    } else if (budget.scope === 'key' && budget.scope_id) {
-      query = query.eq('key_id', budget.scope_id);
+    if (budget.scope === 'project' && budget.scope_id) {
+      // Sum usage for all keys belonging to this project
+      const { data: projectKeys } = await supabase
+        .from('project_keys')
+        .select('key_id')
+        .eq('project_id', budget.scope_id);
+
+      if (projectKeys && projectKeys.length > 0) {
+        const keyIds = projectKeys.map((pk: { key_id: string }) => pk.key_id);
+        const { data: records } = await supabase
+          .from('usage_records')
+          .select('cost_usd')
+          .in('key_id', keyIds)
+          .gte('date', monthStart)
+          .lte('date', today);
+        if (records) {
+          totalSpend = records.reduce((sum, r) => sum + Number(r.cost_usd), 0);
+        }
+      }
+    } else {
+      // global, platform, or key scope — filter by user_id + optional narrowing
+      let query = supabase
+        .from('usage_records')
+        .select('cost_usd')
+        .eq('user_id', budget.user_id)
+        .gte('date', monthStart)
+        .lte('date', today);
+
+      if (budget.scope === 'platform' && budget.platform) {
+        query = query.eq('provider', budget.platform);
+      } else if (budget.scope === 'key' && budget.scope_id) {
+        query = query.eq('key_id', budget.scope_id);
+      }
+      // 'global' scope = all records for user
+
+      const { data: records } = await query;
+      if (records) {
+        totalSpend = records.reduce((sum, r) => sum + Number(r.cost_usd), 0);
+      }
     }
-    // 'global' scope = all records for user
 
-    const { data: records } = await query;
-    if (!records) continue;
-
-    const totalSpend = records.reduce((sum, r) => sum + Number(r.cost_usd), 0);
     const pct = budget.amount_usd > 0 ? (totalSpend / budget.amount_usd) * 100 : 0;
 
-    // Check thresholds (50, 75, 90, 100)
+    // Check thresholds 50 / 90 / 100 only — alert_75 is treated as unused
     const thresholds = [
-      { pct: 50, enabled: budget.alert_50, severity: 'info' as const },
-      { pct: 75, enabled: budget.alert_75, severity: 'warning' as const },
-      { pct: 90, enabled: budget.alert_90, severity: 'warning' as const },
+      { pct: 50,  enabled: budget.alert_50,  severity: 'info'     as const },
+      { pct: 90,  enabled: budget.alert_90,  severity: 'warning'  as const },
       { pct: 100, enabled: budget.alert_100, severity: 'critical' as const },
     ];
 
     const lastAlerted = budget.last_alerted_threshold ?? 0;
 
     for (const t of thresholds) {
-      if (t.enabled && pct >= t.pct && lastAlerted < t.pct) {
-        // Check if alert already exists to prevent race condition duplicates
-        const { data: existingAlert } = await supabase
-          .from('alerts')
-          .select('id')
-          .eq('user_id', budget.user_id)
-          .eq('type', 'budget_threshold')
-          .eq('title', `Budget ${t.pct}% reached`)
-          .eq('scope', budget.scope)
+      if (!t.enabled || pct < t.pct || lastAlerted >= t.pct) continue;
+
+      // Prevent race-condition duplicates
+      const { data: existingAlert } = await supabase
+        .from('alerts')
+        .select('id')
+        .eq('user_id', budget.user_id)
+        .eq('type', 'budget_threshold')
+        .eq('title', `Budget ${t.pct}% reached`)
+        .eq('scope', budget.scope)
+        .maybeSingle();
+
+      if (existingAlert) continue;
+
+      // Build a human-readable scope label for the email
+      let scopeLabel = 'global';
+      if (budget.scope === 'platform') {
+        scopeLabel = budget.platform ?? 'platform';
+      } else if (budget.scope === 'project') {
+        const { data: proj } = await supabase
+          .from('projects')
+          .select('name')
+          .eq('id', budget.scope_id)
           .maybeSingle();
-
-        if (!existingAlert) {
-          await supabase.from('alerts').insert({
-            user_id: budget.user_id,
-            type: 'budget_threshold',
-            severity: t.severity,
-            title: `Budget ${t.pct}% reached`,
-            message: `Your ${budget.scope} budget of $${budget.amount_usd} is ${Math.round(pct)}% used ($${totalSpend.toFixed(2)} spent).`,
-            scope: budget.scope,
-            scope_id: budget.scope_id,
-          });
-
-          await supabase
-            .from('budgets')
-            .update({ last_alerted_threshold: t.pct })
-            .eq('id', budget.id);
-
-          alertsCreated++;
-        }
+        scopeLabel = proj?.name ? `project "${proj.name}"` : 'project';
+      } else if (budget.scope === 'key') {
+        const { data: key } = await supabase
+          .from('api_keys')
+          .select('nickname')
+          .eq('id', budget.scope_id)
+          .maybeSingle();
+        scopeLabel = key?.nickname ? `key "${key.nickname}"` : 'key';
       }
+
+      const alertTitle = `Budget ${t.pct}% reached`;
+      const alertMessage =
+        `Your ${scopeLabel} budget of $${Number(budget.amount_usd).toFixed(2)} is ` +
+        `${Math.round(pct)}% used ($${totalSpend.toFixed(2)} spent).`;
+
+      await supabase.from('alerts').insert({
+        user_id: budget.user_id,
+        type: 'budget_threshold',
+        severity: t.severity,
+        title: alertTitle,
+        message: alertMessage,
+        scope: budget.scope,
+        scope_id: budget.scope_id,
+      });
+
+      await supabase
+        .from('budgets')
+        .update({ last_alerted_threshold: t.pct })
+        .eq('id', budget.id);
+
+      // Send email alert
+      const { data: uData } = await supabase.auth.admin.getUserById(budget.user_id);
+      const userEmail = uData.user?.email;
+      if (userEmail) {
+        await sendEmail({
+          to: userEmail,
+          subject: `Budget Alert: ${t.pct}% of your ${scopeLabel} budget used`,
+          html: getAlertEmailHtml({
+            title: alertTitle,
+            message: alertMessage,
+            severity: t.severity,
+          }),
+        });
+      }
+
+      alertsCreated++;
     }
   }
 
