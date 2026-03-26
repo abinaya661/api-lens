@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
           user.email!.split('@')[0],
       },
       feature_flags: { allow_discount_code: true },
-      return_url: `${appUrl}/dashboard?subscribed=true`,
+      return_url: `${appUrl}/subscription?payment=success`,
       metadata: {
         user_id: user.id,
         plan,

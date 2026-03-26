@@ -39,7 +39,8 @@ function LoginForm() {
         return;
       }
 
-      router.push('/dashboard');
+      const redirectTo = searchParams.get('redirect') || '/dashboard';
+      router.push(redirectTo);
       router.refresh();
     } catch {
       toast.error('An unexpected error occurred. Please try again.');
@@ -53,7 +54,7 @@ function LoginForm() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(searchParams.get('redirect') || '/dashboard')}`,
       },
     });
     if (error) toast.error(error.message);

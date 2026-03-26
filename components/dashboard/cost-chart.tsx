@@ -10,7 +10,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 
 interface DailySpendItem {
   date: string;
@@ -21,7 +21,7 @@ interface CostChartProps {
   data: DailySpendItem[];
 }
 
-export function CostChart({ data }: CostChartProps) {
+export const CostChart = memo(function CostChart({ data }: CostChartProps) {
   const chartData = useMemo(() => {
     return data.map((day) => ({
       date: day.date,
@@ -94,4 +94,4 @@ export function CostChart({ data }: CostChartProps) {
       </div>
     </div>
   );
-}
+});

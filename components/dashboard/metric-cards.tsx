@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { StatCard } from '@/components/shared';
 import { CreditCard, TrendingUp, Key, Activity } from 'lucide-react';
 
@@ -10,7 +11,7 @@ interface MetricCardsProps {
   budgetRemainingPct: number | null;
 }
 
-export function MetricCards({ totalSpend, projectedSpend, activeKeyCount, budgetRemainingPct }: MetricCardsProps) {
+export const MetricCards = memo(function MetricCards({ totalSpend, projectedSpend, activeKeyCount, budgetRemainingPct }: MetricCardsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
@@ -43,4 +44,4 @@ export function MetricCards({ totalSpend, projectedSpend, activeKeyCount, budget
       />
     </div>
   );
-}
+});

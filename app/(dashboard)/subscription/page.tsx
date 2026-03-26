@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { PageHeader, SkeletonCard, ErrorState } from '@/components/shared';
 import { useSubscription, useCancelSubscription } from '@/hooks/use-subscription';
@@ -17,7 +18,7 @@ import {
   CardContent,
   CardFooter,
 } from '@/components/ui/card';
-import { Check, Crown, Zap, Shield, BarChart3, Clock, Headphones, Loader2 } from 'lucide-react';
+import { Check, Crown, Zap, Shield, BarChart3, Clock, Headphones, Loader2, CheckCircle2 } from 'lucide-react';
 import type { Subscription } from '@/types/database';
 import type { RegionalPrice } from '@/lib/regional-pricing';
 
@@ -370,13 +371,67 @@ function EnterpriseCard({ regional }: { regional: RegionalPrice }) {
   );
 }
 
-export default function SubscriptionPage() {
+function PaymentSuccessOverlay() {
+  const router = useRouter();
+  const [countdown, setCountdown] = useState(3);
+
+  useEffect(() => {
+    // Clean URL immediately
+    window.history.replaceState({}, '', '/subscription');
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          router.push('/dashboard');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [router]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div className="glass-card p-10 max-w-md mx-auto text-center space-y-4">
+        <div className="w-16 h-16 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center mx-auto">
+          <CheckCircle2 className="w-8 h-8 text-green-400" />
+        </div>
+        <h2 className="text-2xl font-bold text-white">Payment Successful!</h2>
+        <p className="text-zinc-400">
+          Thank you for subscribing. Your plan is now active.
+        </p>
+        <p className="text-sm text-zinc-500">
+          Redirecting to dashboard in {countdown}...
+        </p>
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="px-6 py-2.5 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-all"
+        >
+          Go to Dashboard Now
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SubscriptionPageInner() {
+  const searchParams = useSearchParams();
+  const [showSuccess, setShowSuccess] = useState(false);
   const { data: subscription, isLoading, error, refetch } = useSubscription();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<'monthly' | 'annual' | null>(null);
   const [promoCode, setPromoCode] = useState('');
   const regional = useRegionalPrice();
   const PLANS = buildPlans(regional);
+
+  useEffect(() => {
+    if (searchParams.get('payment') === 'success') {
+      setShowSuccess(true);
+    }
+  }, [searchParams]);
 
   async function handleSubscribe(plan: 'monthly' | 'annual') {
     setCheckoutLoading(true);
@@ -432,6 +487,8 @@ export default function SubscriptionPage() {
   const currentPlan = subscription?.status === 'active' ? subscription?.plan : null;
 
   return (
+    <>
+      {showSuccess && <PaymentSuccessOverlay />}
     <div className="animate-fade-in space-y-8">
       <PageHeader
         title="Subscription"
@@ -511,5 +568,21 @@ export default function SubscriptionPage() {
         </p>
       </div>
     </div>
+    </>
+  );
+}
+
+export default function SubscriptionPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="animate-fade-in space-y-6">
+          <PageHeader title="Subscription" description="Manage your plan and billing." />
+          <SkeletonCard />
+        </div>
+      }
+    >
+      <SubscriptionPageInner />
+    </Suspense>
   );
 }
