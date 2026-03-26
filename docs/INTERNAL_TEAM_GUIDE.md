@@ -1,6 +1,6 @@
 # API Lens — Internal Team Guide
 
-**Version:** 1.0 | **Date:** March 25, 2026 | **Classification:** Internal — Engineering & Product
+**Version:** 1.1 | **Date:** March 26, 2026 | **Classification:** Internal — Engineering & Product
 
 ---
 
@@ -182,8 +182,8 @@ api-lens/
 
 ### Phase 3 — Payments & Billing (COMPLETE)
 - [x] Dodo Payments integration (replaced Razorpay)
-- [x] Subscription plans: Monthly + Annual with 7-day trial
-- [x] Checkout session creation with regional product IDs
+- [x] Subscription plans: Base Monthly + Base Annual with 7-day trial
+- [x] Checkout session creation with per-region product IDs (IN, US, CA, EU, ROW)
 - [x] Webhook handler with Standard Webhooks verification + idempotency
 - [x] Regional pricing for 50+ countries (USD, EUR, GBP, INR, CAD, etc.)
 - [x] EU region grouping for product ID selection
@@ -191,6 +191,23 @@ api-lens/
 - [x] Access pass system (15-day and 30-day passes)
 - [x] Subscription management: upgrade, cancel, status display
 - [x] Autopay after trial (card collection at checkout)
+- [x] Payment success overlay + redirect to dashboard
+- [x] Pro plan "Invite Only" with waitlist (email notify via Resend audience)
+
+### Phase 6 — Email / Mailing System (COMPLETE)
+- [x] Resend integration for all transactional emails
+- [x] Welcome email on signup (email/password and Google OAuth, sent at /auth/callback)
+- [x] Payment success email (subscription.active webhook)
+- [x] Payment failed email (payment.failed webhook, 3-day grace period)
+- [x] Renewal confirmation email (payment.completed webhook)
+- [x] Budget alert emails (50%, 70%, 90%, 100% thresholds)
+- [x] Key health alert emails (inactive/unhealthy keys)
+- [x] Key rotation reminder emails (80+ day old keys)
+- [x] Weekly usage digest emails
+- [x] Trial expiration warning emails
+- [x] Pro waitlist notification (Resend audience, RESEND_PRO_WAITLIST_ID)
+- [x] Branded email template with logo, support link (support@apilens.tech)
+- [x] All email links point to apilens.tech domain
 
 ### Phase 4 — Security & Polish (COMPLETE)
 - [x] Comprehensive security audit (21 issues fixed, 64 tests)
@@ -218,17 +235,17 @@ api-lens/
 ### Immediate Blockers (Must Do Before Launch)
 | # | Task | Owner | Status |
 |---|------|-------|--------|
-| 1 | Run `supabase db push` to apply migration 005 (Dodo payments schema) | DevOps/Backend | Blocked |
-| 2 | Create Dodo products in dashboard → set `DODO_PLAN_MONTHLY_ID` / `DODO_PLAN_ANNUAL_ID` env vars | Product/Backend | Blocked |
+| 1 | Run `supabase db push` to apply all migrations | DevOps/Backend | Blocked |
+| 2 | Create Dodo per-region products → set all `DODO_PRODUCT_*` env vars (10 vars: IN, US, CA, EU, ROW × monthly/annual) | Product/Backend | Blocked |
 | 3 | Set up Dodo webhook endpoint → set `DODO_WEBHOOK_SECRET` | Backend | Blocked |
-| 4 | Phase 7: End-to-end smoke tests (signup → checkout → webhook → cancel) | QA/Backend | Not Started |
-| 5 | Phase 8: Production deployment (prod Supabase + Dodo live mode + Vercel prod) | DevOps | Not Started |
+| 4 | Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL=API Lens <noreply@apilens.tech>` in Vercel | DevOps | Blocked |
+| 5 | Phase 7: End-to-end smoke tests (signup → checkout → webhook → cancel) | QA/Backend | Not Started |
+| 6 | Phase 8: Production deployment (prod Supabase + Dodo live mode + Vercel prod) | DevOps | Not Started |
 
 ### Known Gaps
 - **Sync frequency:** Vercel cron runs daily (00:00 UTC). For real-time, need upgrade to Pro plan or external scheduler.
 - **Providers without usage APIs:** Gemini, Grok, Azure OpenAI, Moonshot return validation-only (no automated cost sync).
 - **E2E tests:** Playwright config exists but no e2e test files written yet.
-- **Email templates:** Resend integration exists but templates for alerts/reports not fully built.
 - **Monthly report generation:** Stubbed in daily-tasks cron but not implemented.
 
 ---
@@ -243,7 +260,7 @@ api-lens/
 | P0 | Dodo live mode activation + product creation | Backend + Product |
 | P0 | Vercel production deployment | DevOps |
 | P1 | Write 5-10 Playwright e2e tests (critical flows) | Frontend |
-| P1 | Email templates for budget alerts | Backend |
+| P1 | ~~Email templates for budget alerts~~ — COMPLETE | Backend |
 | P1 | Commit and merge uncommitted adapter improvements | Backend |
 
 ### Sprint 2: Stability & Monitoring (2-3 weeks)
@@ -425,7 +442,7 @@ if (!success) return { error: 'Too many attempts' };
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| User registration (email + Google) | Live | 7-day free trial |
+| User registration (email + Google) | Live | 7-day free trial, welcome email on signup |
 | Onboarding wizard | Live | 3 steps: welcome, add key, set budget |
 | API key management (9 providers) | Live | Encrypted storage, health monitoring |
 | Spending dashboard | Live | Charts, provider breakdown, projections |
@@ -433,8 +450,10 @@ if (!success) return { error: 'Too many attempts' };
 | Project organization | Live | Group keys by project |
 | Cost estimator | Live | Compare model pricing |
 | Reports + CSV export | Live | Date-filtered usage data |
-| Subscription billing | Live | Monthly/Annual via Dodo Payments |
+| Subscription billing | Live | Base Monthly/Annual via Dodo Payments (per-region product IDs) |
 | Regional pricing | Live | 50+ countries, local currency |
+| Transactional emails | Live | Welcome, payment success/fail, budget alerts, key health, rotation, weekly digest |
+| Pro plan waitlist | Live | "Invite Only" — notify me button, stored in Resend audience |
 | Promo codes / discounts | Live | Admin API for management |
 | Access passes | Live | 15/30-day trial extensions |
 | Enterprise tier | Placeholder | "Coming soon" with email notify |
@@ -600,13 +619,22 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 # Dodo Payments (REQUIRED for billing)
 DODO_API_KEY=<your-dodo-key>
 DODO_WEBHOOK_SECRET=<webhook-secret>
-DODO_PLAN_MONTHLY_ID=<product-id>
-DODO_PLAN_ANNUAL_ID=<product-id>
-DODO_PAYMENTS_ENVIRONMENT=test_mode
+# Per-region product IDs — create one monthly + one annual product per region in Dodo dashboard
+DODO_PRODUCT_MONTHLY_IN=<india-monthly-product-id>
+DODO_PRODUCT_ANNUAL_IN=<india-annual-product-id>
+DODO_PRODUCT_MONTHLY_US=<us-monthly-product-id>
+DODO_PRODUCT_ANNUAL_US=<us-annual-product-id>
+DODO_PRODUCT_MONTHLY_CA=<canada-monthly-product-id>
+DODO_PRODUCT_ANNUAL_CA=<canada-annual-product-id>
+DODO_PRODUCT_MONTHLY_EU=<eu-monthly-product-id>
+DODO_PRODUCT_ANNUAL_EU=<eu-annual-product-id>
+DODO_PRODUCT_MONTHLY_ROW=<row-monthly-product-id>
+DODO_PRODUCT_ANNUAL_ROW=<row-annual-product-id>
 
-# Email (OPTIONAL for dev)
+# Email — Resend (OPTIONAL for dev, REQUIRED for prod email features)
 RESEND_API_KEY=<resend-key>
-RESEND_FROM_EMAIL=noreply@yourdomain.com
+RESEND_FROM_EMAIL=API Lens <noreply@apilens.tech>
+RESEND_PRO_WAITLIST_ID=<resend-audience-id>   # For Pro plan waitlist
 
 # Rate Limiting (OPTIONAL — falls back to memory)
 UPSTASH_REDIS_REST_URL=<upstash-url>
@@ -615,7 +643,7 @@ UPSTASH_REDIS_REST_TOKEN=<upstash-token>
 
 ### Quick Start
 ```bash
-git clone https://github.com/abinaya661/api-lens.git
+git clone https://github.com/abinaya661/api-lens.git  # update to your fork/org as needed
 cd api-lens
 pnpm install
 cp .env.example .env.local   # Fill in values
@@ -636,7 +664,7 @@ pnpm dev                      # → http://localhost:3000
 ### Pre-Production Checklist
 - [ ] Supabase: Run all migrations (`supabase db push`)
 - [ ] Supabase: Verify RLS policies are active
-- [ ] Dodo: Create monthly + annual products
+- [ ] Dodo: Create per-region monthly + annual products (IN, US, CA, EU, ROW) and set all 10 `DODO_PRODUCT_*` env vars
 - [ ] Dodo: Set up webhook URL pointing to `/api/webhooks/dodo`
 - [ ] Dodo: Switch from test_mode to live
 - [ ] Vercel: Set all env vars (especially `ENCRYPTION_KEY`, `CRON_SECRET`)
@@ -645,4 +673,4 @@ pnpm dev                      # → http://localhost:3000
 
 ---
 
-*This document was generated on March 25, 2026. For the latest code, always refer to the repository.*
+*Last updated: March 26, 2026. For the latest code, always refer to the repository.*

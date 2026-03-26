@@ -88,6 +88,8 @@ supabase/
 | **Header (alerts badge, user menu)** | `components/layout/header.tsx` + `header-wrapper.tsx` |
 | **Add a new admin API endpoint** | `app/api/admin/{name}/route.ts` — auth via `Authorization: Bearer ${CRON_SECRET}` |
 | **Pricing data (per-model costs)** | `supabase/migrations/006_price_snapshots.sql` (seed data) → `lib/pricing/index.ts` |
+| **Transactional emails** | `lib/email/resend.ts` (templates + sendEmail) → `app/auth/callback/route.ts` (welcome) → `app/api/webhooks/dodo/route.ts` (payment emails) → `app/api/cron/daily-tasks/route.ts` (alerts) |
+| **Pro plan waitlist** | `app/api/pro/waitlist/route.ts` → `app/(dashboard)/subscription/page.tsx` (waitlist form) |
 | **Env var additions** | `lib/env.ts` (Zod schema) → `.env.example` |
 | **Rate limiting** | `lib/ratelimit/index.ts` → `checkRateLimit()` call in the action/route |
 
@@ -307,7 +309,8 @@ useRegionalPrice()     → RegionalPrice      reads geo_country cookie, memoized
 | `/api/cron/daily-tasks` | GET | CRON_SECRET Bearer | Detect inactive keys + rotation reminders — runs 07:00 UTC |
 | `/api/platforms` | GET | Supabase user | List active platforms |
 | `/api/platforms/detect` | POST | validateOrigin (CSRF) | Regex-detect provider from key pattern |
-| `/api/enterprise/notify` | POST | None | Waitlist signup → enterprise_waitlist upsert |
+| `/api/enterprise/notify` | POST | None | Enterprise waitlist signup → enterprise_waitlist upsert |
+| `/api/pro/waitlist` | POST | None | Pro plan waitlist signup → pro_waitlist DB + Resend audience |
 | `/api/health` | GET | None | Checks env vars, Supabase connection, encryption key format |
 
 ---
@@ -364,8 +367,9 @@ DODO_PRODUCT_MONTHLY_US           DODO_PRODUCT_ANNUAL_US
 DODO_PRODUCT_MONTHLY_CA           DODO_PRODUCT_ANNUAL_CA
 DODO_PRODUCT_MONTHLY_EU           DODO_PRODUCT_ANNUAL_EU
 DODO_PRODUCT_MONTHLY_ROW          DODO_PRODUCT_ANNUAL_ROW
-RESEND_API_KEY                    RESEND_FROM_EMAIL
-UPSTASH_REDIS_REST_URL (opt)      UPSTASH_REDIS_REST_TOKEN (opt)
+RESEND_API_KEY                    RESEND_FROM_EMAIL (e.g. API Lens <noreply@apilens.tech>)
+RESEND_PRO_WAITLIST_ID (opt)      UPSTASH_REDIS_REST_URL (opt)
+UPSTASH_REDIS_REST_TOKEN (opt)
 ```
 
-**Active context (2026-03-25):** Phases 0–6 complete. Phase 7 = manual smoke tests (Dodo test mode). Phase 8 = prod deploy. Latest migration: 006_price_snapshots.
+**Active context (2026-03-26):** Phases 0–6 + email system complete. All apilens.dev refs migrated to apilens.tech. Dodo product IDs switched to per-region DODO_PRODUCT_* vars. Phase 7 = smoke tests. Phase 8 = prod deploy. Latest migration: 006_price_snapshots.
