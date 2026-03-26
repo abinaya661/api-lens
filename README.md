@@ -73,8 +73,8 @@ Monthly auto-reports on the 1st. Shareable read-only links for clients. PDF and 
 | **Language** | TypeScript (strict mode) |
 | **Styling** | Tailwind CSS v4 + shadcn/ui |
 | **Database & Auth** | Supabase (PostgreSQL, RLS, Auth, Vault) |
-| **Background Jobs** | Trigger.dev v4 |
-| **Payments** | Razorpay |
+| **Background Jobs** | Vercel Cron |
+| **Payments** | Dodo Payments (MoR) |
 | **Email** | Resend |
 | **Hosting** | Vercel |
 | **Error Tracking** | Sentry |
@@ -126,7 +126,7 @@ api-lens/
 - Node.js 20+
 - pnpm (`npm install -g pnpm`)
 - Supabase account & project
-- Razorpay test account
+- Dodo Payments account (test mode)
 
 ### Setup
 
@@ -140,7 +140,7 @@ pnpm install
 
 # Copy environment variables
 cp .env.example .env.local
-# Fill in your Supabase, Razorpay, Resend, and other credentials
+# Fill in your Supabase, Dodo Payments, Resend, and other credentials
 
 # Run database migrations
 pnpm supabase db push
