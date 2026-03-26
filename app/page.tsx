@@ -31,7 +31,8 @@ export default function LandingPage() {
               </div>
               <span className="font-bold text-lg text-white tracking-tight">API Lens</span>
             </div>
-            <Link href="/blog" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors hidden sm:block">Blog</Link>
+            <Link href="/blog" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors hidden sm:block">Insights</Link>
+            <Link href="#pricing" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors hidden sm:block">Pricing</Link>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm font-medium hover:text-white transition-colors">

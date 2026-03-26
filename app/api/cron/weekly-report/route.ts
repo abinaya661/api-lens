@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendEmail } from '@/lib/email/resend';
-import { getWeeklyReportEmailHtml } from '@/lib/email/templates';
+import { sendEmail, getWeeklyDigestEmailHtml } from '@/lib/email/resend';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -130,15 +129,13 @@ export async function GET(request: NextRequest) {
       const email = uData.user?.email;
       if (!email) continue;
 
+      const totalRequests = thisWeek.length.toString();
       await sendEmail({
         to: email,
-        subject: `Your Weekly API Spending Summary \u2014 ${weekLabel}`,
-        html: getWeeklyReportEmailHtml({
-          weekLabel,
-          totalSpent: `$${totalSpent.toFixed(2)}`,
-          totalSpentPrev: `$${prevWeekSpent.toFixed(2)}`,
-          providerBreakdown,
-          projectBreakdown,
+        subject: `Your Weekly API Spending Summary — ${weekLabel}`,
+        html: getWeeklyDigestEmailHtml({
+          totalRequests,
+          costStr: `$${totalSpent.toFixed(2)}`,
         }),
       });
       emailsSent++;
@@ -147,7 +144,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       emails_sent: emailsSent,
-      users_processed: userIds.length,
+      users_processed: companyIds.length,
       duration_ms: Date.now() - startTime,
       timestamp: new Date().toISOString(),
     });
