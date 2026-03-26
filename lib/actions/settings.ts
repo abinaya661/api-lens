@@ -81,7 +81,7 @@ export async function getNotificationPrefs(): Promise<{ data: NotificationPrefs 
     if (error) return { data: DEFAULT_NOTIFICATION_PREFS, error: null };
     const prefs = (data?.notification_prefs as NotificationPrefs | null) ?? DEFAULT_NOTIFICATION_PREFS;
     return { data: { ...DEFAULT_NOTIFICATION_PREFS, ...prefs }, error: null };
-  } catch (e) {
+  } catch (_e) {
     return { data: DEFAULT_NOTIFICATION_PREFS, error: null };
   }
 }
@@ -99,7 +99,7 @@ export async function updateNotificationPrefs(prefs: NotificationPrefs): Promise
 
     if (error) return { error: error.message };
     return { error: null };
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Unknown error' };
+  } catch (_e) {
+    return { error: _e instanceof Error ? _e.message : 'Unknown error' };
   }
 }

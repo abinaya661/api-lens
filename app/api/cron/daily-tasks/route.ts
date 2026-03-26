@@ -208,10 +208,6 @@ export async function GET(request: NextRequest) {
         for (const r of monthRecords) {
           providerTotals[r.provider] = (providerTotals[r.provider] ?? 0) + Number(r.cost_usd);
         }
-        const providerBreakdown = Object.entries(providerTotals)
-          .sort((a, b) => b[1] - a[1])
-          .map(([provider, spent]) => ({ provider, spent: `$${spent.toFixed(2)}` }));
-
         // Per-project breakdown
         const { data: projects } = await supabase
           .from('projects')
