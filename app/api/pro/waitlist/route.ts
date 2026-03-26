@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { resend } from '@/lib/email/resend';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -19,15 +20,22 @@ export async function POST(req: NextRequest) {
   const adminSupabase = createAdminClient();
 
   const { error } = await adminSupabase
-    .from('enterprise_waitlist')
+    .from('pro_waitlist')
     .upsert(
       { email, country_code: body.country_code ?? null },
       { onConflict: 'email', ignoreDuplicates: true },
     );
 
   if (error) {
-    console.error('[enterprise/notify] DB error:', error);
+    console.error('[pro/waitlist] DB error:', error);
     return Response.json({ error: 'Failed to save. Please try again.' }, { status: 500 });
+  }
+
+  if (resend && process.env.RESEND_PRO_WAITLIST_ID) {
+    await resend.contacts.create({
+      email,
+      audienceId: process.env.RESEND_PRO_WAITLIST_ID,
+    }).catch((err: any) => console.error('[Resend Contact]', err));
   }
 
   return Response.json({ success: true });
