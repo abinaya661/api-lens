@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   const user = data.user;
   const metadata = user.user_metadata || {};
   let needsUpdate = false;
-  const updates: Record<string, any> = {};
+  const updates: Record<string, unknown> = {};
 
   // Check geo_country
   if (!metadata.geo_country) {

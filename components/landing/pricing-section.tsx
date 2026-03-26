@@ -244,12 +244,3 @@ export function PricingSection() {
     </section>
   );
 }
-
-function ShieldCheck(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="m12 22-8-4.8A2.78 2.78 0 0 1 2 14.8V6.11a2 2 0 0 1 1-1.74l8-4.74a2 2 0 0 1 2 0l8 4.74a2 2 0 0 1 1 1.74v8.69a2.78 2.78 0 0 1-2 2.39z" />
-      <path d="m9 12 2 2 4-4" />
-    </svg>
-  );
-}

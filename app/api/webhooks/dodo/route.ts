@@ -105,7 +105,7 @@ export async function POST(request: Request) {
             message: 'You have successfully subscribed. Your payment was processed and your account is now fully active.',
             plan: event.data.metadata?.plan ?? 'monthly',
           }),
-        }).catch((err: any) => console.error('[Webhook Email]', err));
+        }).catch((err: unknown) => console.error('[Webhook Email]', err));
       }
       break;
     }

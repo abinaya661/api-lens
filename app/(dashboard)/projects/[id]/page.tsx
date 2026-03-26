@@ -18,7 +18,6 @@ import {
   Trash2,
   Edit2,
   X,
-  Shield,
   ShieldX,
   CheckCircle,
   AlertTriangle,
