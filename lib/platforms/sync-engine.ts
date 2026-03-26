@@ -19,7 +19,7 @@ export async function syncAllKeys(): Promise<SyncStats> {
   // Fetch all active keys
   const { data: keys, error } = await supabase
     .from('api_keys')
-    .select('id, user_id, provider, encrypted_key, nickname, consecutive_failures')
+    .select('id, company_id, provider, encrypted_credentials, nickname, consecutive_failures')
     .eq('is_active', true);
 
   if (error || !keys) {
@@ -37,8 +37,8 @@ export async function syncAllKeys(): Promise<SyncStats> {
     }
 
     try {
-      // Decrypt the key
-      const payload: EncryptedPayload = JSON.parse(key.encrypted_key);
+      // Decrypt the key (encrypted_credentials is stored as JSONB — no JSON.parse needed)
+      const payload = key.encrypted_credentials as unknown as EncryptedPayload;
       const plainKey = decryptCredentials(payload);
 
       // Fetch usage for last 2 days (to catch delayed data)
@@ -54,18 +54,13 @@ export async function syncAllKeys(): Promise<SyncStats> {
         // Upsert usage records
         const records = result.rows.map((row: UsageRow) => ({
           key_id: key.id,
-          user_id: key.user_id,
           date: row.date,
           provider: key.provider,
           model: row.model,
           input_tokens: row.input_tokens,
           output_tokens: row.output_tokens,
-          total_tokens: row.total_tokens,
-          unit_type: row.unit_type,
-          unit_count: row.unit_count,
           cost_usd: row.cost_usd,
           request_count: row.request_count,
-          source: 'sync',
         }));
 
         const { error: upsertError } = await supabase
@@ -84,8 +79,7 @@ export async function syncAllKeys(): Promise<SyncStats> {
         await supabase
           .from('api_keys')
           .update({
-            last_used: new Date().toISOString(),
-            is_valid: true,
+            last_synced_at: new Date().toISOString(),
             consecutive_failures: 0,
             last_failure_reason: null,
             updated_at: new Date().toISOString(),
@@ -97,8 +91,7 @@ export async function syncAllKeys(): Promise<SyncStats> {
         await supabase
           .from('api_keys')
           .update({
-            last_used: new Date().toISOString(),
-            is_valid: false,
+            last_synced_at: new Date().toISOString(),
             consecutive_failures: newFailures,
             ...(shouldDeactivate ? { is_active: false } : {}),
             last_failure_reason: result.error ?? 'Unknown error',
@@ -121,7 +114,6 @@ export async function syncAllKeys(): Promise<SyncStats> {
       await supabase
         .from('api_keys')
         .update({
-          is_valid: false,
           consecutive_failures: newFailures,
           ...(shouldDeactivate ? { is_active: false } : {}),
           last_failure_reason: e instanceof Error ? e.message : 'Sync error',
@@ -150,6 +142,15 @@ export async function checkBudgets(): Promise<{ alerts_created: number }> {
   const today = now.toISOString().slice(0, 10);
 
   for (const budget of budgets) {
+    // usage_records has no company_id — must filter by key_ids belonging to this company
+    const { data: companyKeys } = await supabase
+      .from('api_keys')
+      .select('id')
+      .eq('company_id', budget.company_id);
+
+    const companyKeyIds = companyKeys?.map((k: { id: string }) => k.id) ?? [];
+    if (companyKeyIds.length === 0) continue;
+
     let totalSpend = 0;
 
     if (budget.scope === 'project' && budget.scope_id) {
@@ -172,11 +173,11 @@ export async function checkBudgets(): Promise<{ alerts_created: number }> {
         }
       }
     } else {
-      // global, platform, or key scope — filter by user_id + optional narrowing
+      // global, platform, or key scope — filter by company key_ids with optional narrowing
       let query = supabase
         .from('usage_records')
         .select('cost_usd')
-        .eq('user_id', budget.user_id)
+        .in('key_id', companyKeyIds)
         .gte('date', monthStart)
         .lte('date', today);
 
@@ -185,7 +186,7 @@ export async function checkBudgets(): Promise<{ alerts_created: number }> {
       } else if (budget.scope === 'key' && budget.scope_id) {
         query = query.eq('key_id', budget.scope_id);
       }
-      // 'global' scope = all records for user
+      // 'global' scope = all records for company
 
       const { data: records } = await query;
       if (records) {
@@ -211,10 +212,10 @@ export async function checkBudgets(): Promise<{ alerts_created: number }> {
       const { data: existingAlert } = await supabase
         .from('alerts')
         .select('id')
-        .eq('user_id', budget.user_id)
+        .eq('company_id', budget.company_id)
         .eq('type', 'budget_threshold')
         .eq('title', `Budget ${t.pct}% reached`)
-        .eq('scope', budget.scope)
+        .eq('related_budget_id', budget.id)
         .maybeSingle();
 
       if (existingAlert) continue;
@@ -231,12 +232,12 @@ export async function checkBudgets(): Promise<{ alerts_created: number }> {
           .maybeSingle();
         scopeLabel = proj?.name ? `project "${proj.name}"` : 'project';
       } else if (budget.scope === 'key') {
-        const { data: key } = await supabase
+        const { data: keyRow } = await supabase
           .from('api_keys')
           .select('nickname')
           .eq('id', budget.scope_id)
           .maybeSingle();
-        scopeLabel = key?.nickname ? `key "${key.nickname}"` : 'key';
+        scopeLabel = keyRow?.nickname ? `key "${keyRow.nickname}"` : 'key';
       }
 
       const alertTitle = `Budget ${t.pct}% reached`;
@@ -245,13 +246,12 @@ export async function checkBudgets(): Promise<{ alerts_created: number }> {
         `${Math.round(pct)}% used ($${totalSpend.toFixed(2)} spent).`;
 
       await supabase.from('alerts').insert({
-        user_id: budget.user_id,
+        company_id: budget.company_id,
         type: 'budget_threshold',
         severity: t.severity,
         title: alertTitle,
         message: alertMessage,
-        scope: budget.scope,
-        scope_id: budget.scope_id,
+        related_budget_id: budget.id,
       });
 
       await supabase
@@ -259,19 +259,27 @@ export async function checkBudgets(): Promise<{ alerts_created: number }> {
         .update({ last_alerted_threshold: t.pct })
         .eq('id', budget.id);
 
-      // Send email alert
-      const { data: uData } = await supabase.auth.admin.getUserById(budget.user_id);
-      const userEmail = uData.user?.email;
-      if (userEmail) {
-        await sendEmail({
-          to: userEmail,
-          subject: `Budget Alert: ${t.pct}% of your ${scopeLabel} budget used`,
-          html: getAlertEmailHtml({
-            title: alertTitle,
-            message: alertMessage,
-            severity: t.severity,
-          }),
-        });
+      // Send email alert to the company owner
+      const { data: company } = await supabase
+        .from('companies')
+        .select('owner_id')
+        .eq('id', budget.company_id)
+        .single();
+
+      if (company?.owner_id) {
+        const { data: uData } = await supabase.auth.admin.getUserById(company.owner_id);
+        const userEmail = uData.user?.email;
+        if (userEmail) {
+          await sendEmail({
+            to: userEmail,
+            subject: `Budget Alert: ${t.pct}% of your ${scopeLabel} budget used`,
+            html: getAlertEmailHtml({
+              title: alertTitle,
+              message: alertMessage,
+              severity: t.severity,
+            }),
+          });
+        }
       }
 
       alertsCreated++;

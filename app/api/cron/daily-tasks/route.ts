@@ -40,20 +40,18 @@ export async function GET(request: NextRequest) {
 
     const { data: wasteKeys } = await supabase
       .from('api_keys')
-      .select('id, nickname, user_id, provider')
+      .select('id, nickname, company_id, provider')
       .eq('is_active', true)
-      .or(`last_used.is.null,last_used.lt.${thirtyDaysAgo.toISOString()}`);
+      .or(`last_synced_at.is.null,last_synced_at.lt.${thirtyDaysAgo.toISOString()}`);
 
     if (wasteKeys && wasteKeys.length > 0) {
-      const alertInserts = wasteKeys.map((key: { id: string; nickname: string; user_id: string; provider: string }) => ({
-        user_id: key.user_id,
+      const alertInserts = wasteKeys.map((key: { id: string; nickname: string; company_id: string; provider: string }) => ({
+        company_id: key.company_id,
         type: 'key_inactive' as const,
         severity: 'info' as const,
         title: `Unused key: ${key.nickname}`,
         message: `Your ${key.provider} key "${key.nickname}" hasn't been used in 30+ days. Consider revoking it to reduce security exposure.`,
-        scope: 'key',
-        scope_id: key.id,
-        scope_name: key.nickname,
+        related_key_id: key.id,
       }));
       await supabase.from('alerts').insert(alertInserts);
       results.waste_detection = `${wasteKeys.length} inactive keys flagged`;
@@ -67,39 +65,45 @@ export async function GET(request: NextRequest) {
 
     const { data: oldKeys } = await supabase
       .from('api_keys')
-      .select('id, nickname, user_id, provider, created_at')
+      .select('id, nickname, company_id, provider, created_at')
       .eq('is_active', true)
       .lt('created_at', ninetyDaysAgo.toISOString());
 
     if (oldKeys && oldKeys.length > 0) {
-      const rotationAlerts = oldKeys.map((key: { id: string; nickname: string; user_id: string; provider: string; created_at: string }) => ({
-        user_id: key.user_id,
+      const rotationAlerts = oldKeys.map((key: { id: string; nickname: string; company_id: string; provider: string; created_at: string }) => ({
+        company_id: key.company_id,
         type: 'key_rotation_due' as const,
         severity: 'warning' as const,
         title: `Key rotation due: ${key.nickname}`,
         message: `Your ${key.provider} key "${key.nickname}" is over 90 days old. Rotate it for better security.`,
-        scope: 'key',
-        scope_id: key.id,
-        scope_name: key.nickname,
+        related_key_id: key.id,
       }));
       await supabase.from('alerts').insert(rotationAlerts);
 
-      // Dispatch Warning Emails
-      const uniqueUsers = Array.from(new Set(oldKeys.map((k: { user_id: string }) => k.user_id)));
-      for (const uid of uniqueUsers) {
-        const { data: uData } = await supabase.auth.admin.getUserById(uid as string);
-        const email = uData.user?.email;
-        if (email) {
-          const userKey = oldKeys.find((k: { user_id: string; nickname: string; provider: string }) => k.user_id === uid);
-          await sendEmail({
-            to: email,
-            subject: `Action Required: Key Rotation Due for ${userKey?.nickname}`,
-            html: getAlertEmailHtml({
-              title: 'API Key Rotation Required',
-              message: `Your ${userKey?.provider} API key "${userKey?.nickname}" is over 90 days old. For security reasons, please log into API Lens and rotate it immediately.`,
-              severity: 'warning',
-            })
-          });
+      // Dispatch Warning Emails — look up owner via companies table
+      const uniqueCompanyIds = Array.from(new Set(oldKeys.map((k: { company_id: string }) => k.company_id)));
+      for (const companyId of uniqueCompanyIds) {
+        const { data: company } = await supabase
+          .from('companies')
+          .select('owner_id')
+          .eq('id', companyId)
+          .single();
+        const ownerId = company?.owner_id;
+        if (ownerId) {
+          const { data: uData } = await supabase.auth.admin.getUserById(ownerId as string);
+          const email = uData.user?.email;
+          if (email) {
+            const companyKey = oldKeys.find((k: { company_id: string; nickname: string; provider: string }) => k.company_id === companyId);
+            await sendEmail({
+              to: email,
+              subject: `Action Required: Key Rotation Due for ${companyKey?.nickname}`,
+              html: getAlertEmailHtml({
+                title: 'API Key Rotation Required',
+                message: `Your ${companyKey?.provider} API key "${companyKey?.nickname}" is over 90 days old. For security reasons, please log into API Lens and rotate it immediately.`,
+                severity: 'warning',
+              })
+            });
+          }
         }
       }
 
@@ -162,27 +166,32 @@ export async function GET(request: NextRequest) {
         timeZone: 'UTC',
       });
 
-      // Get all distinct user_ids with usage last month
+      // Get all key_ids with usage last month, then group by company
       const { data: monthUsageRows } = await supabase
         .from('usage_records')
-        .select('user_id')
+        .select('key_id, provider, cost_usd')
         .gte('date', prevMonthStartStr)
         .lte('date', prevMonthEndStr);
 
-      const monthUserIds = [
-        ...new Set((monthUsageRows ?? []).map((r: { user_id: string }) => r.user_id)),
-      ];
+      // Look up company_id for each key that had usage
+      const usedKeyIds = [...new Set((monthUsageRows ?? []).map((r: { key_id: string }) => r.key_id))];
+      const { data: usedKeys } = usedKeyIds.length > 0
+        ? await supabase.from('api_keys').select('id, company_id').in('id', usedKeyIds)
+        : { data: [] };
+
+      const companyIds = [...new Set((usedKeys ?? []).map((k: { company_id: string }) => k.company_id))];
       let reportsSent = 0;
 
-      for (const userId of monthUserIds) {
-        const { data: monthRecords } = await supabase
-          .from('usage_records')
-          .select('provider, cost_usd, key_id')
-          .eq('user_id', userId)
-          .gte('date', prevMonthStartStr)
-          .lte('date', prevMonthEndStr);
+      for (const companyId of companyIds) {
+        const companyKeyIds = (usedKeys ?? [])
+          .filter((k: { company_id: string }) => k.company_id === companyId)
+          .map((k: { id: string }) => k.id);
 
-        if (!monthRecords || monthRecords.length === 0) continue;
+        const monthRecords = (monthUsageRows ?? []).filter(
+          (r: { key_id: string }) => companyKeyIds.includes(r.key_id)
+        ) as { key_id: string; provider: string; cost_usd: number }[];
+
+        if (monthRecords.length === 0) continue;
 
         const monthTotal = monthRecords.reduce((sum, r) => sum + Number(r.cost_usd), 0);
 
@@ -199,7 +208,7 @@ export async function GET(request: NextRequest) {
         const { data: projects } = await supabase
           .from('projects')
           .select('id, name')
-          .eq('user_id', userId)
+          .eq('company_id', companyId)
           .eq('is_active', true);
 
         const projectBreakdown: { name: string; spent: string }[] = [];
@@ -221,7 +230,15 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        const { data: uData } = await supabase.auth.admin.getUserById(userId);
+        // Get owner email via companies table
+        const { data: company } = await supabase
+          .from('companies')
+          .select('owner_id')
+          .eq('id', companyId)
+          .single();
+
+        if (!company?.owner_id) continue;
+        const { data: uData } = await supabase.auth.admin.getUserById(company.owner_id);
         const email = uData.user?.email;
         if (!email) continue;
 

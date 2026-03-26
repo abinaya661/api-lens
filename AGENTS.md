@@ -380,4 +380,6 @@ RESEND_PRO_WAITLIST_ID (opt)      UPSTASH_REDIS_REST_URL (opt)
 UPSTASH_REDIS_REST_TOKEN (opt)
 ```
 
-**Active context (2026-03-26):** Phases 0–6 + email system complete. All apilens.dev refs migrated to apilens.tech. Dodo product IDs switched to per-region DODO_PRODUCT_* vars. Phase 7 = smoke tests. Phase 8 = prod deploy. Latest migration: 006_price_snapshots.
+**Active context (2026-03-26):** Phases 0–6 + email system complete. Base + Pro pricing plans live (Pro is invite-only waitlist). All apilens.dev refs migrated to apilens.tech. Dodo product IDs switched to per-region DODO_PRODUCT_* vars. Email templates (welcome, trial warning, budget alert, rotation reminder, weekly digest) in `lib/email/resend.ts`. Cron jobs: `sync-and-check` (midnight UTC) + `daily-tasks` (7am UTC) in `vercel.json`. Phase 7 = smoke tests. Phase 8 = prod deploy. Latest migration: 006_price_snapshots.
+
+**Sync engine field notes:** `api_keys` uses `encrypted_credentials` (JSONB) and `company_id` (not `user_id`). `usage_records` columns: `key_id, date, provider, model, input_tokens, output_tokens, cost_usd, request_count` — no `user_id`, `total_tokens`, `unit_type`, `unit_count`, or `source` columns. `alerts` uses `company_id` + `related_key_id`/`related_budget_id` (not `user_id`, `scope`, `scope_id`). Budget email lookups go through `companies.owner_id`.

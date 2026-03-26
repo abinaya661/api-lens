@@ -30,20 +30,13 @@ function isPublicRoute(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  // Set geo country cookie for region-specific pricing display.
+  // Detect geo country for region-specific pricing display.
   // Vercel provides x-vercel-ip-country, Cloudflare provides cf-ipcountry.
   const country =
     request.headers.get('x-vercel-ip-country') ??
     request.headers.get('cf-ipcountry') ??
     null;
-  if (country && !request.cookies.get('geo_country')) {
-    supabaseResponse.cookies.set('geo_country', country, {
-      httpOnly: false, // readable by client JS
-      sameSite: 'lax',
-      maxAge: 86400, // 1 day
-      path: '/',
-    });
-  }
+  const needsGeoCookie = !!country && !request.cookies.get('geo_country');
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,10 +54,29 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           );
+          // Re-apply geo_country whenever setAll creates a new response object
+          if (needsGeoCookie) {
+            supabaseResponse.cookies.set('geo_country', country!, {
+              httpOnly: false, // readable by client JS
+              sameSite: 'lax',
+              maxAge: 86400, // 1 day
+              path: '/',
+            });
+          }
         },
       },
     },
   );
+
+  // Set geo cookie on the initial response (covers requests where setAll is never called)
+  if (needsGeoCookie) {
+    supabaseResponse.cookies.set('geo_country', country!, {
+      httpOnly: false,
+      sameSite: 'lax',
+      maxAge: 86400,
+      path: '/',
+    });
+  }
 
   // Refresh auth token
   const {
