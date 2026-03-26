@@ -8,7 +8,7 @@ export function budgetAlertEmail(userName: string, budgetScope: string, percenta
         <tr><td style="padding: 8px; border-bottom: 1px solid #eee;">Spent</td><td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">${spent}</td></tr>
         <tr><td style="padding: 8px; border-bottom: 1px solid #eee;">Budget</td><td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${budget}</td></tr>
       </table>
-      <p><a href="https://apilens.dev/budgets" style="display: inline-block; padding: 10px 24px; background: #4f46e5; color: white; text-decoration: none; border-radius: 6px;">View Budgets</a></p>
+      <p><a href="https://apilens.tech/budgets" style="display: inline-block; padding: 10px 24px; background: #4f46e5; color: white; text-decoration: none; border-radius: 6px;">View Budgets</a></p>
       <p style="color: #666; font-size: 12px;">— API Lens</p>
     </div>
   `;
@@ -21,7 +21,7 @@ export function keyRotationEmail(userName: string, keyNickname: string, provider
       <p>Hi ${userName},</p>
       <p>Your <strong>${provider}</strong> key "<strong>${keyNickname}</strong>" is <strong>${ageDays} days old</strong>.</p>
       <p>We recommend rotating API keys every 90 days for security best practices.</p>
-      <p><a href="https://apilens.dev/keys" style="display: inline-block; padding: 10px 24px; background: #4f46e5; color: white; text-decoration: none; border-radius: 6px;">Manage Keys</a></p>
+      <p><a href="https://apilens.tech/keys" style="display: inline-block; padding: 10px 24px; background: #4f46e5; color: white; text-decoration: none; border-radius: 6px;">Manage Keys</a></p>
       <p style="color: #666; font-size: 12px;">— API Lens</p>
     </div>
   `;
@@ -40,7 +40,7 @@ export function welcomeEmail(userName: string): string {
         <li>View real-time cost breakdowns by provider and model</li>
         <li>Export detailed usage reports</li>
       </ul>
-      <p><a href="https://apilens.dev/dashboard" style="display: inline-block; padding: 10px 24px; background: #4f46e5; color: white; text-decoration: none; border-radius: 6px;">Go to Dashboard</a></p>
+      <p><a href="https://apilens.tech/dashboard" style="display: inline-block; padding: 10px 24px; background: #4f46e5; color: white; text-decoration: none; border-radius: 6px;">Go to Dashboard</a></p>
       <p style="color: #666; font-size: 12px;">— API Lens</p>
     </div>
   `;
@@ -57,7 +57,7 @@ export function weeklyReportEmail(userName: string, totalSpent: string, topProvi
         <tr><td style="padding: 8px; border-bottom: 1px solid #eee;">Top Provider</td><td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${topProvider} (${topProviderSpent})</td></tr>
         <tr><td style="padding: 8px; border-bottom: 1px solid #eee;">Active Keys</td><td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${keyCount}</td></tr>
       </table>
-      <p><a href="https://apilens.dev/reports" style="display: inline-block; padding: 10px 24px; background: #4f46e5; color: white; text-decoration: none; border-radius: 6px;">View Full Report</a></p>
+      <p><a href="https://apilens.tech/reports" style="display: inline-block; padding: 10px 24px; background: #4f46e5; color: white; text-decoration: none; border-radius: 6px;">View Full Report</a></p>
       <p style="color: #666; font-size: 12px;">— API Lens</p>
     </div>
   `;

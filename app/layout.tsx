@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'API Lens — Track Your AI API Spending',
     description: 'Monitor and optimize your AI API costs across 14+ providers.',
-    url: 'https://apilens.dev',
+    url: 'https://apilens.tech',
     siteName: 'API Lens',
     type: 'website',
   },
