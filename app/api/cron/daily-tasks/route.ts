@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendEmail, getAlertEmailHtml, getTrialWarningEmailHtml } from '@/lib/email/resend';
-import { getMonthlyReportEmailHtml } from '@/lib/email/templates';
+import { sendEmail, getAlertEmailHtml, getTrialWarningEmailHtml, getWeeklyDigestEmailHtml } from '@/lib/email/resend';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -112,45 +111,54 @@ export async function GET(request: NextRequest) {
       results.rotation_reminders = 'no keys need rotation';
     }
 
-    // Step 4.5: Trial Expiration Warnings
+    // Step 4.5: Trial Expiration Warnings — send at 48h AND 24h remaining
     const now = new Date();
-    // 24-48 hours from now
-    const inOneDayStart = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    // 48-72 hours from now
-    const inTwoDaysEnd = new Date(now.getTime() + 72 * 60 * 60 * 1000);
 
-    const { data: expiringTrials } = await supabase
-      .from('subscriptions')
-      .select('company_id, trial_ends_at, companies ( owner_id )')
-      .eq('status', 'trial')
-      .gte('trial_ends_at', inOneDayStart.toISOString())
-      .lt('trial_ends_at', inTwoDaysEnd.toISOString());
+    // Window for 48h warning: trial ends between 48h and 72h from now
+    const in48hStart = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    const in48hEnd   = new Date(now.getTime() + 72 * 60 * 60 * 1000);
+    // Window for 24h warning: trial ends between 24h and 48h from now
+    const in24hStart = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const in24hEnd   = new Date(now.getTime() + 48 * 60 * 60 * 1000);
 
-    if (expiringTrials && expiringTrials.length > 0) {
-      let sentCount = 0;
+    const trialWarningWindows = [
+      { start: in48hStart, end: in48hEnd, daysLeft: 2, subject: 'Your API Lens free trial ends in 48 hours ⏱️' },
+      { start: in24hStart, end: in24hEnd, daysLeft: 1, subject: 'Action Required: Trial ends in 24 hours' },
+    ];
+
+    let trialWarningSentCount = 0;
+
+    for (const window of trialWarningWindows) {
+      const { data: expiringTrials } = await supabase
+        .from('subscriptions')
+        .select('company_id, trial_ends_at, companies ( owner_id )')
+        .eq('status', 'trialing')
+        .gte('trial_ends_at', window.start.toISOString())
+        .lt('trial_ends_at', window.end.toISOString());
+
+      if (!expiringTrials || expiringTrials.length === 0) continue;
+
       for (const sub of expiringTrials) {
-        const is24Hours = new Date(sub.trial_ends_at!).getTime() < new Date(now.getTime() + 48 * 60 * 60 * 1000).getTime();
-        const daysLeft = is24Hours ? 1 : 2;
         const ownerId = Array.isArray(sub.companies)
           ? (sub.companies as unknown as { owner_id: string }[])[0]?.owner_id
           : (sub.companies as unknown as { owner_id: string })?.owner_id;
-        
-        if (ownerId) {
-          const { data: uData } = await supabase.auth.admin.getUserById(ownerId);
-          if (uData.user?.email) {
-            await sendEmail({
-              to: uData.user.email,
-              subject: daysLeft === 1 ? 'Action Required: Trial ends in 24 hours' : 'Your Free Trial Ends Soon ⏱️',
-              html: getTrialWarningEmailHtml({ daysLeft }),
-            });
-            sentCount++;
-          }
-        }
+
+        if (!ownerId) continue;
+        const { data: uData } = await supabase.auth.admin.getUserById(ownerId);
+        if (!uData.user?.email) continue;
+
+        await sendEmail({
+          to: uData.user.email,
+          subject: window.subject,
+          html: getTrialWarningEmailHtml({ daysLeft: window.daysLeft }),
+        });
+        trialWarningSentCount++;
       }
-      results.trial_warnings = `${sentCount} trial warnings sent`;
-    } else {
-      results.trial_warnings = 'no expiring trials';
     }
+
+    results.trial_warnings = trialWarningSentCount > 0
+      ? `${trialWarningSentCount} trial warning emails sent`
+      : 'no expiring trials';
 
     // Step 5: Monthly report (only on 1st of month)
     const today = new Date();
@@ -245,11 +253,9 @@ export async function GET(request: NextRequest) {
         await sendEmail({
           to: email,
           subject: `Your ${monthLabel} API Spending Report`,
-          html: getMonthlyReportEmailHtml({
-            monthLabel,
-            totalSpent: `$${monthTotal.toFixed(2)}`,
-            providerBreakdown,
-            projectBreakdown,
+          html: getWeeklyDigestEmailHtml({
+            totalRequests: monthRecords.length.toString(),
+            costStr: `$${monthTotal.toFixed(2)}`,
           }),
         });
         reportsSent++;
