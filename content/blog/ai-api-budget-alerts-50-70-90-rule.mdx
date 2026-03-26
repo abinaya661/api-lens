@@ -1,0 +1,137 @@
+---
+title: "The 50/70/90 Rule: Why One Budget Alert Is Useless"
+slug: ai-api-budget-alerts-50-70-90-rule
+description: "One budget alert at 100% means the money's already gone. The 50/70/90 rule gives you time to act — but only if you have per-project attribution to act on."
+date: "2026-03-26"
+author: "API Lens Team"
+tags: ["AI API budget", "budget alerts", "OpenAI spending", "AI cost management", "API budget tips"]
+readTime: "7 min read"
+---
+
+You set a $500/month budget alert on your OpenAI account. You went through the settings, found the configuration, typed in 500, saved it, and moved on. Budget managed.
+
+A few weeks later, the alert fires. You're at $500. The month still has nine days left.
+
+What do you do?
+
+You can't un-spend the money. You can pause things, but you don't know what to pause — you just know the total is gone. If you let it run, you'll overshoot. If you kill everything, you'll break production. You make a hasty decision with incomplete information, and you probably pay the overage anyway.
+
+This is what a single 100% alert actually gives you: a notification that arrives exactly when it's too late to act.
+
+---
+
+## The False Security of the 100% Alert
+
+There's a seductive simplicity to the 100% alert. It says: "I'll know when I hit my limit." Technically true. But what it doesn't say is: you'll know *after* the fact, with no runway, no breakdown of where the spend came from, and no ability to make a deliberate decision.
+
+A budget alert that fires when the budget is exhausted is an incident notification, not a management tool. You haven't preserved any ability to act — you've just received a late confirmation that something already happened.
+
+The **100% alert is necessary but not sufficient**. It's your fire alarm. You still need smoke detectors.
+
+---
+
+## The 50/70/90/100 Pattern
+
+The right alerting structure has four tiers. Each fires at a different threshold, triggers a different response, and requires a different kind of information.
+
+### 50% — Information
+
+You're halfway through your budget. The question is simply: is this normal?
+
+Check the date. If you're at 50% of budget on day 15 of a 30-day billing cycle, you're exactly on pace. No action needed. If you're at 50% on day 8, you're trending to 187% of budget by month end. Worth a note.
+
+At this tier, no intervention is required. But knowing where you are relative to the midpoint is the difference between a team that catches a drift early and one that gets surprised later. The 50% alert is **awareness, not action**. It exists so that 70% isn't a shock.
+
+### 70% — Investigate
+
+You have roughly 30% of your budget left. The key question shifts from "where are we?" to "why are we here?"
+
+Pull the breakdown. Which project is driving spend? Which API key? Which model? If you're at 70% by day 17, you're on track for ~123% — a small overage, manageable. If you're at 70% by day 10, you're on track for 210% — that's a budget failure, not an adjustment.
+
+The 70% alert only has value if you can act on it. And you can only act on it if you have **attribution**. "Your org has spent $350 of $500" is a data point. "Project: Document Pipeline has spent $280 of its $350 allocation, driven by GPT-4o on the extraction step" is actionable information.
+
+### 90% — Act
+
+At 90%, deliberate action is required. This is not a review-later notification. You have 10% of your budget left. You make a decision now.
+
+Pause non-critical async jobs. Throttle batch pipelines. Reduce concurrency on background tasks. Or make an explicit, conscious decision to exceed the budget. What you don't do is let it drift to 100% without a choice.
+
+The 90% tier is where the 50% and 70% alerts pay off. If you investigated at 70%, you already know which jobs are safe to pause. The 90% tier is execution, not discovery.
+
+### 100% — Incident
+
+At 100%, this is an incident. Someone needs to own this right now — not in a calendar reminder, not in a "we should look at this" Slack message.
+
+The budget is gone. Any requests after this point are overages. Route the 100% alert to whoever can authorize an emergency budget increase or confirm that service degradation is acceptable. It should not sit in a general notification channel where it gets scrolled past.
+
+---
+
+## Why Most Teams Skip This
+
+The 50/70/90 pattern sounds reasonable. So why don't most teams implement it?
+
+Because it requires something most teams don't have: **per-project, per-key attribution underneath the alerts**.
+
+When the 70% alert fires, you need to answer:
+- Which project is driving this spend?
+- Which API key is associated with it?
+- Which model is being called, and how often?
+- Is this spend rate higher than last week at this point in the cycle?
+
+If your only view is an org-level total in the OpenAI dashboard, you can't answer any of those questions without manually exporting data and cross-referencing it with your own records. By the time you've done that, you're at 80%.
+
+The alert tier pattern is only effective when it's backed by attribution. A 70% alert on an org total, with no project breakdown, tells you that *something* is happening *somewhere*. It's a smoke detector going off in a 20-room building without telling you which room.
+
+---
+
+## Building the Attribution Layer
+
+Before configuring alert thresholds, the foundational question is: how are you grouping spend?
+
+| Level | What it tracks | Example |
+|---|---|---|
+| Org total | All spend across all providers | Total AI spend this month: $1,840 |
+| Per-provider | Spend within a single provider | OpenAI: $1,100 / Anthropic: $740 |
+| Per-project | Spend for a specific feature, across all providers it uses | Document Pipeline: $780 (GPT-4o + Claude combined) |
+
+The org total tells you whether you have a problem. The per-provider tells you where it lives in billing. The per-project tells you which team or feature is responsible — and gives you a lever to pull.
+
+**An example allocation structure:**
+
+| Budget | Monthly Limit | 70% Threshold | Owner |
+|---|---|---|---|
+| Org total | $2,000 | $1,400 | Engineering lead |
+| Document Pipeline | $800 | $560 | Backend team |
+| Support Chat | $600 | $420 | Product team |
+| Internal tools | $300 | $210 | DevOps |
+| Experimental / R&D | $300 | $210 | Floating |
+
+With this structure, when Document Pipeline hits $560, you know exactly what to investigate and who to involve. No CSV exports. No pivot tables.
+
+---
+
+## The Thing Nobody Mentions: Prompt Caching
+
+While we're on cost visibility — there's a lever that flies under the radar for most developers: **prompt caching**.
+
+Both Anthropic and OpenAI cache prompt prefixes above roughly 1,024 tokens at approximately 10% of normal token pricing. If your system prompt is long and consistent — say, 2,000 tokens of static instructions at the start of every request — repeated calls that hit the cache pay 10 cents per million input tokens instead of the full rate.
+
+For a system prompt with an 80% cache hit rate, this can reduce your effective input costs by **40–50%**. On a heavily input-driven workload like document analysis, that's a significant number.
+
+The reason most developers don't capture this saving: they don't know it's happening. Cached tokens appear as a separate line in billing data — or don't appear at all. If you're not looking at token-level attribution, you can't tell whether your cache hit rate is 80% or 0%. You just see a total and assume it's right.
+
+If you have a long, stable system prompt and you're not seeing cache hits in your billing data, something may be invalidating the cache — variable elements too early in the prompt, whitespace changes, or minor formatting inconsistencies. It's worth auditing.
+
+---
+
+## One Alert Is a False Floor
+
+Budget alerts are configured once, never revisited, and treated as safety nets. They're not safety nets — they're notifications. The safety net is what you do with the notification.
+
+A single 100% alert is a notification that the floor gave out. The 50/70/90 pattern gives you three earlier moments where the floor is still solid and you have room to adjust your footing.
+
+But it only works if you can answer the question underneath the alert: *where is this spend coming from?*
+
+That's the attribution problem. And it's the real work.
+
+[API Lens](https://apilens.tech) is built around exactly this: per-project, per-key spend tracking with progressive alert thresholds, across every provider your team uses.

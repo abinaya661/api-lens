@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail, getAlertEmailHtml, getTrialWarningEmailHtml } from '@/lib/email/resend';
+import { getMonthlyReportEmailHtml } from '@/lib/email/templates';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -150,7 +151,94 @@ export async function GET(request: NextRequest) {
     // Step 5: Monthly report (only on 1st of month)
     const today = new Date();
     if (today.getUTCDate() === 1) {
-      results.monthly_report = 'skipped (Phase 3)';
+      // Previous month's date range
+      const prevMonthEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 0));
+      const prevMonthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1));
+      const prevMonthStartStr = prevMonthStart.toISOString().slice(0, 10);
+      const prevMonthEndStr = prevMonthEnd.toISOString().slice(0, 10);
+      const monthLabel = prevMonthStart.toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      });
+
+      // Get all distinct user_ids with usage last month
+      const { data: monthUsageRows } = await supabase
+        .from('usage_records')
+        .select('user_id')
+        .gte('date', prevMonthStartStr)
+        .lte('date', prevMonthEndStr);
+
+      const monthUserIds = [
+        ...new Set((monthUsageRows ?? []).map((r: { user_id: string }) => r.user_id)),
+      ];
+      let reportsSent = 0;
+
+      for (const userId of monthUserIds) {
+        const { data: monthRecords } = await supabase
+          .from('usage_records')
+          .select('provider, cost_usd, key_id')
+          .eq('user_id', userId)
+          .gte('date', prevMonthStartStr)
+          .lte('date', prevMonthEndStr);
+
+        if (!monthRecords || monthRecords.length === 0) continue;
+
+        const monthTotal = monthRecords.reduce((sum, r) => sum + Number(r.cost_usd), 0);
+
+        // Per-provider breakdown
+        const providerTotals: Record<string, number> = {};
+        for (const r of monthRecords) {
+          providerTotals[r.provider] = (providerTotals[r.provider] ?? 0) + Number(r.cost_usd);
+        }
+        const providerBreakdown = Object.entries(providerTotals)
+          .sort((a, b) => b[1] - a[1])
+          .map(([provider, spent]) => ({ provider, spent: `$${spent.toFixed(2)}` }));
+
+        // Per-project breakdown
+        const { data: projects } = await supabase
+          .from('projects')
+          .select('id, name')
+          .eq('user_id', userId)
+          .eq('is_active', true);
+
+        const projectBreakdown: { name: string; spent: string }[] = [];
+        for (const project of projects ?? []) {
+          const { data: pks } = await supabase
+            .from('project_keys')
+            .select('key_id')
+            .eq('project_id', project.id);
+
+          const keyIds = (pks ?? []).map((pk: { key_id: string }) => pk.key_id);
+          if (keyIds.length === 0) continue;
+
+          const projectSpend = monthRecords
+            .filter(r => keyIds.includes(r.key_id))
+            .reduce((sum, r) => sum + Number(r.cost_usd), 0);
+
+          if (projectSpend > 0) {
+            projectBreakdown.push({ name: project.name, spent: `$${projectSpend.toFixed(2)}` });
+          }
+        }
+
+        const { data: uData } = await supabase.auth.admin.getUserById(userId);
+        const email = uData.user?.email;
+        if (!email) continue;
+
+        await sendEmail({
+          to: email,
+          subject: `Your ${monthLabel} API Spending Report`,
+          html: getMonthlyReportEmailHtml({
+            monthLabel,
+            totalSpent: `$${monthTotal.toFixed(2)}`,
+            providerBreakdown,
+            projectBreakdown,
+          }),
+        });
+        reportsSent++;
+      }
+
+      results.monthly_report = `${reportsSent} monthly reports sent`;
     } else {
       results.monthly_report = 'not 1st of month';
     }

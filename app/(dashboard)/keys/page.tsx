@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import Link from 'next/link';
 import { PageHeader, EmptyState, ErrorState, SkeletonTable } from '@/components/shared';
 import { useKeys, useAddKey, useUpdateKey, useDeleteKey, useRefreshKeyStatus } from '@/hooks/use-keys';
 import { useProjects, useCreateProject } from '@/hooks/use-projects';
@@ -20,12 +19,11 @@ import {
   Key,
   Lock,
   Loader2,
-  RefreshCw,
   ShieldCheck,
   ChevronDown,
 } from 'lucide-react';
 import { PROVIDER_NAMES, PROVIDER_COLORS, ADD_KEY_PROVIDERS } from '@/lib/utils/provider-config';
-import { getHealthConfig, getTrackabilityConfig, getVerificationConfig } from '@/lib/utils/key-health';
+import { getHealthConfig } from '@/lib/utils/key-health';
 
 /** Mask an API key showing only the first 2 and last 2 characters */
 function maskApiKey(key: string): string {
@@ -46,14 +44,13 @@ export default function KeysPage() {
   const addKeyMutation = useAddKey();
   const updateKeyMutation = useUpdateKey();
   const deleteKeyMutation = useDeleteKey();
-  const refreshKeyMutation = useRefreshKeyStatus();
 
   const [showModal, setShowModal] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'revoked'>('all');
   const [copied, setCopied] = useState<string | null>(null);
 
   // Add key form state
-  const [formProvider, setFormProvider] = useState<Provider | ''>('');
+  const [formProvider, setFormProvider] = useState('');
   const [formLabel, setFormLabel] = useState('');
   const [formKey, setFormKey] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -108,7 +105,7 @@ export default function KeysPage() {
 
     addKeyMutation.mutate(
       {
-        provider: formProvider,
+        provider: formProvider as Provider,
         nickname: formLabel.trim(),
         api_key: formKey,
         project_id: projectId,
@@ -150,10 +147,6 @@ export default function KeysPage() {
     deleteKeyMutation.mutate(id);
   }
 
-  function handleRefresh(id: string) {
-    refreshKeyMutation.mutate(id);
-  }
-
   function handleCopy(id: string, hint: string) {
     navigator.clipboard.writeText(hint);
     setCopied(id);
@@ -191,7 +184,7 @@ export default function KeysPage() {
               <div className="relative">
                 <select
                   value={formProvider}
-                  onChange={(e) => setFormProvider(e.target.value as Provider)}
+                  onChange={(e) => setFormProvider(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all appearance-none"
                 >
                   <option value="" disabled>Select a provider</option>
@@ -403,10 +396,6 @@ export default function KeysPage() {
     return true;
   });
 
-  const verifiedCount = allKeys.filter((k) => k.is_valid && k.has_usage_api).length;
-  const inactiveCount = allKeys.filter((k) => !k.is_valid || (!k.is_active && !!k.last_failure_reason)).length;
-  const unsupportedCount = allKeys.filter((k) => !k.has_usage_api).length;
-
   return (
     <div className="animate-fade-in">
       <PageHeader
@@ -422,24 +411,6 @@ export default function KeysPage() {
           </button>
         }
       />
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        <div className="glass-card p-4">
-          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Verified</p>
-          <p className="text-2xl font-semibold text-white mt-2">{verifiedCount}</p>
-          <p className="text-xs text-zinc-500 mt-1">Keys ready for tracking</p>
-        </div>
-        <div className="glass-card p-4">
-          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Inactive</p>
-          <p className="text-2xl font-semibold text-white mt-2">{inactiveCount}</p>
-          <p className="text-xs text-zinc-500 mt-1">Failed validation or disabled by refresh</p>
-        </div>
-        <div className="glass-card p-4">
-          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Unsupported</p>
-          <p className="text-2xl font-semibold text-white mt-2">{unsupportedCount}</p>
-          <p className="text-xs text-zinc-500 mt-1">Providers or keys not trackable today</p>
-        </div>
-      </div>
 
       {/* Filter tabs */}
       <div className="flex gap-1 mb-6 p-1 bg-zinc-900/50 border border-zinc-800 rounded-lg w-fit">
@@ -466,33 +437,22 @@ export default function KeysPage() {
               <tr className="border-b border-zinc-800">
                 <th className="text-left py-3 px-4 text-xs font-medium text-zinc-500 uppercase tracking-wider">Key</th>
                 <th className="text-left py-3 px-4 text-xs font-medium text-zinc-500 uppercase tracking-wider">Provider</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden xl:table-cell">Verification</th>
                 <th className="text-left py-3 px-4 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden lg:table-cell">Health</th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden sm:table-cell">Last Checked</th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-zinc-500 uppercase tracking-wider w-32"></th>
+                <th className="text-right py-3 px-4 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden sm:table-cell">Last Synced</th>
+                <th className="text-right py-3 px-4 text-xs font-medium text-zinc-500 uppercase tracking-wider w-20"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/50">
               {filteredKeys.map((key) => {
                 const health = getHealthConfig(key);
                 const HealthIcon = health.icon;
-                const verification = getVerificationConfig(key);
-                const VerificationIcon = verification.icon;
-                const trackability = getTrackabilityConfig(key);
-                const TrackabilityIcon = trackability.icon;
-                const isRefreshing = refreshKeyMutation.isPending && refreshKeyMutation.variables === key.id;
 
                 return (
                   <tr key={key.id} className="hover:bg-zinc-800/30 transition-colors group">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div>
-                          <Link
-                            href={`/keys/${key.id}`}
-                            className="font-medium text-zinc-200 hover:text-white transition-colors"
-                          >
-                            {key.nickname}
-                          </Link>
+                          <p className="font-medium text-zinc-200">{key.nickname}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <code className="text-xs text-zinc-500 font-mono">...{key.key_hint}</code>
                             <button
@@ -506,28 +466,13 @@ export default function KeysPage() {
                               )}
                             </button>
                           </div>
-                          {key.last_failure_reason && (
-                            <p className="text-xs text-red-400 mt-1 max-w-xs truncate">{key.last_failure_reason}</p>
-                          )}
                         </div>
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="flex flex-col items-start gap-2">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${PROVIDER_COLORS[key.provider] || 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'}`}>
-                          {PROVIDER_NAMES[key.provider] || key.provider}
-                        </span>
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border ${trackability.bg} ${trackability.color}`}>
-                          <TrackabilityIcon className="w-3.5 h-3.5" />
-                          {trackability.label}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 hidden xl:table-cell">
-                      <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${verification.bg} ${verification.color}`}>
-                        <VerificationIcon className="w-3.5 h-3.5" />
-                        {verification.label}
-                      </div>
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${PROVIDER_COLORS[key.provider] || 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'}`}>
+                        {PROVIDER_NAMES[key.provider] || key.provider}
+                      </span>
                     </td>
                     <td className="py-3 px-4 hidden lg:table-cell">
                       <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${health.bg} ${health.color}`}>
@@ -537,19 +482,11 @@ export default function KeysPage() {
                     </td>
                     <td className="py-3 px-4 text-right hidden sm:table-cell">
                       <span className="text-xs text-zinc-500">
-                        {key.last_validated ? timeAgo(key.last_validated) : 'Never'}
+                        {key.last_used ? timeAgo(key.last_used) : 'Never'}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          title="Refresh status"
-                          onClick={() => handleRefresh(key.id)}
-                          disabled={isRefreshing}
-                          className="p-1.5 rounded-md text-zinc-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors disabled:opacity-50"
-                        >
-                          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                        </button>
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {key.is_active && (
                           <button
                             title="Revoke key"

@@ -24,27 +24,35 @@ app/
   api/             admin/discounts, admin/passes, cron/sync-and-check, cron/daily-tasks,
                    subscription/create, webhooks/dodo, platforms, platforms/detect,
                    enterprise/notify, health
-  page.tsx         Landing page
+  page.tsx         Landing page (nav has Blog link)
+  blog/            page.tsx (index, glassmorphism cards), [slug]/page.tsx (article + prose styles)
+  privacy/         page.tsx
+  terms/           page.tsx
+  security/        page.tsx
 components/
   ui/              shadcn primitives (badge, button, card, dialog, input, etc.)
   dashboard/       metric-cards, cost-chart, provider-breakdown, date-picker
   layout/          header, header-wrapper, sidebar, mobile-nav
-  shared/          page-header, empty-state, error-state, stat-card, skeleton-loader
+  shared/          page-header, empty-state, error-state, stat-card, skeleton-loader, json-ld.tsx
   landing/         animated-counter, dashboard-preview, how-it-works, pricing-section,
                    provider-marquee, regional-price-text, reveal-on-scroll, security-callout
 lib/
   actions/         auth, keys, projects, budgets, alerts, dashboard, settings, subscription, promos
+  blog.ts          getAllPosts(), getPostBySlug() — gray-matter + remark MDX parser
   dodo/client.ts   Lazy-init Dodo SDK (Proxy pattern)
   encryption/      encryptCredentials, decryptCredentials, extractKeyHint
   platforms/       sync-engine.ts, registry.ts, types.ts, adapters/{provider}.ts
   pricing/         getCurrentPricing, getModelPricing, calculateCost
   ratelimit/       apiRateLimit, authRateLimit, syncRateLimit, checkRateLimit
+  structured-data.ts  JSON-LD schema builders (SoftwareApp, WebSite, Org, BlogPosting, BreadcrumbList, FAQ, HowTo, ItemList)
   supabase/        server.ts (SSR), client.ts (browser), admin.ts (service role)
-  utils/           audit.ts (logAudit)
+  utils/           audit.ts (logAudit), key-health.ts (getHealthConfig, getVerificationConfig, getTrackabilityConfig)
   validations/     key.ts, project.ts, budget.ts, settings.ts
   env.ts           Zod-validated env schema
   regional-pricing.ts  REGIONAL_PRICES, getRegionalPrice, formatPrice
   utils.ts         cn, formatCurrency, formatNumber, maskKey, timeAgo, getInitials
+content/
+  blog/            5 MDX posts (gray-matter frontmatter: title, slug, description, date, tags, readTime)
 hooks/             use-keys, use-projects, use-budgets, use-alerts, use-dashboard,
                    use-subscription, use-profile, use-regional-price
 types/             database.ts, api.ts, providers.ts
@@ -88,6 +96,8 @@ supabase/
 | **Header (alerts badge, user menu)** | `components/layout/header.tsx` + `header-wrapper.tsx` |
 | **Add a new admin API endpoint** | `app/api/admin/{name}/route.ts` — auth via `Authorization: Bearer ${CRON_SECRET}` |
 | **Pricing data (per-model costs)** | `supabase/migrations/006_price_snapshots.sql` (seed data) → `lib/pricing/index.ts` |
+| **Transactional emails** | `lib/email/resend.ts` (templates + sendEmail) → `app/auth/callback/route.ts` (welcome) → `app/api/webhooks/dodo/route.ts` (payment emails) → `app/api/cron/daily-tasks/route.ts` (alerts) |
+| **Pro plan waitlist** | `app/api/pro/waitlist/route.ts` → `app/(dashboard)/subscription/page.tsx` (waitlist form) |
 | **Env var additions** | `lib/env.ts` (Zod schema) → `.env.example` |
 | **Rate limiting** | `lib/ratelimit/index.ts` → `checkRateLimit()` call in the action/route |
 
@@ -307,7 +317,8 @@ useRegionalPrice()     → RegionalPrice      reads geo_country cookie, memoized
 | `/api/cron/daily-tasks` | GET | CRON_SECRET Bearer | Detect inactive keys + rotation reminders — runs 07:00 UTC |
 | `/api/platforms` | GET | Supabase user | List active platforms |
 | `/api/platforms/detect` | POST | validateOrigin (CSRF) | Regex-detect provider from key pattern |
-| `/api/enterprise/notify` | POST | None | Waitlist signup → enterprise_waitlist upsert |
+| `/api/enterprise/notify` | POST | None | Enterprise waitlist signup → enterprise_waitlist upsert |
+| `/api/pro/waitlist` | POST | None | Pro plan waitlist signup → pro_waitlist DB + Resend audience |
 | `/api/health` | GET | None | Checks env vars, Supabase connection, encryption key format |
 
 ---
@@ -359,9 +370,14 @@ NEXT_PUBLIC_SUPABASE_URL          NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY         ENCRYPTION_KEY (64 hex chars)
 CRON_SECRET (≥32 chars)           NEXT_PUBLIC_APP_URL (optional)
 DODO_API_KEY                      DODO_WEBHOOK_SECRET
-DODO_PLAN_MONTHLY_ID              DODO_PLAN_ANNUAL_ID
-RESEND_API_KEY                    RESEND_FROM_EMAIL
-UPSTASH_REDIS_REST_URL (opt)      UPSTASH_REDIS_REST_TOKEN (opt)
+DODO_PRODUCT_MONTHLY_IN           DODO_PRODUCT_ANNUAL_IN
+DODO_PRODUCT_MONTHLY_US           DODO_PRODUCT_ANNUAL_US
+DODO_PRODUCT_MONTHLY_CA           DODO_PRODUCT_ANNUAL_CA
+DODO_PRODUCT_MONTHLY_EU           DODO_PRODUCT_ANNUAL_EU
+DODO_PRODUCT_MONTHLY_ROW          DODO_PRODUCT_ANNUAL_ROW
+RESEND_API_KEY                    RESEND_FROM_EMAIL (e.g. API Lens <noreply@apilens.tech>)
+RESEND_PRO_WAITLIST_ID (opt)      UPSTASH_REDIS_REST_URL (opt)
+UPSTASH_REDIS_REST_TOKEN (opt)
 ```
 
-**Active context (2026-03-25):** Phases 0–6 complete. Phase 7 = manual smoke tests (Dodo test mode). Phase 8 = prod deploy. Latest migration: 006_price_snapshots.
+**Active context (2026-03-26):** Phases 0–6 + email system complete. All apilens.dev refs migrated to apilens.tech. Dodo product IDs switched to per-region DODO_PRODUCT_* vars. Phase 7 = smoke tests. Phase 8 = prod deploy. Latest migration: 006_price_snapshots.
