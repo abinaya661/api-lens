@@ -145,6 +145,11 @@ function LoginForm() {
           Start free trial
         </Link>
       </p>
+      <p className="text-center text-sm text-zinc-500 mt-3">
+        <Link href="/" className="text-zinc-400 hover:text-zinc-300 transition-colors">
+          &larr; Back to home
+        </Link>
+      </p>
     </div>
   );
 }
