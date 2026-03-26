@@ -24,27 +24,35 @@ app/
   api/             admin/discounts, admin/passes, cron/sync-and-check, cron/daily-tasks,
                    subscription/create, webhooks/dodo, platforms, platforms/detect,
                    enterprise/notify, health
-  page.tsx         Landing page
+  page.tsx         Landing page (nav has Blog link)
+  blog/            page.tsx (index, glassmorphism cards), [slug]/page.tsx (article + prose styles)
+  privacy/         page.tsx
+  terms/           page.tsx
+  security/        page.tsx
 components/
   ui/              shadcn primitives (badge, button, card, dialog, input, etc.)
   dashboard/       metric-cards, cost-chart, provider-breakdown, date-picker
   layout/          header, header-wrapper, sidebar, mobile-nav
-  shared/          page-header, empty-state, error-state, stat-card, skeleton-loader
+  shared/          page-header, empty-state, error-state, stat-card, skeleton-loader, json-ld.tsx
   landing/         animated-counter, dashboard-preview, how-it-works, pricing-section,
                    provider-marquee, regional-price-text, reveal-on-scroll, security-callout
 lib/
   actions/         auth, keys, projects, budgets, alerts, dashboard, settings, subscription, promos
+  blog.ts          getAllPosts(), getPostBySlug() — gray-matter + remark MDX parser
   dodo/client.ts   Lazy-init Dodo SDK (Proxy pattern)
   encryption/      encryptCredentials, decryptCredentials, extractKeyHint
   platforms/       sync-engine.ts, registry.ts, types.ts, adapters/{provider}.ts
   pricing/         getCurrentPricing, getModelPricing, calculateCost
   ratelimit/       apiRateLimit, authRateLimit, syncRateLimit, checkRateLimit
+  structured-data.ts  JSON-LD schema builders (SoftwareApp, WebSite, Org, BlogPosting, BreadcrumbList, FAQ, HowTo, ItemList)
   supabase/        server.ts (SSR), client.ts (browser), admin.ts (service role)
-  utils/           audit.ts (logAudit)
+  utils/           audit.ts (logAudit), key-health.ts (getHealthConfig, getVerificationConfig, getTrackabilityConfig)
   validations/     key.ts, project.ts, budget.ts, settings.ts
   env.ts           Zod-validated env schema
   regional-pricing.ts  REGIONAL_PRICES, getRegionalPrice, formatPrice
   utils.ts         cn, formatCurrency, formatNumber, maskKey, timeAgo, getInitials
+content/
+  blog/            5 MDX posts (gray-matter frontmatter: title, slug, description, date, tags, readTime)
 hooks/             use-keys, use-projects, use-budgets, use-alerts, use-dashboard,
                    use-subscription, use-profile, use-regional-price
 types/             database.ts, api.ts, providers.ts

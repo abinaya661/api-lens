@@ -222,6 +222,20 @@ api-lens/
 - [x] Enterprise "Coming Soon" tier with email notification
 - [x] Enterprise pricing display (regional)
 
+### Phase 7 — Blog / SEO / GEO (COMPLETE)
+- [x] MDX blog pipeline: `lib/blog.ts` (gray-matter + remark), `content/blog/*.mdx`
+- [x] Blog index page (`/blog`) — glassmorphism cards, dynamic from MDX files
+- [x] Blog post page (`/blog/[slug]`) — full article render, custom prose dark styles
+- [x] JSON-LD structured data: BlogPosting + BreadcrumbList per post, ItemList on index
+- [x] Dynamic sitemap auto-generates blog routes from MDX files
+- [x] Blog link in main landing page nav
+- [x] 5 SEO/GEO-optimized posts published (insider-knowledge angle, real incident anchors):
+  - `ai-billing-alerts-wont-stop-charges` — $82K Gemini theft, alerts ≠ circuit breakers
+  - `ai-agent-infinite-loop-billing-disaster` — $47K agent loop, silent failures
+  - `ai-model-cost-comparison-2026` — real cost math, 8 models, switching cost
+  - `ai-api-budget-alerts-50-70-90-rule` — 4-tier alert pattern, attribution layer
+  - `unified-ai-api-dashboard-multi-provider` — fragmentation tax, unified view
+
 ### Currently Uncommitted Work (In Progress)
 - Key health UI improvements (status badges, verification, trackability indicators)
 - Enhanced `refreshKeyStatus` with detailed validation + sync verification
