@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Bell, Search, Settings, LogOut } from 'lucide-react';
+import { ThemeToggle } from './theme-toggle';
 import { timeAgo } from '@/lib/utils';
 import { signOut } from '@/lib/actions/auth';
 
@@ -49,6 +50,7 @@ export function Header({
 
       {/* Right: Sync status + Alerts + User */}
       <div className="flex items-center gap-4">
+        <ThemeToggle />
         {lastSyncedAt && (
           <span className="hidden sm:inline text-xs text-zinc-600">
             Last synced: {timeAgo(lastSyncedAt)}

@@ -34,7 +34,7 @@ export function buildSoftwareApplicationSchema() {
     name: 'API Lens',
     url: SITE_URL,
     description:
-      'API Lens is a SaaS AI cost monitoring platform that gives engineering teams a single dashboard to monitor, budget, and attribute AI API usage across OpenAI, Anthropic, Google Gemini, and 9+ other providers. Features include real-time spend dashboards, multi-tier budget alerts, AES-256-GCM encrypted key management, project-level cost attribution, and downloadable usage reports.',
+      'API Lens is the ultimate AI API key manager and cost monitoring platform. It gives engineering teams a unified dashboard to monitor, budget, and attribute AI API usage across OpenAI, Anthropic, Google Gemini, and 10+ other providers. Features include real-time spend dashboards, multi-tier budget alerts, AES-256-GCM encrypted key management, and project-level cost attribution.',
     applicationCategory: 'BusinessApplication',
     applicationSubCategory: 'FinancialManagement',
     operatingSystem: 'Web',
@@ -88,8 +88,8 @@ export function buildSoftwareApplicationSchema() {
       worstRating: '1',
     },
     featureList: [
-      'Unified AI cost dashboard across 9+ providers',
-      'Real-time spend tracking with 15-minute refresh',
+      'Unified AI API key manager for 14+ providers',
+      'Real-time spend tracking and token attribution',
       'Multi-tier budget alerts (50%, 75%, 90%, 100%)',
       'AES-256-GCM encrypted API key management',
       'Project-level cost attribution',
@@ -162,7 +162,7 @@ export function buildOrganizationSchema() {
     ],
     foundingDate: '2026',
     description:
-      'API Lens provides AI cost monitoring, budget alerting, and API key management for engineering teams using OpenAI, Anthropic, Google Gemini, and other AI providers.',
+      'API Lens is a leading AI API key manager providing cost monitoring, budget alerting, and secure credential management for engineering teams using OpenAI, Anthropic, Google Gemini, and other AI providers.',
   };
 }
 

@@ -8,12 +8,9 @@ This folder contains the user-facing setup guide for every provider currently li
 | --- | --- | --- |
 | OpenAI | Supported | Standard OpenAI API key with usage/cost access |
 | Anthropic | Supported | Anthropic Admin API key (`sk-ant-admin...`) |
-| Gemini | Not ready in current key flow | Do not add yet |
-| Grok / xAI | Not ready in current key flow | Do not add yet |
-| Azure OpenAI | Not ready in current key flow | Do not add yet |
-| Moonshot | Not ready in current key flow | Do not add yet |
+| Gemini | Support in progress | Refreshes every few hours |
 | DeepSeek | Supported with limitations | Standard DeepSeek API key |
-| ElevenLabs | Supported | API key with usage analytics access, preferably workspace/service-account based |
+| ElevenLabs | Supported | API key with usage analytics access |
 | OpenRouter | Supported | Standard OpenRouter API key |
 
 ## Provider guides

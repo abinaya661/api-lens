@@ -29,14 +29,24 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     console.error('[pro/waitlist] DB error:', error);
-    return Response.json({ error: 'Failed to save. Please try again.' }, { status: 500 });
+    // Provide a more specific error if it's a known issue like missing table
+    if (error.code === '42P01') {
+      return Response.json({ error: 'Database table missing. Please contact support.' }, { status: 500 });
+    }
+    return Response.json({ error: 'Failed to save your email. Please try again.' }, { status: 500 });
   }
 
+  // Add to Resend audience if configured
   if (resend && process.env.RESEND_PRO_WAITLIST_ID) {
-    await resend.contacts.create({
-      email,
-      audienceId: process.env.RESEND_PRO_WAITLIST_ID,
-    }).catch((err: unknown) => console.error('[Resend Contact]', err));
+    try {
+      await resend.contacts.create({
+        email,
+        audienceId: process.env.RESEND_PRO_WAITLIST_ID,
+      });
+    } catch (err: unknown) {
+      console.error('[pro/waitlist] Resend error:', err);
+      // We don't fail the whole request if Resend fails but DB succeeded
+    }
   }
 
   return Response.json({ success: true });

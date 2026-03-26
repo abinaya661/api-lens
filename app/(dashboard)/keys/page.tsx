@@ -2,10 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { PageHeader, EmptyState, ErrorState, SkeletonTable } from '@/components/shared';
-import { useKeys, useAddKey, useUpdateKey, useDeleteKey, useRefreshKeyStatus } from '@/hooks/use-keys';
+import { useKeys, useAddKey, useUpdateKey, useDeleteKey } from '@/hooks/use-keys';
 import { useProjects, useCreateProject } from '@/hooks/use-projects';
 import { timeAgo } from '@/lib/utils';
-import type { ApiKey } from '@/types/database';
 import type { Provider } from '@/types/providers';
 import {
   Plus,

@@ -13,6 +13,8 @@ import { ArrowRight } from 'lucide-react';
 import { JsonLd } from '@/components/shared/json-ld';
 import { buildBlogIndexItemListSchema } from '@/lib/structured-data';
 import { getAllPosts } from '@/lib/blog';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
+import { RevealOnScroll } from '@/components/landing/reveal-on-scroll';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Page metadata
@@ -88,6 +90,7 @@ export default async function BlogIndexPage() {
             </Link>
           </div>
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             <Link
               href="/login"
               className="text-sm font-medium text-zinc-400 hover:text-white transition-colors"
@@ -96,7 +99,7 @@ export default async function BlogIndexPage() {
             </Link>
             <Link
               href="/signup"
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-white text-black hover:bg-zinc-200 transition-colors"
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-white dark:bg-zinc-100 text-black hover:bg-zinc-200 transition-colors"
             >
               Start Free Trial
             </Link>
@@ -105,39 +108,44 @@ export default async function BlogIndexPage() {
       </nav>
 
       <main className="relative pt-16">
+        {/* ─── Background Mesh ─── */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-0 right-[-10%] w-[40%] h-[40%] bg-brand-500/5 blur-[120px] rounded-full" />
+          <div className="absolute bottom-[20%] left-[-5%] w-[30%] h-[30%] bg-blue-500/5 blur-[100px] rounded-full" />
+        </div>
+
         {/* ─── Hero Section ─── */}
-        <section className="relative py-20 md:py-28 px-6 overflow-hidden">
-          {/* Radial glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-brand-600/10 blur-[120px] rounded-full pointer-events-none" />
+        <section className="relative py-20 md:py-32 px-6 overflow-hidden">
+          <div className="max-w-4xl mx-auto text-center relative z-10">
+            <RevealOnScroll>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-brand-500/30 bg-brand-500/10 text-brand-400 text-sm font-medium mb-8">
+                <span className="flex h-2 w-2 rounded-full bg-brand-500 animate-pulse" />
+                Latest guides &amp; insights
+              </div>
 
-          <div className="max-w-3xl mx-auto text-center relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-brand-500/30 bg-brand-500/10 text-brand-400 text-sm font-medium mb-8">
-              <span className="flex h-2 w-2 rounded-full bg-brand-500 animate-pulse" />
-              Latest guides &amp; insights
-            </div>
+              <h1 className="text-5xl md:text-7xl font-extrabold text-white tracking-tight leading-[1.05] mb-8">
+                Our latest{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-300 via-brand-500 to-brand-600">
+                  insights.
+                </span>
+              </h1>
 
-            <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight leading-[1.1] mb-6">
-              API Lens{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-brand-600">
-                Blog
-              </span>
-            </h1>
-
-            <p className="text-lg md:text-xl text-zinc-400 max-w-xl mx-auto leading-relaxed">
-              Guides on AI API costs, security, and building smarter.
-            </p>
+              <p className="text-xl md:text-2xl text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+                Expert guides on AI model costs, API governance, and scaling your intelligence infrastructure.
+              </p>
+            </RevealOnScroll>
           </div>
         </section>
 
         {/* ─── Blog Posts Grid ─── */}
-        <section className="px-6 pb-24">
+        <section className="px-6 pb-24 relative z-10">
           <div className="max-w-3xl mx-auto">
             {posts.length === 0 ? (
               <div className="text-center py-20">
                 <p className="text-zinc-500 text-lg">No posts published yet. Check back soon.</p>
               </div>
             ) : (
-              <ol className="space-y-6" aria-label="Blog posts">
+              <div className="grid gap-8">
                 {posts.map((post) => {
                   const formattedDate = post.date
                     ? new Date(post.date).toLocaleDateString('en-US', {
@@ -148,63 +156,63 @@ export default async function BlogIndexPage() {
                     : null;
 
                   return (
-                    <li key={post.slug}>
+                    <RevealOnScroll key={post.slug}>
                       <Link
                         href={`/blog/${post.slug}`}
-                        className="group block bg-zinc-900/40 backdrop-blur-sm border border-zinc-800/60 rounded-2xl p-7 hover:border-zinc-700/80 hover:bg-zinc-900/60 hover:shadow-[0_0_40px_rgba(59,130,246,0.06)] transition-all duration-300"
+                        className="group relative block"
                       >
-                        {/* Meta row */}
-                        <div className="flex items-center gap-2 text-xs text-zinc-500 mb-3">
-                          {formattedDate && <span>{formattedDate}</span>}
-                          {formattedDate && post.readTime && (
-                            <span className="text-zinc-700">·</span>
+                        {/* Interactive blur bg */}
+                        <div className="absolute -inset-2 bg-gradient-to-r from-brand-500/0 via-brand-500/0 to-brand-500/0 group-hover:from-brand-500/5 group-hover:to-brand-500/10 rounded-3xl blur-2xl transition-all duration-500 opacity-0 group-hover:opacity-100" />
+                        
+                        <div className="relative bg-zinc-900/30 backdrop-blur-md border border-zinc-800/40 rounded-2xl p-8 hover:border-brand-500/30 hover:shadow-[0_0_50px_rgba(59,130,246,0.1)] transition-all duration-500">
+                          {/* Meta row */}
+                          <div className="flex items-center gap-4 text-xs text-zinc-500 mb-4 font-medium uppercase tracking-widest">
+                            {formattedDate && <span>{formattedDate}</span>}
+                            {post.readTime && (
+                              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-zinc-800/50 border border-zinc-700/30 text-zinc-400">
+                                {post.readTime}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Title */}
+                          <h2 className="text-2xl md:text-3xl font-bold text-white group-hover:text-brand-400 transition-colors leading-tight mb-4">
+                            {post.title}
+                          </h2>
+
+                          {/* Description */}
+                          {post.description && (
+                            <p className="text-zinc-400 text-lg leading-relaxed line-clamp-2 mb-6 group-hover:text-zinc-300 transition-colors">
+                              {post.description}
+                            </p>
                           )}
-                          {post.readTime && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800/80 border border-zinc-700/50 text-zinc-400 font-medium">
-                              {post.readTime}
+
+                          {/* Footer row: tags + CTA */}
+                          <div className="flex items-center justify-between gap-4 flex-wrap pt-4 border-t border-zinc-800/50">
+                            {post.tags && (
+                              <div className="flex flex-wrap gap-2">
+                                {post.tags.slice(0, 3).map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="px-2.5 py-1 text-[10px] rounded-md bg-zinc-800/50 text-zinc-400 border border-zinc-700/30 font-bold uppercase tracking-wider"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            <span className="flex items-center gap-2 text-sm text-brand-400 font-bold group-hover:translate-x-1 transition-transform">
+                              EXPLORE
+                              <ArrowRight className="w-4 h-4" />
                             </span>
-                          )}
-                        </div>
-
-                        {/* Title */}
-                        <h2 className="text-xl font-bold text-white group-hover:text-brand-400 transition-colors leading-snug mb-2">
-                          {post.title}
-                        </h2>
-
-                        {/* Description */}
-                        {post.description && (
-                          <p className="text-zinc-400 text-sm leading-relaxed line-clamp-2 mb-4">
-                            {post.description}
-                          </p>
-                        )}
-
-                        {/* Footer row: tags + CTA */}
-                        <div className="flex items-center justify-between gap-4 flex-wrap">
-                          {/* Tag pills */}
-                          {post.tags && post.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {post.tags.map((tag) => (
-                                <span
-                                  key={tag}
-                                  className="px-2 py-0.5 text-xs rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-medium"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Read article link */}
-                          <span className="flex items-center gap-1 text-sm text-brand-400 font-medium group-hover:underline underline-offset-2 shrink-0 ml-auto">
-                            Read article
-                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                          </span>
+                          </div>
                         </div>
                       </Link>
-                    </li>
+                    </RevealOnScroll>
                   );
                 })}
-              </ol>
+              </div>
             )}
           </div>
         </section>

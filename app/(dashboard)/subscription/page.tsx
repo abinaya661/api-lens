@@ -28,15 +28,14 @@ const BASE_FEATURES = [
   'Budget alerts',
   'Reports on monthly and weekly usage',
   'Project wise tracking',
-  'Update usage every hour',
 ];
 
 const PRO_FEATURES = [
+  'Includes all Base features',
   'Unlimited keys',
   'Multiple seats for teams and agencies',
-  'Downloadable reports',
-  'Unlimited refresh',
-  '15 minute update on usage',
+  'Export in PDF and CSV',
+  'API key status refreshes every few hours',
 ];
 
 function getPlanLabel(plan: string | undefined | null): string {
@@ -276,11 +275,14 @@ function SubscriptionPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim() }),
       });
-      if (!res.ok) throw new Error('Something went wrong');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error ?? 'Something went wrong');
+      }
       setWaitlistDone(true);
       setEmail('');
-    } catch {
-      setWaitlistError('Failed to save. Please try again.');
+    } catch (err) {
+      setWaitlistError(err instanceof Error ? err.message : 'Failed to save. Please try again.');
     } finally {
       setWaitlistLoading(false);
     }

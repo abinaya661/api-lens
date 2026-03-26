@@ -19,8 +19,8 @@ export const metadata: Metadata = {
     default: 'API Lens — Track Your AI API Spending',
     template: '%s | API Lens',
   },
-  description: 'Monitor and optimize your AI API costs across OpenAI, Anthropic, Gemini, Mistral, and 10+ providers. Real-time spending dashboards, budget alerts, and usage analytics.',
-  keywords: ['AI API', 'cost tracking', 'API spending', 'OpenAI costs', 'Anthropic billing', 'AI budget', 'API monitoring'],
+  description: 'The ultimate AI API key manager. Monitor and optimize your AI API costs across OpenAI, Anthropic, Gemini, Mistral, and 14+ providers. Real-time spending dashboards, budget alerts, and usage analytics.',
+  keywords: ['API key manager', 'AI API management', 'cost tracking', 'API spending', 'OpenAI costs', 'Anthropic billing', 'AI budget', 'API monitoring'],
   authors: [{ name: 'API Lens' }],
   openGraph: {
     title: 'API Lens — Track Your AI API Spending',
@@ -46,7 +46,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Global structured data — present on every page */}
         <JsonLd data={buildWebSiteSchema()} />

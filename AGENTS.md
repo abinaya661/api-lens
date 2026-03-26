@@ -80,7 +80,7 @@ supabase/
 | **Subscription webhooks (Dodo events)** | `app/api/webhooks/dodo/route.ts` |
 | **Cancel subscription** | `lib/actions/subscription.ts` (cancelSubscription) → `app/(dashboard)/subscription/page.tsx` |
 | **Subscription billing UI** | `app/(dashboard)/settings/billing/page.tsx` |
-| **Pricing display / regional prices** | `lib/regional-pricing.ts` → `hooks/use-regional-price.ts` → `app/(dashboard)/subscription/page.tsx` + `components/landing/pricing-section.tsx` |
+| **Pricing display / regional prices** | `lib/regional-pricing.ts` → `hooks/use-regional-price.ts` → `app/(dashboard)/subscription/page.tsx` + `components/landing/pricing-section.tsx` (India Annual: 3,999 INR) |
 | **Budget add/edit/delete** | `lib/validations/budget.ts` → `lib/actions/budgets.ts` → `hooks/use-budgets.ts` → `app/(dashboard)/budgets/page.tsx` |
 | **Budget alert thresholds / checking** | `lib/platforms/sync-engine.ts` (checkBudgets) → `lib/actions/alerts.ts` |
 | **Alert display / read state** | `lib/actions/alerts.ts` → `hooks/use-alerts.ts` → `app/(dashboard)/alerts/page.tsx` |
@@ -313,7 +313,7 @@ useRegionalPrice()     → RegionalPrice      reads geo_country cookie, memoized
 | `/api/webhooks/dodo` | POST | StandardWebhooks sig | Handles: subscription.active/renewed/trialing/canceled/updated, payment.failed/completed |
 | `/api/admin/discounts` | GET/POST/DELETE | CRON_SECRET Bearer | List/create/delete Dodo discount codes |
 | `/api/admin/passes` | GET/PATCH | CRON_SECRET Bearer | List access passes / toggle is_active |
-| `/api/cron/sync-and-check` | GET | CRON_SECRET Bearer | syncAllKeys() + checkBudgets() — runs 00:00 UTC |
+| `/api/cron/sync-and-check` | GET | CRON_SECRET Bearer | syncAllKeys() + checkBudgets() — runs every 6 hours |
 | `/api/cron/daily-tasks` | GET | CRON_SECRET Bearer | Detect inactive keys + rotation reminders — runs 07:00 UTC |
 | `/api/platforms` | GET | Supabase user | List active platforms |
 | `/api/platforms/detect` | POST | validateOrigin (CSRF) | Regex-detect provider from key pattern |
@@ -380,4 +380,14 @@ RESEND_PRO_WAITLIST_ID (opt)      UPSTASH_REDIS_REST_URL (opt)
 UPSTASH_REDIS_REST_TOKEN (opt)
 ```
 
-**Active context (2026-03-26):** Phases 0–6 + email system complete. All apilens.dev refs migrated to apilens.tech. Dodo product IDs switched to per-region DODO_PRODUCT_* vars. Phase 7 = smoke tests. Phase 8 = prod deploy. Latest migration: 006_price_snapshots.
+**Active context (2026-03-26):** 
+- **Final Polish Phase Complete**:
+    - **Blog UI**: Redesigned index and post pages with high-tech glassmorphism and interactive elements.
+    - **Email Redesign**: Modernized all transactional templates in `lib/email/resend.ts` with centered logos and premium layouts.
+    - **Theme Support**: Implemented Dark/Light mode toggle via `next-themes` and added `ThemeToggle` to all headers.
+    - **SEO Optimization**: Optimized site for "api key manager" keyword in meta tags and JSON-LD.
+- **Previous Updates**:
+    - Corrected Pricing UI and India Annual price (3,999 INR).
+    - Fixed Pro Waitlist and added `pro_waitlist` table support.
+    - Robust Geo-detection in middleware.
+- **Status**: Code verified with `type-check`. Ready for production deploy.

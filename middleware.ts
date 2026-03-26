@@ -36,7 +36,10 @@ export async function middleware(request: NextRequest) {
     request.headers.get('x-vercel-ip-country') ??
     request.headers.get('cf-ipcountry') ??
     null;
-  if (country && !request.cookies.get('geo_country')) {
+  
+  const existingCountry = request.cookies.get('geo_country')?.value;
+  
+  if (country && country !== existingCountry) {
     supabaseResponse.cookies.set('geo_country', country, {
       httpOnly: false, // readable by client JS
       sameSite: 'lax',
