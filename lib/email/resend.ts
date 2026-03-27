@@ -72,32 +72,19 @@ export function getWelcomeEmailHtml() {
     <div style="background-color: #f9f9fb; padding: 40px 20px; font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 48px; border-radius: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);">
         ${LOGO_HEADER}
-        <h1 style="color: #111827; margin: 0 0 24px 0; font-size: 32px; font-weight: 800; text-align: center; letter-spacing: -0.025em; line-height: 1.2;">Welcome to the future of API costs. 🚀</h1>
-        <p style="font-size: 18px; color: #4b5563; line-height: 1.6; text-align: center; margin: 0 0 32px 0;">
-          Your 7-day free trial has officially started. No credit card required.
+        <h1 style="color: #111827; margin: 0 0 20px 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.3;">Welcome to API Lens! 🚀</h1>
+        <p style="font-size: 16px; color: #4b5563; line-height: 1.7; margin: 0 0 16px 0;">
+          We're incredibly thrilled to have you onboard. Your 7-day free trial has officially started &mdash; no credit card required.
         </p>
-        <div style="background-color: #f3f4f6; border-radius: 16px; padding: 32px; margin-bottom: 40px;">
-          <h2 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 16px 0;">Next steps:</h2>
-          <ul style="margin: 0; padding: 0; list-style: none; color: #4b5563; font-size: 16px; line-height: 1.6;">
-            <li style="margin-bottom: 12px; display: flex; align-items: start;">
-              <span style="color: #3b82f6; margin-right: 12px; font-weight: bold;">01</span> 
-              Connect your first provider (OpenAI, Anthropic, etc.)
-            </li>
-            <li style="margin-bottom: 12px; display: flex; align-items: start;">
-              <span style="color: #3b82f6; margin-right: 12px; font-weight: bold;">02</span> 
-              Set a budget alert to prevent bill shock
-            </li>
-            <li style="display: flex; align-items: start;">
-              <span style="color: #3b82f6; margin-right: 12px; font-weight: bold;">03</span> 
-              Share with your team
-            </li>
-          </ul>
-        </div>
-        <div style="text-align: center;">
-          <a href="${env.NEXT_PUBLIC_APP_URL || 'https://apilens.tech'}/dashboard" style="background-color: #111827; color: #ffffff; padding: 18px 36px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; display: inline-block; transition: background-color 0.2s;">
-            Enter Dashboard
+        <p style="font-size: 16px; color: #4b5563; line-height: 1.7; margin: 0 0 40px 0;">
+          With API Lens, you can instantly monitor, manage, and optimize all your AI API keys (OpenAI, Anthropic, Gemini, and more) in one unified dashboard.
+        </p>
+        <div style="text-align: center; margin-bottom: 24px;">
+          <a href="${env.NEXT_PUBLIC_APP_URL || 'https://apilens.tech'}/dashboard" style="background-color: #111827; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; display: inline-block;">
+            Go to Dashboard
           </a>
         </div>
+        <p style="font-size: 15px; color: #6b7280; text-align: center; margin: 0;">Happy building!</p>
       </div>
     </div>
   `;
