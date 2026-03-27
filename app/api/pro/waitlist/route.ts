@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { resend } from '@/lib/email/resend';
+import { resend, sendEmail, getWaitlistConfirmationEmailHtml } from '@/lib/email/resend';
 
 export const dynamic = 'force-dynamic';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -44,10 +44,16 @@ export async function POST(req: NextRequest) {
         audienceId: process.env.RESEND_PRO_WAITLIST_ID,
       });
     } catch (err: unknown) {
-      console.error('[pro/waitlist] Resend error:', err);
-      // We don't fail the whole request if Resend fails but DB succeeded
+      console.error('[pro/waitlist] Resend audience error:', err);
     }
   }
+
+  // Send confirmation email
+  await sendEmail({
+    to: email,
+    subject: "You're on the API Lens Pro waitlist!",
+    html: getWaitlistConfirmationEmailHtml(),
+  });
 
   return Response.json({ success: true });
 }

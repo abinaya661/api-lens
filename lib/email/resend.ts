@@ -188,6 +188,24 @@ export function getBudgetAlertEmailHtml({ budgetName, thresholdPercent, spent, l
   `;
 }
 
+export function getWaitlistConfirmationEmailHtml() {
+  return `
+    <div style="background-color: #f9f9fb; padding: 40px 20px; font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 48px; border-radius: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);">
+        ${LOGO_HEADER}
+        <h1 style="color: #111827; margin: 0 0 20px 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.3;">You're on the list! 🎉</h1>
+        <p style="font-size: 16px; color: #4b5563; line-height: 1.7; margin: 0 0 16px 0;">
+          Thank you for joining the API Lens Pro waitlist. We're excited to have you interested in what we're building.
+        </p>
+        <p style="font-size: 16px; color: #4b5563; line-height: 1.7; margin: 0 0 40px 0;">
+          We'll reach out to you as soon as Pro access is available. You'll be among the first to know.
+        </p>
+        <p style="font-size: 15px; color: #6b7280; margin: 0;">— The API Lens Team</p>
+      </div>
+    </div>
+  `;
+}
+
 export function getWeeklyDigestEmailHtml({ totalRequests, costStr }: { totalRequests: string; costStr: string }) {
   return `
     <div style="background-color: #f9f9fb; padding: 40px 20px; font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
