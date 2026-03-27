@@ -1,20 +1,45 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { PageHeader, ErrorState, SkeletonCard } from '@/components/shared';
 import { useProfile, useUpdateProfile } from '@/hooks/use-profile';
 import { User, Settings2, CreditCard, Bell, ArrowRight } from 'lucide-react';
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="animate-fade-in space-y-6">
+        <PageHeader title="Settings" description="Manage your account, preferences, and billing information." />
+        <SkeletonCard />
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
+function SettingsContent() {
   const { data: profile, isLoading, error, refetch } = useProfile();
   const updateMutation = useUpdateProfile();
-  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'billing'>('profile');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'billing'>(
+    tabParam === 'preferences' ? 'preferences' : tabParam === 'billing' ? 'billing' : 'profile'
+  );
 
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [timezone, setTimezone] = useState('UTC');
   const [currency, setCurrency] = useState<'USD' | 'EUR' | 'GBP'>('USD');
+
+  // Sync tab with URL param changes (e.g., sidebar navigation)
+  useEffect(() => {
+    if (tabParam === 'preferences') setActiveTab('preferences');
+    else if (tabParam === 'billing') setActiveTab('billing');
+    else setActiveTab('profile');
+  }, [tabParam]);
 
   useEffect(() => {
     if (profile) {

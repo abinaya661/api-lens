@@ -6,19 +6,17 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
   FolderOpen,
-  Key,
+  FileText,
   Bell,
   Settings,
-  CreditCard,
 } from 'lucide-react';
 
 const mobileNavItems = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { href: '/projects', label: 'Projects', icon: FolderOpen },
-  { href: '/keys', label: 'Keys', icon: Key },
+  { href: '/reports', label: 'Reports', icon: FileText },
   { href: '/alerts', label: 'Alerts', icon: Bell },
   { href: '/settings', label: 'Settings', icon: Settings },
-  { href: '/subscription', label: 'Plan', icon: CreditCard },
 ];
 
 export function MobileNav() {
