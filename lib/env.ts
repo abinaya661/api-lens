@@ -51,10 +51,11 @@ function getEnv(): Env {
       process.env.CI === 'true' ||
       process.env.CI === '1' ||
       !!process.env.VERCEL ||
+      process.env.npm_lifecycle_event === 'build' ||
       process.env.NODE_ENV !== 'production';
 
     if (isBuild) {
-      console.warn(`[BUILD] Missing env vars (ok at build time): ${missing}`);
+      console.warn(`[BUILD] Missing non-public env vars (expected during build): ${missing}`);
       return process.env as unknown as Env;
     }
 

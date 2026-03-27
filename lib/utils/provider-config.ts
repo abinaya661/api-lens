@@ -1,4 +1,6 @@
-export const PROVIDER_NAMES: Record<string, string> = {
+import { Provider } from '@/types/providers';
+
+export const PROVIDER_NAMES: Record<Provider, string> = {
   openai: 'OpenAI',
   anthropic: 'Anthropic',
   gemini: 'Gemini',
@@ -14,7 +16,7 @@ export const PROVIDER_NAMES: Record<string, string> = {
  * Providers available for new key creation.
  * Ordered as displayed in the Add Key dropdown.
  */
-export const ADD_KEY_PROVIDERS: { id: string; name: string }[] = [
+export const ADD_KEY_PROVIDERS: { id: Provider; name: string }[] = [
   { id: 'openai', name: 'OpenAI' },
   { id: 'anthropic', name: 'Anthropic' },
   { id: 'gemini', name: 'Gemini' },
@@ -26,7 +28,7 @@ export const ADD_KEY_PROVIDERS: { id: string; name: string }[] = [
   { id: 'openrouter', name: 'OpenRouter' },
 ];
 
-export const PROVIDER_COLORS: Record<string, string> = {
+export const PROVIDER_COLORS: Record<Provider, string> = {
   openai: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   anthropic: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
   gemini: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
