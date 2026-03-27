@@ -1,47 +1,26 @@
 import type { MetadataRoute } from 'next';
-import { getAllPosts } from '@/lib/blog';
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const posts = await getAllPosts();
+export default function sitemap(): MetadataRoute.Sitemap {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://apilens.tech';
 
-  const blogEntries: MetadataRoute.Sitemap = posts.map((post) => ({
-    url: `https://apilens.tech/blog/${post.slug}`,
-    lastModified: new Date(post.date),
-    changeFrequency: 'monthly',
-    priority: 0.7,
+  const routes = [
+    '',
+    '/blog',
+    '/blog/ai-billing-alerts-wont-stop-charges',
+    '/blog/ai-agent-infinite-loop-billing-disaster',
+    '/blog/ai-model-cost-comparison-2026',
+    '/blog/ai-api-budget-alerts-50-70-90-rule',
+    '/blog/unified-ai-api-dashboard-multi-provider',
+    '/estimator',
+    '/security',
+    '/terms',
+    '/privacy',
+  ].map((route) => ({
+    url: `${baseUrl}${route}`,
+    lastModified: new Date(),
+    changeFrequency: (route.startsWith('/blog/') ? 'monthly' : route === '/blog' ? 'weekly' : 'monthly') as MetadataRoute.Sitemap[number]['changeFrequency'],
+    priority: route === '' ? 1 : route === '/blog' ? 0.8 : route.startsWith('/blog/') ? 0.7 : 0.6,
   }));
 
-  return [
-    {
-      url: 'https://apilens.tech',
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
-    {
-      url: 'https://apilens.tech/blog',
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: 'https://apilens.tech/login',
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
-    {
-      url: 'https://apilens.tech/signup',
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
-    {
-      url: 'https://apilens.tech/estimator',
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    ...blogEntries,
-  ];
+  return routes;
 }
