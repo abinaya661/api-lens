@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest } from 'next/server';
 
 // Returns the visitor's country code (ISO 3166-1 alpha-2) using

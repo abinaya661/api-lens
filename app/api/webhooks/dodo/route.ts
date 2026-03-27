@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { Webhook } from 'standardwebhooks';
 import { headers } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/admin';

@@ -28,11 +28,13 @@ export interface Project {
   updated_at: string;
 }
 
+import { Provider } from './providers';
+
 // --- API Keys ---
 export interface ApiKey {
   id: string;
   user_id: string;
-  provider: string;
+  provider: Provider;
   nickname: string;
   encrypted_key: string;
   key_hint: string; // last 4 chars

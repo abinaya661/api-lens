@@ -9,6 +9,7 @@ import { RevealOnScroll } from '@/components/landing/reveal-on-scroll';
 import { RegionalPriceText } from '@/components/landing/regional-price-text';
 import { JsonLd } from '@/components/shared/json-ld';
 import { buildSoftwareApplicationSchema, buildHomepageFAQSchema } from '@/lib/structured-data';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 
 export default function LandingPage() {
   return (
@@ -35,12 +36,13 @@ export default function LandingPage() {
             <Link href="#pricing" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors hidden sm:block">Pricing</Link>
           </div>
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             <Link href="/login" className="text-sm font-medium hover:text-white transition-colors">
               Sign In
             </Link>
             <Link
               href="/signup"
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-white text-black hover:bg-zinc-200 transition-colors"
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-white dark:bg-zinc-100 text-black hover:bg-zinc-200 transition-colors"
             >
               Start Free Trial
             </Link>
@@ -65,16 +67,15 @@ export default function LandingPage() {
             </div>
 
             <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight leading-[1.1] mb-8">
-              Stop guessing your <br />
+              The ultimate <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-brand-600">
-                AI token costs.
+                API key manager.
               </span>
             </h1>
 
-            {/* C2: Removed "API Lens" from description */}
             <p className="text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed">
               The single dashboard to monitor, budget, and attribute AI API usage
-              across OpenAI, Anthropic, Gemini, and more.
+              across OpenAI, Anthropic, Gemini, and 10+ other providers.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

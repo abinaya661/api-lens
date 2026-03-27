@@ -30,8 +30,8 @@ export default function KeyDetailPage() {
 
   const updateKeyMutation = useUpdateKey();
   const deleteKeyMutation = useDeleteKey();
-  const refreshKeyMutation = useRefreshKeyStatus();
-  const { data: projects } = useProjects();
+  useRefreshKeyStatus();
+  useProjects();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);

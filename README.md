@@ -39,8 +39,14 @@ Hourly syncs via Trigger.dev cron jobs. Manual refresh available. 3-retry expone
 ### 🧮 Cost Estimator (Free, No Signup)
 Pick any platform + model, enter your expected usage, and get a cross-platform comparison table ranking all providers cheapest to most expensive — with model swap suggestions.
 
+### 🌗 Dark & Light Mode
+Seamless theme switching for every environment. Toggle between premium dark and light modes via the navigation bar.
+
+### 📑 High-Tech Blog
+Expert guides on AI cost management, API governance, and scaling intelligence infrastructure, delivered in a high-tech glassmorphism interface.
+
 ### 📧 Reports & Sharing
-Monthly auto-reports on the 1st. Shareable read-only links for clients. PDF export.
+Monthly auto-reports on the 1st. Shareable read-only links for clients. PDF and CSV export.
 
 ---
 

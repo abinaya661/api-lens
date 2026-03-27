@@ -82,7 +82,7 @@ supabase/
 | **Subscription webhooks (Dodo events)** | `app/api/webhooks/dodo/route.ts` |
 | **Cancel subscription** | `lib/actions/subscription.ts` (cancelSubscription) → `app/(dashboard)/subscription/page.tsx` |
 | **Subscription billing UI** | `app/(dashboard)/settings/billing/page.tsx` |
-| **Pricing display / regional prices** | `lib/regional-pricing.ts` → `hooks/use-regional-price.ts` → `app/(dashboard)/subscription/page.tsx` + `components/landing/pricing-section.tsx` |
+| **Pricing display / regional prices** | `lib/regional-pricing.ts` → `hooks/use-regional-price.ts` → `app/(dashboard)/subscription/page.tsx` + `components/landing/pricing-section.tsx` (India Annual: 3,999 INR) |
 | **Budget add/edit/delete** | `lib/validations/budget.ts` → `lib/actions/budgets.ts` → `hooks/use-budgets.ts` → `app/(dashboard)/budgets/page.tsx` |
 | **Budget alert thresholds / checking** | `lib/platforms/sync-engine.ts` (checkBudgets) → `lib/actions/alerts.ts` |
 | **Alert display / read state** | `lib/actions/alerts.ts` → `hooks/use-alerts.ts` → `app/(dashboard)/alerts/page.tsx` |
@@ -386,7 +386,14 @@ RESEND_PRO_WAITLIST_ID (opt)      UPSTASH_REDIS_REST_URL (opt)
 UPSTASH_REDIS_REST_TOKEN (opt)
 ```
 
-**Active context (2026-03-26):** All phases 0–7 complete and production-ready. Base plan ($4.99/mo, $49.99/yr) live; Pro plan ($9.99/mo, $99.99/yr) invite-only waitlist. All apilens.dev refs migrated to apilens.tech.
+**Active context (2026-03-26):** 
+- **Final Polish Phase Complete**:
+    - **Blog UI**: Redesigned index and post pages with high-tech glassmorphism and interactive elements.
+    - **Email Redesign**: Modernized all transactional templates in `lib/email/resend.ts` with centered logos and premium layouts.
+    - **Theme Support**: Implemented Dark/Light mode toggle via `next-themes` and added `ThemeToggle` to all headers.
+    - **SEO Optimization**: Optimized site for "api key manager" keyword in meta tags and JSON-LD.
+- **Project Status**: All phases 0–7 complete and production-ready. Base plan ($4.99/mo, $49.99/yr) live; Pro plan ($9.99/mo, $99.99/yr) invite-only waitlist. All apilens.dev refs migrated to apilens.tech.
+- **Status**: Code verified with `type-check`. Ready for production deploy.
 
 **Nav (landing page):** `API Lens logo | Insights (→/blog) | Pricing (→#pricing) | Sign In | Start Free Trial`
 

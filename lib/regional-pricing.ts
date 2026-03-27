@@ -22,7 +22,7 @@ const EUR: RegionalPrice = {
 
 const REGIONAL_PRICES: Record<string, RegionalPrice> = {
   // India — fixed INR pricing
-  IN: { monthly: '399', annual: '3,099', currency: 'INR', symbol: '₹', pro_monthly: '799', pro_annual: '7,999' },
+  IN: { monthly: '399', annual: '3,999', currency: 'INR', symbol: '₹', pro_monthly: '799', pro_annual: '7,999' },
 
   // North America
   US: { monthly: '5.99', annual: '59.99', currency: 'USD', symbol: '$', pro_monthly: '9.99', pro_annual: '99.99' },

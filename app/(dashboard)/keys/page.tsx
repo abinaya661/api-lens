@@ -2,11 +2,11 @@
 
 import { useState, useMemo } from 'react';
 import { PageHeader, EmptyState, ErrorState, SkeletonTable } from '@/components/shared';
-import { useKeys, useAddKey, useUpdateKey, useDeleteKey, useRefreshKeyStatus } from '@/hooks/use-keys';
+import { useKeys, useAddKey, useUpdateKey, useDeleteKey } from '@/hooks/use-keys';
 import { useProjects, useCreateProject } from '@/hooks/use-projects';
 import { timeAgo } from '@/lib/utils';
-import type { ApiKey } from '@/types/database';
 import type { Provider } from '@/types/providers';
+
 import {
   Plus,
   ShieldX,
@@ -50,7 +50,7 @@ export default function KeysPage() {
   const [copied, setCopied] = useState<string | null>(null);
 
   // Add key form state
-  const [formProvider, setFormProvider] = useState('');
+  const [formProvider, setFormProvider] = useState<Provider | ''>('');
   const [formLabel, setFormLabel] = useState('');
   const [formKey, setFormKey] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -184,7 +184,7 @@ export default function KeysPage() {
               <div className="relative">
                 <select
                   value={formProvider}
-                  onChange={(e) => setFormProvider(e.target.value)}
+                  onChange={(e) => setFormProvider(e.target.value as Provider)}
                   className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all appearance-none"
                 >
                   <option value="" disabled>Select a provider</option>

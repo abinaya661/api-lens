@@ -44,21 +44,25 @@ function getEnv(): Env {
   if (!parsed.success) {
     const missing = parsed.error.issues.map((i) => i.path.join('.')).join(', ');
 
-    // In production, fail hard on missing env vars
-    if (process.env.NODE_ENV === 'production') {
-      if (process.env.CI || process.env.VERCEL) {
-        console.warn(`[CI BUILD] Missing env vars: ${missing}`);
-        return process.env as unknown as Env;
-      }
-      throw new Error(
-        `Missing required environment variables: ${missing}. ` +
-        'Application cannot start without these configured.'
-      );
+    // Never throw during Next.js build phase or CI — env vars are only
+    // available at runtime on the deployed server, not during `next build`.
+    const isBuild =
+      process.env.NEXT_PHASE === 'phase-production-build' ||
+      process.env.CI === 'true' ||
+      process.env.CI === '1' ||
+      !!process.env.VERCEL ||
+      process.env.npm_lifecycle_event === 'build' ||
+      process.env.NODE_ENV !== 'production';
+
+    if (isBuild) {
+      console.warn(`[BUILD] Missing non-public env vars (expected during build): ${missing}`);
+      return process.env as unknown as Env;
     }
 
-    // In development, warn but allow partial env
-    console.warn(`⚠️  Missing env vars: ${missing}`);
-    return process.env as unknown as Env;
+    throw new Error(
+      `Missing required environment variables: ${missing}. ` +
+      'Application cannot start without these configured.'
+    );
   }
   return parsed.data;
 }

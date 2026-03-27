@@ -13,15 +13,14 @@ const BASE_FEATURES = [
   'Budget alerts',
   'Reports on monthly and weekly usage',
   'Project wise tracking',
-  'Update usage every hour',
 ];
 
 const PRO_FEATURES = [
+  'Includes all Base features',
   'Unlimited keys',
   'Multiple seats for teams and agencies',
-  'Downloadable reports',
-  'Unlimited refresh',
-  '15 minute update on usage',
+  'Export in PDF and CSV',
+  'API key status refreshes every few hours',
 ];
 
 export function PricingSection() {

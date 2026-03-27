@@ -37,7 +37,8 @@ export async function middleware(request: NextRequest) {
     request.headers.get('x-vercel-ip-country') ??
     request.headers.get('cf-ipcountry') ??
     null;
-  const needsGeoCookie = !!country && !request.cookies.get('geo_country');
+
+  const needsGeoCookie = !!country && (!request.cookies.get('geo_country') || request.cookies.get('geo_country')?.value !== country);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
