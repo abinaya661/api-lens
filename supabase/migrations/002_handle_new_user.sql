@@ -56,10 +56,10 @@ BEGIN
   );
 
   -- 2c. Insert subscription (trialing)
-  INSERT INTO public.subscriptions (id, user_id, status, trial_ends_at, created_at, updated_at)
+  INSERT INTO public.subscriptions (id, company_id, status, trial_ends_at, created_at, updated_at)
   VALUES (
     gen_random_uuid(),
-    NEW.id,
+    v_company_id,
     'trialing',
     NOW() + INTERVAL '7 days',
     NOW(),

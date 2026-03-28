@@ -31,7 +31,7 @@ CREATE POLICY "insert_alerts" ON public.alerts
   );
 
 -- ─────────────────────────────────────────────
--- 3. subscriptions — users read their own; service_role writes
+-- 3. subscriptions — users read their own company subscription; service_role writes
 -- ─────────────────────────────────────────────
 DROP POLICY IF EXISTS "all_subscriptions"       ON public.subscriptions;
 DROP POLICY IF EXISTS "users_read_own_subscription" ON public.subscriptions;
@@ -41,7 +41,11 @@ DROP POLICY IF EXISTS "update_subscription"     ON public.subscriptions;
 
 CREATE POLICY "read_own_subscription" ON public.subscriptions
   FOR SELECT
-  USING (user_id = auth.uid());
+  USING (
+    company_id IN (
+      SELECT id FROM public.companies WHERE owner_id = auth.uid()
+    )
+  );
 
 -- INSERT and UPDATE are denied for normal roles (service_role bypasses RLS)
 CREATE POLICY "insert_subscription" ON public.subscriptions
@@ -53,7 +57,7 @@ CREATE POLICY "update_subscription" ON public.subscriptions
   USING (false);
 
 -- ─────────────────────────────────────────────
--- 4. notifications — users read their own; inserts restricted to service_role
+-- 4. notifications — users read notifications via alerts; inserts restricted to service_role
 -- ─────────────────────────────────────────────
 DROP POLICY IF EXISTS "all_notifications"    ON public.notifications;
 DROP POLICY IF EXISTS "read_own_notifications" ON public.notifications;
@@ -61,7 +65,15 @@ DROP POLICY IF EXISTS "insert_notifications" ON public.notifications;
 
 CREATE POLICY "read_own_notifications" ON public.notifications
   FOR SELECT
-  USING (user_id = auth.uid());
+  USING (
+    alert_id IN (
+      SELECT id
+      FROM public.alerts
+      WHERE company_id IN (
+        SELECT id FROM public.companies WHERE owner_id = auth.uid()
+      )
+    )
+  );
 
 -- INSERT denied for normal roles (service_role bypasses RLS)
 CREATE POLICY "insert_notifications" ON public.notifications

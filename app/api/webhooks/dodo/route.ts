@@ -1,10 +1,83 @@
 export const dynamic = 'force-dynamic';
-import { Webhook } from 'standardwebhooks';
+
 import { headers } from 'next/headers';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { Webhook } from 'standardwebhooks';
 import { sendEmail, getTransactionEmailHtml } from '@/lib/email/resend';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
+
+type WebhookMetadata = {
+  user_id?: string;
+  company_id?: string;
+  plan?: string;
+};
+
+type DodoWebhookEvent = {
+  type: string;
+  data: {
+    subscription_id?: string;
+    customer?: { customer_id?: string };
+    current_period_end?: string;
+    metadata?: WebhookMetadata;
+  };
+};
+
+async function getCompanyIdForMetadata(
+  adminSupabase: ReturnType<typeof createAdminClient>,
+  metadata?: WebhookMetadata,
+) {
+  if (metadata?.company_id) {
+    return metadata.company_id;
+  }
+
+  if (!metadata?.user_id) {
+    return null;
+  }
+
+  const { data: company } = await adminSupabase
+    .from('companies')
+    .select('id')
+    .eq('owner_id', metadata.user_id)
+    .maybeSingle();
+
+  return company?.id ?? null;
+}
+
+async function getOwnerEmailForCompany(
+  adminSupabase: ReturnType<typeof createAdminClient>,
+  companyId: string,
+) {
+  const { data: company } = await adminSupabase
+    .from('companies')
+    .select('owner_id')
+    .eq('id', companyId)
+    .maybeSingle();
+
+  if (!company?.owner_id) {
+    return null;
+  }
+
+  const { data: userResponse } = await adminSupabase.auth.admin.getUserById(company.owner_id);
+  return userResponse.user?.email ?? null;
+}
+
+async function getOwnerEmailForSubscription(
+  adminSupabase: ReturnType<typeof createAdminClient>,
+  subscriptionId: string,
+) {
+  const { data: subscription } = await adminSupabase
+    .from('subscriptions')
+    .select('company_id')
+    .eq('dodo_subscription_id', subscriptionId)
+    .maybeSingle();
+
+  if (!subscription?.company_id) {
+    return null;
+  }
+
+  return getOwnerEmailForCompany(adminSupabase, subscription.company_id);
+}
 
 export async function POST(request: Request) {
   const headersList = await headers();
@@ -24,19 +97,10 @@ export async function POST(request: Request) {
     return new Response('Invalid signature', { status: 400 });
   }
 
-  // Parse and validate JSON body
-  let event: {
-    type: string;
-    data: {
-      subscription_id?: string;
-      customer?: { customer_id?: string };
-      current_period_end?: string;
-      metadata?: { user_id?: string; plan?: string };
-    };
-  };
+  let event: DodoWebhookEvent;
 
   try {
-    event = JSON.parse(rawBody);
+    event = JSON.parse(rawBody) as DodoWebhookEvent;
   } catch {
     console.error('[webhook] Invalid JSON body');
     return new Response('Invalid JSON body', { status: 400 });
@@ -49,8 +113,6 @@ export async function POST(request: Request) {
 
   const adminSupabase = createAdminClient();
 
-  // Race-safe idempotency: try to INSERT first — if webhook_id already exists
-  // the PRIMARY KEY constraint rejects it, meaning it was already processed.
   const webhookId = webhookHeaders['webhook-id'];
   if (webhookId) {
     const { error: insertError } = await adminSupabase
@@ -58,10 +120,10 @@ export async function POST(request: Request) {
       .insert({ webhook_id: webhookId, event_type: event.type });
 
     if (insertError) {
-      // Duplicate key = already processed; any other error = log and continue
       if (insertError.code === '23505') {
         return new Response('Already processed', { status: 200 });
       }
+
       console.error('[webhook] Failed to record webhook event:', insertError);
     }
   }
@@ -70,39 +132,42 @@ export async function POST(request: Request) {
 
   switch (event.type) {
     case 'subscription.active': {
-      const userId = event.data.metadata?.user_id;
-      if (!userId) {
-        console.warn('[webhook] subscription.active missing user_id', { webhookId });
+      const companyId = await getCompanyIdForMetadata(adminSupabase, event.data.metadata);
+      if (!companyId) {
+        console.warn('[webhook] subscription.active missing company context', { webhookId });
         break;
       }
+
       if (!event.data.subscription_id) {
         console.warn('[webhook] subscription.active missing subscription_id', { webhookId });
         break;
       }
 
-      const { error } = await adminSupabase.from('subscriptions').update({
-        status: 'active',
-        dodo_subscription_id: event.data.subscription_id,
-        dodo_customer_id: event.data.customer?.customer_id,
-        plan: event.data.metadata?.plan ?? 'monthly',
-        period_end: event.data.current_period_end,
-        last_payment_at: now,
-        updated_at: now,
-      }).eq('user_id', userId);
+      const { error } = await adminSupabase
+        .from('subscriptions')
+        .update({
+          status: 'active',
+          dodo_subscription_id: event.data.subscription_id,
+          dodo_customer_id: event.data.customer?.customer_id,
+          plan: event.data.metadata?.plan ?? 'monthly',
+          period_end: event.data.current_period_end,
+          last_payment_at: now,
+          updated_at: now,
+        })
+        .eq('company_id', companyId);
 
       if (error) {
         console.error('[webhook] subscription.active DB update failed:', error);
         return new Response('Database error', { status: 500 });
       }
 
-      const { data: userResponse } = await adminSupabase.auth.admin.getUserById(userId);
-      const email = userResponse.user?.email;
+      const email = await getOwnerEmailForCompany(adminSupabase, companyId);
       if (email) {
         await sendEmail({
           to: email,
           subject: 'Welcome to API Lens! Your Subscription is Active',
           html: getTransactionEmailHtml({
-            title: 'Your Subscription is Active! 🎉',
+            title: 'Your Subscription is Active!',
             message: 'You have successfully subscribed. Your payment was processed and your account is now fully active.',
             plan: event.data.metadata?.plan ?? 'monthly',
           }),
@@ -116,12 +181,16 @@ export async function POST(request: Request) {
         console.warn('[webhook] subscription.renewed missing subscription_id', { webhookId });
         break;
       }
-      const { error } = await adminSupabase.from('subscriptions').update({
-        status: 'active',
-        last_payment_at: now,
-        period_end: event.data.current_period_end,
-        updated_at: now,
-      }).eq('dodo_subscription_id', event.data.subscription_id);
+
+      const { error } = await adminSupabase
+        .from('subscriptions')
+        .update({
+          status: 'active',
+          last_payment_at: now,
+          period_end: event.data.current_period_end,
+          updated_at: now,
+        })
+        .eq('dodo_subscription_id', event.data.subscription_id);
 
       if (error) {
         console.error('[webhook] subscription.renewed DB update failed:', error);
@@ -135,33 +204,33 @@ export async function POST(request: Request) {
         console.warn('[webhook] payment.failed missing subscription_id', { webhookId });
         break;
       }
-      const { error } = await adminSupabase.from('subscriptions').update({
-        status: 'past_due',
-        grace_period_ends_at: new Date(
-          Date.now() + 3 * 24 * 60 * 60 * 1000,
-        ).toISOString(),
-        updated_at: now,
-      }).eq('dodo_subscription_id', event.data.subscription_id);
+
+      const { error } = await adminSupabase
+        .from('subscriptions')
+        .update({
+          status: 'past_due',
+          grace_period_ends_at: new Date(
+            Date.now() + 3 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
+          updated_at: now,
+        })
+        .eq('dodo_subscription_id', event.data.subscription_id);
 
       if (error) {
         console.error('[webhook] payment.failed DB update failed:', error);
         return new Response('Database error', { status: 500 });
       }
 
-      const { data: sub } = await adminSupabase.from('subscriptions').select('user_id').eq('dodo_subscription_id', event.data.subscription_id).single();
-      if (sub?.user_id) {
-        const { data: userResponse } = await adminSupabase.auth.admin.getUserById(sub.user_id);
-        const email = userResponse.user?.email;
-        if (email) {
-          await sendEmail({
-            to: email,
-            subject: 'API Lens Payment Failed',
-            html: getTransactionEmailHtml({
-              title: 'Your payment was unsuccessful',
-              message: 'Your recent payment did not go through. Your access will continue for a 3-day grace period. Please update your payment method to avoid interruption.',
-            }),
-          }).catch((err: unknown) => console.error('[Webhook Email]', err));
-        }
+      const email = await getOwnerEmailForSubscription(adminSupabase, event.data.subscription_id);
+      if (email) {
+        await sendEmail({
+          to: email,
+          subject: 'API Lens Payment Failed',
+          html: getTransactionEmailHtml({
+            title: 'Your payment was unsuccessful',
+            message: 'Your recent payment did not go through. Your access will continue for a 3-day grace period. Please update your payment method to avoid interruption.',
+          }),
+        }).catch((err: unknown) => console.error('[Webhook Email]', err));
       }
       break;
     }
@@ -171,10 +240,14 @@ export async function POST(request: Request) {
         console.warn('[webhook] subscription.canceled missing subscription_id', { webhookId });
         break;
       }
-      const { error } = await adminSupabase.from('subscriptions').update({
-        status: 'cancelled',
-        updated_at: now,
-      }).eq('dodo_subscription_id', event.data.subscription_id);
+
+      const { error } = await adminSupabase
+        .from('subscriptions')
+        .update({
+          status: 'cancelled',
+          updated_at: now,
+        })
+        .eq('dodo_subscription_id', event.data.subscription_id);
 
       if (error) {
         console.error('[webhook] subscription.canceled DB update failed:', error);
@@ -188,31 +261,31 @@ export async function POST(request: Request) {
         console.warn('[webhook] payment.completed missing subscription_id', { webhookId });
         break;
       }
-      const { error } = await adminSupabase.from('subscriptions').update({
-        status: 'active',
-        last_payment_at: now,
-        updated_at: now,
-      }).eq('dodo_subscription_id', event.data.subscription_id);
+
+      const { error } = await adminSupabase
+        .from('subscriptions')
+        .update({
+          status: 'active',
+          last_payment_at: now,
+          updated_at: now,
+        })
+        .eq('dodo_subscription_id', event.data.subscription_id);
 
       if (error) {
         console.error('[webhook] payment.completed DB update failed:', error);
         return new Response('Database error', { status: 500 });
       }
 
-      const { data: subComp } = await adminSupabase.from('subscriptions').select('user_id').eq('dodo_subscription_id', event.data.subscription_id).single();
-      if (subComp?.user_id) {
-        const { data: userResponse } = await adminSupabase.auth.admin.getUserById(subComp.user_id);
-        const email = userResponse.user?.email;
-        if (email) {
-          await sendEmail({
-            to: email,
-            subject: 'API Lens Payment Successful',
-            html: getTransactionEmailHtml({
-              title: 'Payment Successful',
-              message: 'Your subscription renewal payment was successfully processed. Thank you for using API Lens!',
-            }),
-          }).catch((err: unknown) => console.error('[Webhook Email]', err));
-        }
+      const email = await getOwnerEmailForSubscription(adminSupabase, event.data.subscription_id);
+      if (email) {
+        await sendEmail({
+          to: email,
+          subject: 'API Lens Payment Successful',
+          html: getTransactionEmailHtml({
+            title: 'Payment Successful',
+            message: 'Your subscription renewal payment was successfully processed. Thank you for using API Lens!',
+          }),
+        }).catch((err: unknown) => console.error('[Webhook Email]', err));
       }
       break;
     }
@@ -222,10 +295,14 @@ export async function POST(request: Request) {
         console.warn('[webhook] subscription.updated missing subscription_id', { webhookId });
         break;
       }
-      const { error } = await adminSupabase.from('subscriptions').update({
-        plan: event.data.metadata?.plan,
-        updated_at: now,
-      }).eq('dodo_subscription_id', event.data.subscription_id);
+
+      const { error } = await adminSupabase
+        .from('subscriptions')
+        .update({
+          plan: event.data.metadata?.plan,
+          updated_at: now,
+        })
+        .eq('dodo_subscription_id', event.data.subscription_id);
 
       if (error) {
         console.error('[webhook] subscription.updated DB update failed:', error);
@@ -235,16 +312,19 @@ export async function POST(request: Request) {
     }
 
     case 'subscription.trialing': {
-      // Card collected, trial started — mark payment method as collected
-      const userId = event.data.metadata?.user_id;
-      if (!userId) {
-        console.warn('[webhook] subscription.trialing missing user_id', { webhookId });
+      const companyId = await getCompanyIdForMetadata(adminSupabase, event.data.metadata);
+      if (!companyId) {
+        console.warn('[webhook] subscription.trialing missing company context', { webhookId });
         break;
       }
-      const { error } = await adminSupabase.from('subscriptions').update({
-        payment_method_collected: true,
-        updated_at: now,
-      }).eq('user_id', userId);
+
+      const { error } = await adminSupabase
+        .from('subscriptions')
+        .update({
+          payment_method_collected: true,
+          updated_at: now,
+        })
+        .eq('company_id', companyId);
 
       if (error) {
         console.error('[webhook] subscription.trialing DB update failed:', error);

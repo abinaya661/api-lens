@@ -80,14 +80,14 @@ export async function GET(request: NextRequest) {
         .lt('date', sevenDaysAgoStr);
 
       const totalSpent = thisWeek.reduce((sum, r) => sum + Number(r.cost_usd), 0);
-      const prevWeekSpent = (lastWeekRows ?? []).reduce((sum, r) => sum + Number(r.cost_usd), 0);
+      const _prevWeekSpent = (lastWeekRows ?? []).reduce((sum, r) => sum + Number(r.cost_usd), 0);
 
       // Per-provider breakdown (sorted descending by spend)
       const providerTotals: Record<string, number> = {};
       for (const r of thisWeek) {
         providerTotals[r.provider] = (providerTotals[r.provider] ?? 0) + Number(r.cost_usd);
       }
-      const providerBreakdown = Object.entries(providerTotals)
+      const _providerBreakdown = Object.entries(providerTotals)
         .sort((a, b) => b[1] - a[1])
         .map(([provider, spent]) => ({ provider, spent: `$${spent.toFixed(2)}` }));
 

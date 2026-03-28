@@ -1,7 +1,9 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import type { Alert, UsageRecord, PriceSnapshot } from '@/types/database';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { getAuthenticatedCompany } from '@/lib/actions/_helpers';
+import type { Alert, PriceSnapshot, UsageRecord } from '@/types/database';
 
 interface DailySpend {
   date: string;
@@ -40,63 +42,66 @@ interface ActionResult<T = unknown> {
   error: string | null;
 }
 
+function getMonthWindow(timezone: string) {
+  const now = new Date();
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
+  const [year, month] = today.split('-');
+  return {
+    today,
+    monthStart: `${year}-${month}-01`,
+    now,
+  };
+}
+
 export async function getDashboardData(): Promise<ActionResult<DashboardData>> {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
 
-    const now = new Date();
-
-    // Fetch user timezone for accurate date calculation
     const { data: profile } = await supabase
       .from('profiles')
       .select('timezone')
-      .eq('id', user.id)
+      .eq('id', auth.userId!)
       .single();
     const tz = profile?.timezone || 'UTC';
+    const { today, monthStart, now } = getMonthWindow(tz);
 
-    // Calculate "today" and "month start" in the user's timezone
-    const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: tz });
-    const today = formatter.format(now);
-    const [year, month] = today.split('-');
-    const monthStart = `${year}-${month}-01`;
-
-    // Parallel queries
-    const [usageRes, keysRes, alertsRes, budgetRes] = await Promise.all([
-      supabase
-        .from('usage_records')
-        .select('date, cost_usd, provider, key_id')
-        .eq('user_id', user.id)
-        .gte('date', monthStart)
-        .lte('date', today),
+    const [keysRes, alertsRes, budgetRes] = await Promise.all([
       supabase
         .from('api_keys')
-        .select('id, nickname, provider, key_hint, is_active, last_used')
-        .eq('user_id', user.id),
+        .select('id, nickname, provider, key_hint, is_active, last_synced_at')
+        .eq('company_id', auth.companyId),
       supabase
         .from('alerts')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('company_id', auth.companyId)
         .order('created_at', { ascending: false })
         .limit(5),
       supabase
         .from('budgets')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('company_id', auth.companyId)
         .eq('scope', 'global')
         .limit(1),
     ]);
 
-    const usageRecords = usageRes.data ?? [];
     const keys = keysRes.data ?? [];
     const alerts = (alertsRes.data ?? []) as Alert[];
     const globalBudget = budgetRes.data?.[0] ?? null;
+    const keyIds = keys.map((key) => key.id);
 
-    // Calculate total spend this month
+    const usageRecords = keyIds.length > 0
+      ? (((await supabase
+          .from('usage_records')
+          .select('date, cost_usd, provider, key_id')
+          .in('key_id', keyIds)
+          .gte('date', monthStart)
+          .lte('date', today)).data ?? []) as Array<Pick<UsageRecord, 'date' | 'cost_usd' | 'provider' | 'key_id'>>)
+      : [];
+
     const totalSpend = usageRecords.reduce((sum, r) => sum + Number(r.cost_usd), 0);
 
-    // Calculate daily spend
     const dailyMap = new Map<string, number>();
     for (const r of usageRecords) {
       dailyMap.set(r.date, (dailyMap.get(r.date) ?? 0) + Number(r.cost_usd));
@@ -105,7 +110,6 @@ export async function getDashboardData(): Promise<ActionResult<DashboardData>> {
       .map(([date, amount]) => ({ date, amount: Math.round(amount * 100) / 100 }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Calculate spend by platform
     const platformMap = new Map<string, number>();
     for (const r of usageRecords) {
       platformMap.set(r.provider, (platformMap.get(r.provider) ?? 0) + Number(r.cost_usd));
@@ -118,46 +122,39 @@ export async function getDashboardData(): Promise<ActionResult<DashboardData>> {
       }))
       .sort((a, b) => b.amount - a.amount);
 
-    // Calculate top keys by spend
     const keySpendMap = new Map<string, number>();
     for (const r of usageRecords) {
       keySpendMap.set(r.key_id, (keySpendMap.get(r.key_id) ?? 0) + Number(r.cost_usd));
     }
     const topKeys: TopKey[] = keys
-      .map((k) => ({
-        id: k.id,
-        nickname: k.nickname,
-        provider: k.provider,
-        key_hint: k.key_hint,
-        current_month_spend: Math.round((keySpendMap.get(k.id) ?? 0) * 100) / 100,
+      .map((key) => ({
+        id: key.id,
+        nickname: key.nickname,
+        provider: key.provider,
+        key_hint: key.key_hint,
+        current_month_spend: Math.round((keySpendMap.get(key.id) ?? 0) * 100) / 100,
       }))
       .sort((a, b) => b.current_month_spend - a.current_month_spend)
       .slice(0, 5);
 
-    // Projected spend
-    const dayOfMonth = now.getDate();
+    const dayOfMonth = Number(today.split('-')[2] ?? now.getUTCDate());
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const projectedSpend = dayOfMonth > 0
       ? Math.round((totalSpend / dayOfMonth) * daysInMonth * 100) / 100
       : 0;
 
-    // Budget calculations
     const budgetAmount = globalBudget ? Number(globalBudget.amount_usd) : null;
     const budgetRemaining = budgetAmount !== null ? Math.round((budgetAmount - totalSpend) * 100) / 100 : null;
     const budgetRemainingPct = budgetAmount !== null && budgetAmount > 0
       ? Math.round(((budgetAmount - totalSpend) / budgetAmount) * 100)
       : null;
 
-    // Active key count
-    const activeKeyCount = keys.filter((k) => k.is_active).length;
-
-    // Last synced
-    const lastSyncedDates = keys
-      .map((k) => k.last_used)
+    const activeKeyCount = keys.filter((key) => key.is_active).length;
+    const lastSyncedAt = keys
+      .map((key) => key.last_synced_at)
       .filter(Boolean)
       .sort()
-      .reverse();
-    const lastSyncedAt = lastSyncedDates[0] ?? null;
+      .reverse()[0] ?? null;
 
     return {
       data: {
@@ -187,8 +184,18 @@ export async function getUsageRecords(
 ): Promise<ActionResult<{ records: UsageRecord[]; total: number }>> {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
+
+    const { data: keys } = await supabase
+      .from('api_keys')
+      .select('id')
+      .eq('company_id', auth.companyId);
+    const keyIds = (keys ?? []).map((key) => key.id);
+
+    if (keyIds.length === 0) {
+      return { data: { records: [], total: 0 }, error: null };
+    }
 
     const safePageSize = Math.min(Math.max(pageSize, 1), 500);
     const from = (page - 1) * safePageSize;
@@ -197,7 +204,7 @@ export async function getUsageRecords(
     let query = supabase
       .from('usage_records')
       .select('*', { count: 'exact' })
-      .eq('user_id', user.id)
+      .in('key_id', keyIds)
       .order('date', { ascending: false })
       .range(from, to);
 
@@ -212,14 +219,23 @@ export async function getUsageRecords(
   }
 }
 
-export async function getPriceSnapshots(): Promise<ActionResult<PriceSnapshot[]>> {
+export async function getPriceSnapshots(
+  category?: string,
+  includeDeprecated: boolean = false,
+): Promise<ActionResult<PriceSnapshot[]>> {
   try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from('price_snapshots')
-      .select('*')
-      .order('provider')
-      .order('model');
+    const supabase = createAdminClient();
+    let query = supabase.from('price_snapshots').select('*');
+
+    if (category && category !== 'all') {
+      query = query.eq('category', category);
+    }
+
+    if (!includeDeprecated) {
+      query = query.eq('is_deprecated', false);
+    }
+
+    const { data, error } = await query.order('provider').order('model');
 
     if (error) return { data: null, error: error.message };
     return { data: data as PriceSnapshot[], error: null };
