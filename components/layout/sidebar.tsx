@@ -66,7 +66,8 @@ const navItems: NavItem[] = [
     icon: Settings,
     children: [
       { href: '/settings', label: 'Profile', icon: User },
-      { href: '/settings?tab=preferences', label: 'Preferences', icon: Settings2 },
+      { href: '/settings/preferences', label: 'Preferences', icon: Settings2 },
+      { href: '/settings/notifications', label: 'Notifications', icon: Bell },
       { href: '/settings/billing', label: 'Billing & Plan', icon: CreditCard },
     ],
   },
@@ -75,9 +76,8 @@ const navItems: NavItem[] = [
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function isRouteActive(pathname: string, href: string) {
-  if (href.includes('?')) {
-    const basePath = href.split('?')[0];
-    return pathname === basePath && typeof window !== 'undefined' && window.location.search === `?${href.split('?')[1]}`;
+  if (href === '/settings') {
+    return pathname === '/settings';
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }

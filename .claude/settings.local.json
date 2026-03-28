@@ -42,7 +42,15 @@
       "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(dashboard\\)/keys/[id]/page.tsx\")",
       "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(auth\\)/verify-email/page.tsx\")",
       "Bash(cat \"/c/Users/adhia/OneDrive/Desktop/APi lens/api-lens/app/\\(auth\\)/forgot-password/page.tsx\")",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(start \"\" \"http://localhost:3001/sidebar-mockup.html\")",
+      "Bash(start \"\" \"http://localhost:3000/dashboard\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/dashboard)",
+      "Bash(curl -s http://localhost:3000/dashboard)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/settings)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/settings/preferences)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/settings/notifications)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/settings/billing)"
     ]
   }
 }
