@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { getAuthenticatedCompany } from '@/lib/actions/_helpers';
 
 function getAdminClient() {
   return createAdminClient(
@@ -25,11 +26,13 @@ export async function redeemAccessPass(code: string): Promise<{
   try {
     const supabase = await createClient();
 
-    // 1. Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return { error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.userId || !auth.companyId) {
+      return { error: auth.error ?? 'Not authenticated' };
     }
+
+    const userId = auth.userId;
+    const companyId = auth.companyId;
 
     // 2. Fetch the pass by code
     const { data: pass, error: passError } = await supabase
@@ -56,7 +59,7 @@ export async function redeemAccessPass(code: string): Promise<{
       .from('access_pass_redemptions')
       .select('id')
       .eq('pass_id', pass.id)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     if (existingRedemption) {
@@ -69,7 +72,7 @@ export async function redeemAccessPass(code: string): Promise<{
     const { data: subscription } = await supabase
       .from('subscriptions')
       .select('trial_ends_at')
-      .eq('user_id', user.id)
+      .eq('company_id', companyId)
       .single();
 
     const now = new Date();
@@ -90,7 +93,7 @@ export async function redeemAccessPass(code: string): Promise<{
         status: 'trialing',
         updated_at: now.toISOString(),
       })
-      .eq('user_id', user.id);
+      .eq('company_id', companyId);
 
     if (subError) {
       return { error: 'Failed to extend trial: ' + subError.message };
@@ -101,7 +104,7 @@ export async function redeemAccessPass(code: string): Promise<{
       .from('access_pass_redemptions')
       .insert({
         pass_id: pass.id,
-        user_id: user.id,
+        user_id: userId,
         redeemed_at: now.toISOString(),
         trial_extended_to: newEnd.toISOString(),
       });

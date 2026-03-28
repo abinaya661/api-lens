@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { dodo } from '@/lib/dodo/client';
+import { getAuthenticatedCompany } from '@/lib/actions/_helpers';
 import type { Subscription } from '@/types/database';
 
 interface ActionResult<T = unknown> {
@@ -10,23 +11,20 @@ interface ActionResult<T = unknown> {
   error: string | null;
 }
 
-export async function getSubscription(): Promise<ActionResult<Subscription>> {
+export async function getSubscription(): Promise<ActionResult<Subscription | null>> {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
 
     const { data, error } = await supabase
       .from('subscriptions')
       .select('*')
-      .eq('user_id', user.id)
-      .single();
+      .eq('company_id', auth.companyId)
+      .maybeSingle();
 
-    if (error) {
-      if (error.code === 'PGRST116') return { data: null, error: null };
-      return { data: null, error: error.message };
-    }
-    return { data, error: null };
+    if (error) return { data: null, error: error.message };
+    return { data: (data as Subscription | null) ?? null, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }
@@ -35,16 +33,15 @@ export async function getSubscription(): Promise<ActionResult<Subscription>> {
 export async function cancelSubscription(): Promise<ActionResult<null>> {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
 
     const { data: sub } = await supabase
       .from('subscriptions')
       .select('dodo_subscription_id')
-      .eq('user_id', user.id)
+      .eq('company_id', auth.companyId)
       .single();
 
-    // Cancel with Dodo first — only update local DB if this succeeds
     if (sub?.dodo_subscription_id) {
       try {
         await dodo.subscriptions.update(sub.dodo_subscription_id, {
@@ -63,7 +60,7 @@ export async function cancelSubscription(): Promise<ActionResult<null>> {
     const { error: dbError } = await adminSupabase
       .from('subscriptions')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-      .eq('user_id', user.id);
+      .eq('company_id', auth.companyId);
 
     if (dbError) {
       console.error('[cancel] DB update failed:', dbError);

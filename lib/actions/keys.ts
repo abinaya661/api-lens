@@ -6,6 +6,7 @@ import { decryptCredentials, encryptCredentials, extractKeyHint, type EncryptedP
 import { logAudit } from '@/lib/utils/audit';
 import { checkRateLimit, apiRateLimit } from '@/lib/ratelimit';
 import { getAdapter } from '@/lib/platforms/registry';
+import { getAuthenticatedCompany } from '@/lib/actions/_helpers';
 import type { ApiKey } from '@/types/database';
 
 interface ActionResult<T = unknown> {
@@ -24,20 +25,43 @@ function getValidationWindow() {
   };
 }
 
+async function ensureProjectBelongsToCompany(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  companyId: string,
+  projectId?: string | null,
+) {
+  if (!projectId) {
+    return { error: null };
+  }
+
+  const { data: project, error } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', projectId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (error || !project) {
+    return { error: 'Project not found' };
+  }
+
+  return { error: null };
+}
+
 export async function listKeys(): Promise<ActionResult<ApiKey[]>> {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
 
     const { data, error } = await supabase
       .from('api_keys')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('company_id', auth.companyId)
       .order('created_at', { ascending: false });
 
     if (error) return { data: null, error: error.message };
-    return { data, error: null };
+    return { data: data as ApiKey[], error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }
@@ -46,18 +70,18 @@ export async function listKeys(): Promise<ActionResult<ApiKey[]>> {
 export async function getKey(id: string): Promise<ActionResult<ApiKey>> {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
 
     const { data, error } = await supabase
       .from('api_keys')
       .select('*')
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('company_id', auth.companyId)
       .single();
 
     if (error) return { data: null, error: error.message };
-    return { data, error: null };
+    return { data: data as ApiKey, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }
@@ -69,16 +93,21 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
     if (!parsed.success) return { data: null, error: parsed.error.issues[0]?.message ?? 'Validation failed' };
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId || !auth.userId) {
+      return { data: null, error: auth.error ?? 'Not authenticated' };
+    }
 
-    // Redis rate limit: 10 key creations per minute per user
-    const rl = await checkRateLimit(apiRateLimit, `add_key:${user.id}`);
+    const rl = await checkRateLimit(apiRateLimit, `add_key:${auth.userId}`);
     if (!rl.success) {
       return { data: null, error: 'Too many requests. Please wait a minute.' };
     }
 
     const { api_key, provider, nickname, project_id, endpoint_url, notes } = parsed.data;
+    const projectCheck = await ensureProjectBelongsToCompany(supabase, auth.companyId, project_id ?? null);
+    if (projectCheck.error) {
+      return { data: null, error: projectCheck.error };
+    }
 
     const adapter = getAdapter(provider);
     if (!adapter) {
@@ -93,7 +122,6 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
       };
     }
 
-    // Encrypt the API key
     const encrypted = encryptCredentials(api_key);
     const keyHint = extractKeyHint(api_key);
     const validatedAt = new Date().toISOString();
@@ -101,13 +129,13 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
     const { data, error } = await supabase
       .from('api_keys')
       .insert({
-        user_id: user.id,
+        company_id: auth.companyId,
+        project_id: project_id ?? null,
         provider,
         nickname,
-        encrypted_key: JSON.stringify(encrypted),
+        encrypted_credentials: encrypted,
         key_hint: keyHint,
-        is_valid: true,
-        has_usage_api: true,
+        is_active: true,
         last_validated: validatedAt,
         last_failure_reason: null,
         consecutive_failures: 0,
@@ -119,28 +147,15 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
 
     if (error) return { data: null, error: error.message };
 
-    // If project_id provided, create project_keys link
-    if (project_id && data) {
-      const { error: projectKeyError } = await supabase.from('project_keys').insert({
-        project_id,
-        key_id: data.id,
-      });
-
-      if (projectKeyError) {
-        await supabase.from('api_keys').delete().eq('id', data.id).eq('user_id', user.id);
-        return { data: null, error: projectKeyError.message };
-      }
-    }
-
     await logAudit(supabase, {
-      userId: user.id,
+      userId: auth.userId,
       action: 'key.created',
       entityType: 'api_key',
       entityId: data?.id,
-      metadata: { provider, nickname },
+      metadata: { provider, nickname, project_id: project_id ?? null },
     });
 
-    return { data, error: null };
+    return { data: data as ApiKey, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }
@@ -152,30 +167,36 @@ export async function updateKey(input: UpdateKeyInput): Promise<ActionResult<Api
     if (!parsed.success) return { data: null, error: parsed.error.issues[0]?.message ?? 'Validation failed' };
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId || !auth.userId) {
+      return { data: null, error: auth.error ?? 'Not authenticated' };
+    }
 
     const { id, ...updates } = parsed.data;
+    const projectCheck = await ensureProjectBelongsToCompany(supabase, auth.companyId, updates.project_id);
+    if (projectCheck.error) {
+      return { data: null, error: projectCheck.error };
+    }
 
     const { data, error } = await supabase
       .from('api_keys')
       .update(updates)
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('company_id', auth.companyId)
       .select()
       .single();
 
     if (error) return { data: null, error: error.message };
 
     await logAudit(supabase, {
-      userId: user.id,
+      userId: auth.userId,
       action: 'key.updated',
       entityType: 'api_key',
       entityId: id,
       metadata: updates,
     });
 
-    return { data, error: null };
+    return { data: data as ApiKey, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }
@@ -184,14 +205,16 @@ export async function updateKey(input: UpdateKeyInput): Promise<ActionResult<Api
 export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>> {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId || !auth.userId) {
+      return { data: null, error: auth.error ?? 'Not authenticated' };
+    }
 
     const { data: key, error: keyError } = await supabase
       .from('api_keys')
       .select('*')
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('company_id', auth.companyId)
       .single();
 
     if (keyError || !key) {
@@ -205,23 +228,23 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
       const { data, error } = await supabase
         .from('api_keys')
         .update({
-          is_valid: false,
           is_active: false,
-          has_usage_api: false,
           last_validated: validatedAt,
           last_failure_reason: 'This provider is not supported for API key tracking yet.',
           consecutive_failures: Math.min((key.consecutive_failures ?? 0) + 1, 10),
         })
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('company_id', auth.companyId)
         .select()
         .single();
 
       if (error) return { data: null, error: error.message };
-      return { data, error: null };
+      return { data: data as ApiKey, error: null };
     }
 
-    const encryptedPayload: EncryptedPayload = JSON.parse(key.encrypted_key);
+    const encryptedPayload = key.encrypted_credentials
+      ? (key.encrypted_credentials as unknown as EncryptedPayload)
+      : JSON.parse(key.encrypted_key ?? '{}') as EncryptedPayload;
     const plainKey = decryptCredentials(encryptedPayload);
     const validation = await adapter.validateKey(plainKey);
 
@@ -229,22 +252,20 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
       const { data, error } = await supabase
         .from('api_keys')
         .update({
-          is_valid: false,
           is_active: false,
-          has_usage_api: false,
           last_validated: validatedAt,
           last_failure_reason: validation.error ?? 'The provider rejected this key during manual refresh.',
           consecutive_failures: Math.min((key.consecutive_failures ?? 0) + 1, 10),
         })
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('company_id', auth.companyId)
         .select()
         .single();
 
       if (error) return { data: null, error: error.message };
 
       await logAudit(supabase, {
-        userId: user.id,
+        userId: auth.userId,
         action: 'key.updated',
         entityType: 'api_key',
         entityId: id,
@@ -255,7 +276,7 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
         },
       });
 
-      return { data, error: null };
+      return { data: data as ApiKey, error: null };
     }
 
     const { dateFrom, dateTo } = getValidationWindow();
@@ -265,22 +286,20 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
       const { data, error } = await supabase
         .from('api_keys')
         .update({
-          is_valid: false,
           is_active: false,
-          has_usage_api: false,
           last_validated: validatedAt,
           last_failure_reason: syncCheck.error ?? 'The provider usage check failed during manual refresh.',
           consecutive_failures: Math.min((key.consecutive_failures ?? 0) + 1, 10),
         })
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('company_id', auth.companyId)
         .select()
         .single();
 
       if (error) return { data: null, error: error.message };
 
       await logAudit(supabase, {
-        userId: user.id,
+        userId: auth.userId,
         action: 'key.updated',
         entityType: 'api_key',
         entityId: id,
@@ -291,29 +310,27 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
         },
       });
 
-      return { data, error: null };
+      return { data: data as ApiKey, error: null };
     }
 
     const shouldReactivate = !key.is_active && !!key.last_failure_reason;
     const { data, error } = await supabase
       .from('api_keys')
       .update({
-        is_valid: true,
         is_active: key.is_active || shouldReactivate,
-        has_usage_api: true,
         last_validated: validatedAt,
         last_failure_reason: null,
         consecutive_failures: 0,
       })
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('company_id', auth.companyId)
       .select()
       .single();
 
     if (error) return { data: null, error: error.message };
 
     await logAudit(supabase, {
-      userId: user.id,
+      userId: auth.userId,
       action: 'key.updated',
       entityType: 'api_key',
       entityId: id,
@@ -323,7 +340,7 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
       },
     });
 
-    return { data, error: null };
+    return { data: data as ApiKey, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }
@@ -332,32 +349,30 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
 export async function deleteKey(id: string): Promise<ActionResult<null>> {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId || !auth.userId) {
+      return { data: null, error: auth.error ?? 'Not authenticated' };
+    }
 
-    // Verify the key belongs to this user before deleting project links
     const { data: keyCheck } = await supabase
       .from('api_keys')
       .select('id')
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('company_id', auth.companyId)
       .single();
 
     if (!keyCheck) return { data: null, error: 'Key not found' };
-
-    // Now safe to delete project_keys
-    await supabase.from('project_keys').delete().eq('key_id', id);
 
     const { error } = await supabase
       .from('api_keys')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('company_id', auth.companyId);
 
     if (error) return { data: null, error: error.message };
 
     await logAudit(supabase, {
-      userId: user.id,
+      userId: auth.userId,
       action: 'key.deleted',
       entityType: 'api_key',
       entityId: id,

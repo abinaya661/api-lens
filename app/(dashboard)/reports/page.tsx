@@ -54,7 +54,15 @@ export default function ReportsPage() {
     const headers = ['Date', 'Provider', 'Model', 'Input Tokens', 'Output Tokens', 'Total Tokens', 'Cost (USD)'];
     const csv = [
       headers.join(','),
-      ...records.map((r) => [r.date, r.provider, r.model, r.input_tokens, r.output_tokens, r.total_tokens, r.cost_usd].join(',')),
+      ...records.map((r) => [
+        r.date,
+        r.provider,
+        r.model,
+        r.input_tokens,
+        r.output_tokens,
+        r.total_tokens ?? (r.input_tokens + r.output_tokens),
+        r.cost_usd,
+      ].join(',')),
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -133,7 +141,9 @@ export default function ReportsPage() {
                     <td className="py-3 px-4 text-zinc-400 font-mono text-xs">{row.model}</td>
                     <td className="py-3 px-4 text-right text-zinc-500 tabular-nums hidden md:table-cell">{formatNumber(row.input_tokens)}</td>
                     <td className="py-3 px-4 text-right text-zinc-500 tabular-nums hidden md:table-cell">{formatNumber(row.output_tokens)}</td>
-                    <td className="py-3 px-4 text-right text-zinc-300 tabular-nums">{formatNumber(row.total_tokens)}</td>
+                    <td className="py-3 px-4 text-right text-zinc-300 tabular-nums">
+                      {formatNumber(row.total_tokens ?? (row.input_tokens + row.output_tokens))}
+                    </td>
                     <td className="py-3 px-4 text-right text-zinc-100 font-medium tabular-nums">{formatCurrency(row.cost_usd)}</td>
                   </tr>
                 ))}

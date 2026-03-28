@@ -3,17 +3,26 @@
 // ============================================
 
 import type {
-  Profile, Project, ApiKey, Budget, Alert,
-  UsageRecord, PriceSnapshot, SavedEstimate,
-  Subscription, BudgetScope,
+  Alert,
+  ApiKey,
+  Budget,
+  BudgetScope,
+  ImagePricingTier,
+  PriceSnapshot,
+  Profile,
+  Project,
+  SavedEstimate,
+  Subscription,
+  UsageRecord,
 } from './database';
-import type { Provider, KeyHealth } from './providers';
+import type { KeyHealth, Provider } from './providers';
 
-// --- Generic API Response ---
 export interface ApiResponse<T> {
   data: T | null;
   error: string | null;
 }
+
+export type ActionResult<T> = ApiResponse<T>;
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -23,7 +32,6 @@ export interface PaginatedResponse<T> {
   has_more: boolean;
 }
 
-// --- Auth ---
 export interface SignUpRequest {
   email: string;
   password: string;
@@ -35,7 +43,6 @@ export interface LoginRequest {
   password: string;
 }
 
-// --- Keys ---
 export interface CreateKeyRequest {
   provider: Provider;
   label: string;
@@ -64,7 +71,6 @@ export interface ValidateKeyResponse {
   details?: string;
 }
 
-// --- Projects ---
 export interface CreateProjectRequest {
   name: string;
   description?: string;
@@ -79,22 +85,7 @@ export interface ProjectWithStats extends Project {
   total_spend: number;
   projected_spend: number;
   key_count: number;
-  budget_progress: number | null; // percentage if budget exists
-}
-
-// --- Dashboard ---
-export interface DashboardData {
-  total_spend_this_month: number;
-  projected_month_end: number;
-  budget_remaining_usd: number | null;
-  budget_remaining_pct: number | null;
-  active_key_count: number;
-  keys_by_health: Record<KeyHealth, number>;
-  daily_spend: DailySpend[];
-  spend_by_platform: PlatformSpend[];
-  top_keys: KeyWithSpend[];
-  recent_alerts: Alert[];
-  last_synced_at: string | null;
+  budget_progress: number | null;
 }
 
 export interface DailySpend {
@@ -103,12 +94,26 @@ export interface DailySpend {
 }
 
 export interface PlatformSpend {
-  provider: Provider;
+  provider: Provider | string;
   amount: number;
   percentage: number;
 }
 
-// --- Budgets ---
+export interface DashboardData {
+  total_spend_this_month: number;
+  projected_month_end: number;
+  budget_remaining_usd?: number | null;
+  budget_remaining_pct?: number | null;
+  budget_remaining?: number | null;
+  active_key_count: number;
+  keys_by_health?: Record<KeyHealth, number>;
+  daily_spend: DailySpend[];
+  spend_by_platform: PlatformSpend[];
+  top_keys: KeyWithSpend[];
+  recent_alerts: Alert[];
+  last_synced_at: string | null;
+}
+
 export interface CreateBudgetRequest {
   scope: BudgetScope;
   scope_id?: string;
@@ -127,7 +132,47 @@ export interface BudgetWithProgress extends Budget {
   scope_name: string;
 }
 
-// --- Cost Estimator ---
+export type UseCaseCategory =
+  | 'text'
+  | 'reasoning'
+  | 'image'
+  | 'audio'
+  | 'video'
+  | 'code'
+  | 'embedding';
+
+export interface ForecastDataPoint {
+  date: string;
+  actual: number;
+  forecast: number | null;
+}
+
+export interface ProjectForecast {
+  project_id: string;
+  project_name: string;
+  current_spend: number;
+  forecast_month_end: number;
+  confidence_low: number;
+  confidence_high: number;
+  daily_data: ForecastDataPoint[];
+  by_provider: PlatformSpend[];
+  by_model: { model: string; provider: string; spend: number }[];
+  trend: 'increasing' | 'decreasing' | 'stable';
+}
+
+export interface CompanyForecast {
+  current_spend: number;
+  forecast_month_end: number;
+  confidence_low: number;
+  confidence_high: number;
+  daily_data: ForecastDataPoint[];
+  by_project: ProjectForecast[];
+  unassigned_spend: number;
+  by_provider: PlatformSpend[];
+  budget_amount: number | null;
+  budget_utilization_pct: number | null;
+}
+
 export interface EstimatorRequest {
   provider: Provider;
   model: string;
@@ -154,11 +199,10 @@ export interface EstimatorComparison {
   savings_suggestion: string | null;
 }
 
-// --- Reports ---
 export interface MonthlyReport {
   id: string;
   user_id: string;
-  month: string; // YYYY-MM
+  month: string;
   total_spend: number;
   previous_month_spend: number;
   change_percentage: number;
@@ -169,10 +213,22 @@ export interface MonthlyReport {
   created_at: string;
 }
 
-// --- Custom Cost Entries ---
 export interface CreateCustomCostRequest {
   key_id: string;
   amount_usd: number;
   week_start: string;
   notes?: string;
 }
+
+export type {
+  Alert,
+  ApiKey,
+  Budget,
+  ImagePricingTier,
+  PriceSnapshot,
+  Profile,
+  Project,
+  SavedEstimate,
+  Subscription,
+  UsageRecord,
+};

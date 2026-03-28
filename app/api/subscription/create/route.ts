@@ -46,6 +46,16 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const { data: company } = await supabase
+    .from('companies')
+    .select('id')
+    .eq('owner_id', user.id)
+    .maybeSingle();
+
+  if (!company?.id) {
+    return Response.json({ error: 'Company not found' }, { status: 400 });
+  }
+
   try {
     const { plan, discountCode } = await req.json() as {
       plan: 'monthly' | 'annual';
@@ -82,6 +92,7 @@ export async function POST(req: NextRequest) {
       return_url: `${appUrl}/subscription?payment=success`,
       metadata: {
         user_id: user.id,
+        company_id: company.id,
         plan,
       },
     });

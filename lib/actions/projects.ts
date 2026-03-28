@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createProjectSchema, updateProjectSchema, type CreateProjectInput, type UpdateProjectInput } from '@/lib/validations/project';
+import { getAuthenticatedCompany } from '@/lib/actions/_helpers';
 import type { Project } from '@/types/database';
 
 interface ActionResult<T = unknown> {
@@ -12,17 +13,17 @@ interface ActionResult<T = unknown> {
 export async function listProjects(): Promise<ActionResult<Project[]>> {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
 
     const { data, error } = await supabase
       .from('projects')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('company_id', auth.companyId)
       .order('created_at', { ascending: false });
 
     if (error) return { data: null, error: error.message };
-    return { data, error: null };
+    return { data: data as Project[], error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }
@@ -31,18 +32,18 @@ export async function listProjects(): Promise<ActionResult<Project[]>> {
 export async function getProject(id: string): Promise<ActionResult<Project>> {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
 
     const { data, error } = await supabase
       .from('projects')
       .select('*')
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('company_id', auth.companyId)
       .single();
 
     if (error) return { data: null, error: error.message };
-    return { data, error: null };
+    return { data: data as Project, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }
@@ -54,17 +55,23 @@ export async function createProject(input: CreateProjectInput): Promise<ActionRe
     if (!parsed.success) return { data: null, error: parsed.error.issues[0]?.message ?? 'Validation failed' };
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
 
     const { data, error } = await supabase
       .from('projects')
-      .insert({ user_id: user.id, ...parsed.data })
+      .insert({
+        company_id: auth.companyId,
+        name: parsed.data.name,
+        description: parsed.data.description ?? null,
+        color: parsed.data.color,
+        is_active: true,
+      })
       .select()
       .single();
 
     if (error) return { data: null, error: error.message };
-    return { data, error: null };
+    return { data: data as Project, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }
@@ -76,8 +83,8 @@ export async function updateProject(input: UpdateProjectInput): Promise<ActionRe
     if (!parsed.success) return { data: null, error: parsed.error.issues[0]?.message ?? 'Validation failed' };
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
 
     const { id, ...updates } = parsed.data;
 
@@ -85,12 +92,12 @@ export async function updateProject(input: UpdateProjectInput): Promise<ActionRe
       .from('projects')
       .update(updates)
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('company_id', auth.companyId)
       .select()
       .single();
 
     if (error) return { data: null, error: error.message };
-    return { data, error: null };
+    return { data: data as Project, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }
@@ -99,17 +106,20 @@ export async function updateProject(input: UpdateProjectInput): Promise<ActionRe
 export async function deleteProject(id: string): Promise<ActionResult<null>> {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
 
-    // Remove project_keys links first
-    await supabase.from('project_keys').delete().eq('project_id', id);
+    await supabase
+      .from('api_keys')
+      .update({ project_id: null })
+      .eq('project_id', id)
+      .eq('company_id', auth.companyId);
 
     const { error } = await supabase
       .from('projects')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('company_id', auth.companyId);
 
     if (error) return { data: null, error: error.message };
     return { data: null, error: null };

@@ -5,12 +5,22 @@ import type { ApiKey } from '../types/database';
 function makeKey(overrides: Partial<ApiKey> = {}): ApiKey {
   return {
     id: 'key_123',
+    company_id: 'company_123',
+    project_id: null,
     user_id: 'user_123',
     provider: 'openai',
     nickname: 'Test Key',
+    encrypted_credentials: {
+      ciphertext: 'cipher',
+      iv: 'iv',
+      tag: 'tag',
+      dek: 'dek',
+    },
     encrypted_key: '{}',
     key_hint: '1234',
     is_active: true,
+    last_synced_at: null,
+    last_error: null,
     is_valid: true,
     last_validated: '2026-03-25T00:00:00.000Z',
     last_used: null,

@@ -1,96 +1,119 @@
 // ============================================
-// Database Entity Types — Mirrors Supabase schema
+// Database Entity Types
+// Mirrors the current Supabase schema while keeping a small
+// compatibility surface for older call sites that still expect
+// pre-migration field names.
 // ============================================
 
-// --- Profiles (replaces Companies) ---
+import { Provider } from './providers';
+
+export interface NotificationPrefs {
+  budget_alerts_email?: boolean;
+  key_validation_failure_email?: boolean;
+  trial_ending_reminder_email?: boolean;
+  weekly_spending_report_email?: boolean;
+  key_rotation_reminder_email?: boolean;
+}
+
 export interface Profile {
-  id: string; // matches auth.users.id
+  id: string;
   full_name: string | null;
-  avatar_url: string | null;
+  company_name: string | null;
+  email: string | null;
+  onboarded: boolean;
   timezone: string;
   currency: string;
-  onboarded: boolean;
-  role: string | null;
-  company_name: string | null;
+  notification_prefs?: NotificationPrefs | null;
+  avatar_url?: string | null;
+  role?: string | null;
   created_at: string;
   updated_at: string;
 }
 
-// --- Projects ---
+export interface Company {
+  id: string;
+  name: string;
+  owner_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Project {
   id: string;
-  user_id: string;
+  company_id: string;
   name: string;
   description: string | null;
   color: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  user_id?: string;
 }
 
-import { Provider } from './providers';
+export interface EncryptedCredentials {
+  ciphertext: string;
+  iv: string;
+  tag: string;
+  dek: string;
+}
 
-// --- API Keys ---
 export interface ApiKey {
   id: string;
-  user_id: string;
+  company_id?: string;
+  project_id?: string | null;
   provider: Provider;
   nickname: string;
-  encrypted_key: string;
-  key_hint: string; // last 4 chars
+  encrypted_credentials?: EncryptedCredentials;
+  key_hint: string;
   is_active: boolean;
-  is_valid: boolean;
-  last_validated: string | null;
-  last_used: string | null;
-  rotation_due: string | null;
-  notes: string | null;
-  endpoint_url: string | null;
-  detected_pattern: number | null;
+  last_synced_at: string | null;
   consecutive_failures: number;
+  last_error: string | null;
+  endpoint_url: string | null;
+  notes: string | null;
+  rotation_due: string | null;
+  last_validated: string | null;
   last_failure_reason: string | null;
-  has_usage_api: boolean;
-  proxy_enabled: boolean;
-  proxy_key_id: string | null;
   created_at: string;
   updated_at: string;
+  user_id?: string;
+  encrypted_key?: string;
+  is_valid?: boolean;
+  last_used?: string | null;
+  detected_pattern?: number | null;
+  has_usage_api?: boolean;
+  proxy_enabled?: boolean;
+  proxy_key_id?: string | null;
 }
 
-// --- Project Keys (join table) ---
-export interface ProjectKey {
-  id: string;
-  project_id: string;
-  key_id: string;
-  assigned_at: string;
-}
-
-// --- Usage Records ---
 export interface UsageRecord {
   id: string;
   key_id: string;
-  user_id: string;
-  date: string;
   provider: string;
   model: string;
+  date: string;
   input_tokens: number;
   output_tokens: number;
-  total_tokens: number;
-  unit_type: string;
-  unit_count: number;
   cost_usd: number;
   request_count: number;
-  source: string;
-  proxy_request_id: string | null;
-  project_feature: string | null;
-  end_user_id: string | null;
-  created_at: string;
+  synced_at: string;
+  user_id?: string;
+  total_tokens?: number;
+  unit_type?: string;
+  unit_count?: number;
+  source?: string;
+  proxy_request_id?: string | null;
+  project_feature?: string | null;
+  end_user_id?: string | null;
+  created_at?: string;
+  recorded_at?: string;
 }
 
-// --- Budgets ---
 export type BudgetScope = 'global' | 'platform' | 'project' | 'key';
 
 export interface Budget {
   id: string;
-  user_id: string;
+  company_id: string;
   scope: BudgetScope;
   scope_id: string | null;
   platform: string | null;
@@ -100,12 +123,12 @@ export interface Budget {
   alert_75: boolean;
   alert_90: boolean;
   alert_100: boolean;
-  last_alerted_threshold: number | null;
-  created_at: string;
-  updated_at: string;
+  last_alerted_threshold?: number | null;
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string;
 }
 
-// --- Alerts ---
 export type AlertType =
   | 'budget_threshold'
   | 'spend_spike'
@@ -117,21 +140,24 @@ export type AlertSeverity = 'info' | 'warning' | 'critical';
 
 export interface Alert {
   id: string;
-  user_id: string;
+  company_id: string;
   type: AlertType;
-  scope: string | null;
-  scope_id: string | null;
-  scope_name: string | null;
+  severity: AlertSeverity;
   title: string;
   message: string;
+  related_key_id: string | null;
+  related_project_id: string | null;
+  related_budget_id: string | null;
   is_read: boolean;
-  is_emailed: boolean;
-  severity: AlertSeverity;
-  metadata: Record<string, unknown> | null;
+  is_emailed?: boolean;
   created_at: string;
+  user_id?: string;
+  scope?: string | null;
+  scope_id?: string | null;
+  scope_name?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
-// --- Platforms (reference data) ---
 export interface Platform {
   id: string;
   name: string;
@@ -167,7 +193,12 @@ export interface Platform {
   created_at: string;
 }
 
-// --- Price Snapshots ---
+export interface ImagePricingTier {
+  quality: string;
+  resolution: string;
+  price: number;
+}
+
 export interface PriceSnapshot {
   id: string;
   provider: string;
@@ -180,27 +211,39 @@ export interface PriceSnapshot {
   batch_discount: number | null;
   supports_caching: boolean | null;
   captured_at: string;
+  category: string;
+  capability_score: number;
+  is_deprecated: boolean;
+  context_window: number | null;
+  supports_batch: boolean;
+  batch_input_per_mtok: number | null;
+  batch_output_per_mtok: number | null;
+  cached_input_per_mtok: number | null;
+  image_prices: ImagePricingTier[] | null;
+  per_unit_price: number | null;
 }
 
-// --- Saved Estimates ---
 export interface SavedEstimate {
   id: string;
-  user_id: string;
+  company_id?: string | null;
   project_id: string | null;
-  name: string;
+  name?: string;
   provider: string;
   model: string;
   messages_per_day: number;
-  avg_input_tokens: number;
-  avg_output_tokens: number;
-  num_users: number;
-  use_batch: boolean;
-  projected_monthly_usd: number | null;
-  actual_monthly_usd: number | null;
+  avg_input_tokens?: number;
+  avg_output_tokens?: number;
+  tokens_per_message?: number;
+  users?: number;
+  num_users?: number;
+  use_batch?: boolean;
+  projected_monthly_usd?: number | null;
+  actual_monthly_usd?: number | null;
+  estimated_monthly_cost_usd?: number | null;
   created_at: string;
+  user_id?: string;
 }
 
-// --- Reconciliation Logs ---
 export interface ReconciliationLog {
   id: string;
   user_id: string;
@@ -214,21 +257,31 @@ export interface ReconciliationLog {
   created_at: string;
 }
 
-// --- Subscriptions ---
 export type PlanType = 'monthly' | 'annual';
-export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'cancelled';
+export type SubscriptionStatus =
+  | 'trial'
+  | 'trialing'
+  | 'active'
+  | 'past_due'
+  | 'grace_period'
+  | 'frozen'
+  | 'cancelled';
 
 export interface Subscription {
   id: string;
-  user_id: string;
+  company_id: string;
   status: SubscriptionStatus;
   plan: PlanType | null;
   trial_ends_at: string | null;
+  current_period_start?: string | null;
+  current_period_end?: string | null;
   dodo_subscription_id: string | null;
   dodo_customer_id: string | null;
   period_end: string | null;
   last_payment_at: string | null;
   grace_period_ends_at: string | null;
+  payment_method_collected?: boolean;
   created_at: string;
   updated_at: string;
+  user_id?: string;
 }

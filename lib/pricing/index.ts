@@ -65,6 +65,34 @@ export function calculateCost(
   return Math.round((inputCost + outputCost) * 1_000_000) / 1_000_000; // 6 decimal precision
 }
 
+export function calculateCostWithBatch(
+  inputTokens: number,
+  outputTokens: number,
+  pricing: PriceSnapshot,
+): number {
+  const inputCost =
+    (inputTokens / 1_000_000) *
+    Number(pricing.batch_input_per_mtok ?? pricing.input_per_mtok);
+  const outputCost =
+    (outputTokens / 1_000_000) *
+    Number(pricing.batch_output_per_mtok ?? pricing.output_per_mtok);
+
+  return Math.round((inputCost + outputCost) * 1_000_000) / 1_000_000;
+}
+
+export function calculateCostWithCache(
+  inputTokens: number,
+  outputTokens: number,
+  pricing: PriceSnapshot,
+): number {
+  const inputCost =
+    (inputTokens / 1_000_000) *
+    Number(pricing.cached_input_per_mtok ?? pricing.input_per_mtok);
+  const outputCost = (outputTokens / 1_000_000) * Number(pricing.output_per_mtok);
+
+  return Math.round((inputCost + outputCost) * 1_000_000) / 1_000_000;
+}
+
 /**
  * Get pricing for a provider's models.
  */
