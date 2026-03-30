@@ -19,7 +19,7 @@ export async function syncAllKeys(): Promise<SyncStats> {
   // Fetch all active keys
   const { data: keys, error } = await supabase
     .from('api_keys')
-    .select('id, company_id, provider, encrypted_credentials, nickname, consecutive_failures')
+    .select('id, company_id, provider, encrypted_credentials, encrypted_key, nickname, consecutive_failures')
     .eq('is_active', true);
 
   if (error || !keys) {
@@ -37,8 +37,17 @@ export async function syncAllKeys(): Promise<SyncStats> {
     }
 
     try {
-      // Decrypt the key (encrypted_credentials is stored as JSONB — no JSON.parse needed)
-      const payload = key.encrypted_credentials as unknown as EncryptedPayload;
+      // Support both the current JSONB payload and legacy stringified payloads.
+      const payload = key.encrypted_credentials
+        ? (key.encrypted_credentials as unknown as EncryptedPayload)
+        : key.encrypted_key
+          ? (JSON.parse(key.encrypted_key) as EncryptedPayload)
+          : null;
+
+      if (!payload) {
+        throw new Error('Missing encrypted credentials payload');
+      }
+
       const plainKey = decryptCredentials(payload);
 
       // Fetch usage for last 2 days (to catch delayed data)
@@ -154,14 +163,15 @@ export async function checkBudgets(): Promise<{ alerts_created: number }> {
     let totalSpend = 0;
 
     if (budget.scope === 'project' && budget.scope_id) {
-      // Sum usage for all keys belonging to this project
+      // Sum usage for all keys assigned directly to this project
       const { data: projectKeys } = await supabase
-        .from('project_keys')
-        .select('key_id')
+        .from('api_keys')
+        .select('id')
+        .eq('company_id', budget.company_id)
         .eq('project_id', budget.scope_id);
 
       if (projectKeys && projectKeys.length > 0) {
-        const keyIds = projectKeys.map((pk: { key_id: string }) => pk.key_id);
+        const keyIds = projectKeys.map((pk: { id: string }) => pk.id);
         const { data: records } = await supabase
           .from('usage_records')
           .select('cost_usd')

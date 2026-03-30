@@ -218,12 +218,13 @@ export async function GET(request: NextRequest) {
 
         const projectBreakdown: { name: string; spent: string }[] = [];
         for (const project of projects ?? []) {
-          const { data: pks } = await supabase
-            .from('project_keys')
-            .select('key_id')
+          const { data: projectKeys } = await supabase
+            .from('api_keys')
+            .select('id')
+            .eq('company_id', companyId)
             .eq('project_id', project.id);
 
-          const keyIds = (pks ?? []).map((pk: { key_id: string }) => pk.key_id);
+          const keyIds = (projectKeys ?? []).map((pk: { id: string }) => pk.id);
           if (keyIds.length === 0) continue;
 
           const projectSpend = monthRecords

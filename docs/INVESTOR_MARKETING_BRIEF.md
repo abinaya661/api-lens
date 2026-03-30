@@ -39,6 +39,8 @@
 | **Project-Level Tracking** | Organize keys by project/team - see which project drives costs and where to optimize |
 | **Automated Reports** | CSV exports, date-filtered reports, trend analysis - no manual spreadsheet work |
 
+**Current product model:** API Lens operates as a company-owned workspace with one primary user today, giving smaller teams centralized cost control now while keeping the path open for future multi-user expansion.
+
 ---
 
 ## Supported AI Providers

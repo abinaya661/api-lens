@@ -348,7 +348,7 @@ function SubscriptionPageInner() {
                 className={`flex items-center gap-2 px-6 py-2 rounded-md text-sm font-medium transition-all ${billingCycle === 'annual' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'}`}
                 onClick={() => setBillingCycle('annual')}
               >
-                Annual <span className="bg-brand-500/20 text-brand-400 px-1.5 py-0.5 rounded textxs font-bold uppercase">Save 17%</span>
+                Annual <span className="rounded bg-brand-500/20 px-1.5 py-0.5 text-xs font-bold uppercase text-brand-400">Save 17%</span>
               </button>
             </div>
           </div>

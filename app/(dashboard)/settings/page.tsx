@@ -1,7 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { PageHeader, ErrorState, SkeletonCard } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { useProfile, useUpdateProfile } from '@/hooks/use-profile';
 
 export default function SettingsPage() {
@@ -11,17 +20,26 @@ export default function SettingsPage() {
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
 
+  const fullNameId = useId();
+  const companyNameId = useId();
+
   useEffect(() => {
-    if (profile) {
-      setFullName(profile.full_name || '');
-      setCompanyName(profile.company_name || '');
-    }
+    if (!profile) return;
+
+    setFullName(profile.full_name ?? '');
+    setCompanyName(profile.company_name ?? '');
   }, [profile]);
 
-  function handleSave() {
+  const savedFullName = profile?.full_name ?? '';
+  const savedCompanyName = profile?.company_name ?? '';
+  const isDirty = fullName !== savedFullName || companyName !== savedCompanyName;
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
     updateMutation.mutate({
-      full_name: fullName || undefined,
-      company_name: companyName || null,
+      full_name: fullName.trim() || undefined,
+      company_name: companyName.trim() || null,
     });
   }
 
@@ -47,31 +65,68 @@ export default function SettingsPage() {
     <div className="animate-fade-in space-y-6">
       <PageHeader title="Profile" description="Manage your personal information." />
 
-      <div className="glass-card p-6 space-y-6 max-w-3xl">
-        <div>
-          <h3 className="text-lg font-medium text-white mb-1">Personal Information</h3>
-          <p className="text-sm text-zinc-500">Update your personal details here.</p>
-        </div>
-        <hr className="border-zinc-800" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Full Name</label>
-            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white focus:ring-2 focus:ring-brand-500/40" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Company Name</label>
-            <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white focus:ring-2 focus:ring-brand-500/40" />
-          </div>
-        </div>
-        <div className="flex justify-end pt-4">
-          <button onClick={handleSave} disabled={updateMutation.isPending}
-            className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition">
-            {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </div>
+      <Card className="glass-card max-w-3xl border-zinc-800/70 bg-zinc-950/70 shadow-none">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-lg text-white">Workspace Owner Profile</CardTitle>
+          <CardDescription className="text-sm text-zinc-500">
+            These details appear in account emails and identify the company that owns this workspace.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 gap-6">
+              <div className="space-y-2">
+                <label htmlFor={fullNameId} className="text-sm font-medium text-zinc-200">
+                  Full Name
+                </label>
+                <Input
+                  id={fullNameId}
+                  name="full_name"
+                  autoComplete="name"
+                  placeholder="Ada Lovelace"
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  className="border-zinc-800 bg-zinc-900/80 text-zinc-100 placeholder:text-zinc-500"
+                />
+                <p className="text-xs text-zinc-500">
+                  Use your real name so billing emails and workspace ownership screens stay clear.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor={companyNameId} className="text-sm font-medium text-zinc-200">
+                  Company Name
+                </label>
+                <Input
+                  id={companyNameId}
+                  name="company_name"
+                  autoComplete="organization"
+                  placeholder="Example AI"
+                  value={companyName}
+                  onChange={(event) => setCompanyName(event.target.value)}
+                  className="border-zinc-800 bg-zinc-900/80 text-zinc-100 placeholder:text-zinc-500"
+                />
+                <p className="text-xs text-zinc-500">
+                  This is the company-scoped workspace name used across billing, reports, and alerts.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 border-t border-zinc-800/70 pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-zinc-500">
+                Changes save to the profiles table and refresh the dashboard immediately.
+              </p>
+              <Button
+                type="submit"
+                disabled={updateMutation.isPending || !isDirty}
+                className="bg-brand-600 text-white hover:bg-brand-700"
+              >
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

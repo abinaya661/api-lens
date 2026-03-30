@@ -1,28 +1,28 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { updateProfileSchema, type UpdateProfileInput } from '@/lib/validations/settings';
-import type { Profile } from '@/types/database';
+import {
+  DEFAULT_NOTIFICATION_PREFS,
+  notificationPrefsSchema,
+  updateProfileSchema,
+  type UpdateProfileInput,
+} from '@/lib/validations/settings';
+import type { NotificationPrefs, Profile } from '@/types/database';
 
-export interface NotificationPrefs {
-  budget_alerts_email: boolean;
-  key_validation_failure_email: boolean;
-  trial_ending_reminder_email: boolean;
-  weekly_spending_report_email: boolean;
-  key_rotation_reminder_email: boolean;
-}
-
-const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
-  budget_alerts_email: true,
-  key_validation_failure_email: true,
-  trial_ending_reminder_email: true,
-  weekly_spending_report_email: false,
-  key_rotation_reminder_email: false,
-};
+export type { NotificationPrefs } from '@/types/database';
 
 interface ActionResult<T = unknown> {
   data: T | null;
   error: string | null;
+}
+
+function normalizeNotificationPrefs(value: unknown): NotificationPrefs {
+  const parsed = notificationPrefsSchema.safeParse(value);
+  if (!parsed.success) {
+    return DEFAULT_NOTIFICATION_PREFS;
+  }
+
+  return parsed.data;
 }
 
 export async function getProfile(): Promise<ActionResult<Profile>> {
@@ -79,8 +79,7 @@ export async function getNotificationPrefs(): Promise<{ data: NotificationPrefs 
       .single();
 
     if (error) return { data: DEFAULT_NOTIFICATION_PREFS, error: null };
-    const prefs = (data?.notification_prefs as NotificationPrefs | null) ?? DEFAULT_NOTIFICATION_PREFS;
-    return { data: { ...DEFAULT_NOTIFICATION_PREFS, ...prefs }, error: null };
+    return { data: normalizeNotificationPrefs(data?.notification_prefs), error: null };
   } catch (_e) {
     return { data: DEFAULT_NOTIFICATION_PREFS, error: null };
   }
@@ -88,13 +87,18 @@ export async function getNotificationPrefs(): Promise<{ data: NotificationPrefs 
 
 export async function updateNotificationPrefs(prefs: NotificationPrefs): Promise<{ error: string | null }> {
   try {
+    const parsed = notificationPrefsSchema.safeParse(prefs);
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message ?? 'Validation failed' };
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Not authenticated' };
 
     const { error } = await supabase
       .from('profiles')
-      .update({ notification_prefs: prefs })
+      .update({ notification_prefs: parsed.data })
       .eq('id', user.id);
 
     if (error) return { error: error.message };

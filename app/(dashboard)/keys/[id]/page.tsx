@@ -100,9 +100,7 @@ export default function KeyDetailPage() {
   const providerColor =
     PROVIDER_COLORS[apiKey.provider] || 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20';
 
-  // Find assigned project via keys list (project_id not on ApiKey directly; check if projects have this key)
-  // We'll look for any project association by checking project_keys via the projects list
-  // Since project_id isn't on the ApiKey type, we show the assigned project if it comes from key data
+  // Find any key-scoped budget assigned to this key.
   const keyBudget = budgets?.find((b) => b.scope === 'key' && b.scope_id === id);
 
   function openEditModal() {
