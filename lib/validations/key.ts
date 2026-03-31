@@ -22,6 +22,21 @@ export const addKeySchema = z.object({
     } catch { return false; }
   }, 'Must be a valid HTTPS URL (no internal/private addresses)'),
   notes: z.string().max(500).optional(),
+}).superRefine((data, ctx) => {
+  if (data.provider === 'openai' && !data.api_key.startsWith('sk-admin-')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'OpenAI requires an Admin API key (starts with sk-admin-...). Create one at platform.openai.com → Settings → API Keys.',
+      path: ['api_key'],
+    });
+  }
+  if (data.provider === 'anthropic' && !data.api_key.startsWith('sk-ant-admin')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Anthropic requires an Admin API key (starts with sk-ant-admin...). Create one at console.anthropic.com → Settings → Admin API Keys.',
+      path: ['api_key'],
+    });
+  }
 });
 
 export const updateKeySchema = z.object({

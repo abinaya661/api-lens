@@ -70,6 +70,12 @@ export async function syncAllKeys(): Promise<SyncStats> {
           output_tokens: row.output_tokens,
           cost_usd: row.cost_usd,
           request_count: row.request_count,
+          cached_read_tokens: row.cached_read_tokens ?? 0,
+          cache_creation_tokens: row.cache_creation_tokens ?? 0,
+          input_audio_tokens: row.input_audio_tokens ?? 0,
+          output_audio_tokens: row.output_audio_tokens ?? 0,
+          cost_source: row.cost_source ?? 'api',
+          remote_key_id: row.remote_key_id ?? null,
         }));
 
         const { error: upsertError } = await supabase
@@ -133,6 +139,60 @@ export async function syncAllKeys(): Promise<SyncStats> {
   }
 
   return stats;
+}
+
+export async function syncManagedKeys(): Promise<{ keys_discovered: number }> {
+  const supabase = createAdminClient();
+  let keysDiscovered = 0;
+
+  const { data: adminKeys } = await supabase
+    .from('api_keys')
+    .select('id, company_id, provider, encrypted_credentials, encrypted_key, key_type')
+    .eq('is_active', true)
+    .eq('key_type', 'admin');
+
+  if (!adminKeys) return { keys_discovered: 0 };
+
+  for (const key of adminKeys) {
+    const adapter = getAdapter(key.provider);
+    if (!adapter?.listManagedKeys) continue;
+
+    const payload = key.encrypted_credentials
+      ? (key.encrypted_credentials as unknown as EncryptedPayload)
+      : key.encrypted_key
+        ? (JSON.parse(key.encrypted_key) as EncryptedPayload)
+        : null;
+    if (!payload) continue;
+
+    const plainKey = decryptCredentials(payload);
+
+    try {
+      const managedKeys = await adapter.listManagedKeys(plainKey);
+
+      for (const mk of managedKeys) {
+        const { error } = await supabase
+          .from('managed_keys')
+          .upsert({
+            parent_key_id: key.id,
+            company_id: key.company_id,
+            provider: key.provider,
+            remote_key_id: mk.remote_key_id,
+            remote_key_name: mk.name,
+            redacted_value: mk.redacted_value,
+            remote_project_id: mk.project_id,
+            remote_project_name: mk.project_name,
+            last_used_at: mk.last_used_at,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'parent_key_id,remote_key_id' });
+
+        if (!error) keysDiscovered++;
+      }
+    } catch {
+      // Continue with next key on error
+    }
+  }
+
+  return { keys_discovered: keysDiscovered };
 }
 
 export async function checkBudgets(): Promise<{ alerts_created: number }> {

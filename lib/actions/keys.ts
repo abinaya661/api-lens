@@ -122,6 +122,7 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
       };
     }
 
+    const keyType = validation.keyType ?? 'standard';
     const encrypted = encryptCredentials(api_key);
     const keyHint = extractKeyHint(api_key);
     const validatedAt = new Date().toISOString();
@@ -141,6 +142,7 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
         consecutive_failures: 0,
         endpoint_url: endpoint_url || null,
         notes: notes ?? null,
+        key_type: keyType,
       })
       .select()
       .single();
@@ -321,6 +323,7 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
         last_validated: validatedAt,
         last_failure_reason: null,
         consecutive_failures: 0,
+        key_type: validation.keyType ?? key.key_type ?? 'standard',
       })
       .eq('id', id)
       .eq('company_id', auth.companyId)
