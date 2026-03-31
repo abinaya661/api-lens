@@ -46,6 +46,15 @@ export class AnthropicAdapter extends BaseAdapter {
       const usageRes = await fetch(usageUrl.toString(), { headers });
       if (usageRes.ok) return { valid: true, keyType: 'admin' };
 
+      // Geo-restricted regions get 403 "Request not allowed" — the key is valid but blocked locally.
+      // Vercel servers (US) will reach the API fine for actual syncing.
+      if (usageRes.status === 403) {
+        const usageBody = await usageRes.json().catch(() => ({})) as { error?: { type?: string } };
+        if (usageBody?.error?.type === 'forbidden') {
+          return { valid: true, keyType: 'admin' };
+        }
+      }
+
       const costUrl = new URL('https://api.anthropic.com/v1/organizations/cost_report');
       costUrl.searchParams.set('starting_at', yesterday.toISOString());
       costUrl.searchParams.set('ending_at', now.toISOString());
@@ -54,6 +63,13 @@ export class AnthropicAdapter extends BaseAdapter {
 
       const costRes = await fetch(costUrl.toString(), { headers });
       if (costRes.ok) return { valid: true, keyType: 'admin' };
+
+      if (costRes.status === 403) {
+        const costBody = await costRes.json().catch(() => ({})) as { error?: { type?: string } };
+        if (costBody?.error?.type === 'forbidden') {
+          return { valid: true, keyType: 'admin' };
+        }
+      }
 
       const body = await costRes.text();
       return { valid: false, error: `Admin API key validation failed. Anthropic returned ${costRes.status}: ${body}` };
