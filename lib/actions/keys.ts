@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { addKeySchema, updateKeySchema, type AddKeyInput, type UpdateKeyInput } from '@/lib/validations/key';
 import { decryptCredentials, encryptCredentials, extractKeyHint, type EncryptedPayload } from '@/lib/encryption';
 import { logAudit } from '@/lib/utils/audit';
@@ -54,6 +55,7 @@ export async function listKeys(): Promise<ActionResult<ApiKey[]>> {
     const auth = await getAuthenticatedCompany(supabase);
     if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
 
+    // Read with user client — RLS ensures users only see their own keys
     const { data, error } = await supabase
       .from('api_keys')
       .select('*')
@@ -92,6 +94,7 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
     const parsed = addKeySchema.safeParse(input);
     if (!parsed.success) return { data: null, error: parsed.error.issues[0]?.message ?? 'Validation failed' };
 
+    // User client — verify identity and ownership only
     const supabase = await createClient();
     const auth = await getAuthenticatedCompany(supabase);
     if (auth.error || !auth.companyId || !auth.userId) {
@@ -127,7 +130,9 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
     const keyHint = extractKeyHint(api_key);
     const validatedAt = new Date().toISOString();
 
-    const { data, error } = await supabase
+    // Admin client — bypasses RLS for the write; ownership is already verified above
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin
       .from('api_keys')
       .insert({
         company_id: auth.companyId,
@@ -149,7 +154,7 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
 
     if (error) return { data: null, error: error.message };
 
-    await logAudit(supabase, {
+    await logAudit(supabaseAdmin, {
       userId: auth.userId,
       action: 'key.created',
       entityType: 'api_key',
@@ -168,6 +173,7 @@ export async function updateKey(input: UpdateKeyInput): Promise<ActionResult<Api
     const parsed = updateKeySchema.safeParse(input);
     if (!parsed.success) return { data: null, error: parsed.error.issues[0]?.message ?? 'Validation failed' };
 
+    // User client — verify identity and ownership only
     const supabase = await createClient();
     const auth = await getAuthenticatedCompany(supabase);
     if (auth.error || !auth.companyId || !auth.userId) {
@@ -180,7 +186,19 @@ export async function updateKey(input: UpdateKeyInput): Promise<ActionResult<Api
       return { data: null, error: projectCheck.error };
     }
 
-    const { data, error } = await supabase
+    // Verify the key belongs to this company before writing
+    const { data: existing } = await supabase
+      .from('api_keys')
+      .select('id')
+      .eq('id', id)
+      .eq('company_id', auth.companyId)
+      .single();
+
+    if (!existing) return { data: null, error: 'Key not found' };
+
+    // Admin client — write
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin
       .from('api_keys')
       .update(updates)
       .eq('id', id)
@@ -190,7 +208,7 @@ export async function updateKey(input: UpdateKeyInput): Promise<ActionResult<Api
 
     if (error) return { data: null, error: error.message };
 
-    await logAudit(supabase, {
+    await logAudit(supabaseAdmin, {
       userId: auth.userId,
       action: 'key.updated',
       entityType: 'api_key',
@@ -206,6 +224,7 @@ export async function updateKey(input: UpdateKeyInput): Promise<ActionResult<Api
 
 export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>> {
   try {
+    // User client — verify identity and read the key
     const supabase = await createClient();
     const auth = await getAuthenticatedCompany(supabase);
     if (auth.error || !auth.companyId || !auth.userId) {
@@ -226,8 +245,11 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
     const validatedAt = new Date().toISOString();
     const adapter = getAdapter(key.provider);
 
+    // Admin client — all writes from here on
+    const supabaseAdmin = createAdminClient();
+
     if (!adapter) {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('api_keys')
         .update({
           is_active: false,
@@ -251,7 +273,7 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
     const validation = await adapter.validateKey(plainKey);
 
     if (!validation.valid) {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('api_keys')
         .update({
           is_active: false,
@@ -266,16 +288,12 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
 
       if (error) return { data: null, error: error.message };
 
-      await logAudit(supabase, {
+      await logAudit(supabaseAdmin, {
         userId: auth.userId,
         action: 'key.updated',
         entityType: 'api_key',
         entityId: id,
-        metadata: {
-          refresh: true,
-          result: 'inactive',
-          reason: validation.error ?? 'validation_failed',
-        },
+        metadata: { refresh: true, result: 'inactive', reason: validation.error ?? 'validation_failed' },
       });
 
       return { data: data as ApiKey, error: null };
@@ -285,7 +303,7 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
     const syncCheck = await adapter.fetchUsage(plainKey, dateFrom, dateTo);
 
     if (!syncCheck.success) {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('api_keys')
         .update({
           is_active: false,
@@ -300,23 +318,19 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
 
       if (error) return { data: null, error: error.message };
 
-      await logAudit(supabase, {
+      await logAudit(supabaseAdmin, {
         userId: auth.userId,
         action: 'key.updated',
         entityType: 'api_key',
         entityId: id,
-        metadata: {
-          refresh: true,
-          result: 'inactive',
-          reason: syncCheck.error ?? 'usage_check_failed',
-        },
+        metadata: { refresh: true, result: 'inactive', reason: syncCheck.error ?? 'usage_check_failed' },
       });
 
       return { data: data as ApiKey, error: null };
     }
 
     const shouldReactivate = !key.is_active && !!key.last_failure_reason;
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('api_keys')
       .update({
         is_active: key.is_active || shouldReactivate,
@@ -332,15 +346,12 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
 
     if (error) return { data: null, error: error.message };
 
-    await logAudit(supabase, {
+    await logAudit(supabaseAdmin, {
       userId: auth.userId,
       action: 'key.updated',
       entityType: 'api_key',
       entityId: id,
-      metadata: {
-        refresh: true,
-        result: 'healthy',
-      },
+      metadata: { refresh: true, result: 'healthy' },
     });
 
     return { data: data as ApiKey, error: null };
@@ -351,6 +362,7 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
 
 export async function deleteKey(id: string): Promise<ActionResult<null>> {
   try {
+    // User client — verify identity and ownership
     const supabase = await createClient();
     const auth = await getAuthenticatedCompany(supabase);
     if (auth.error || !auth.companyId || !auth.userId) {
@@ -366,7 +378,9 @@ export async function deleteKey(id: string): Promise<ActionResult<null>> {
 
     if (!keyCheck) return { data: null, error: 'Key not found' };
 
-    const { error } = await supabase
+    // Admin client — write
+    const supabaseAdmin = createAdminClient();
+    const { error } = await supabaseAdmin
       .from('api_keys')
       .delete()
       .eq('id', id)
@@ -374,7 +388,7 @@ export async function deleteKey(id: string): Promise<ActionResult<null>> {
 
     if (error) return { data: null, error: error.message };
 
-    await logAudit(supabase, {
+    await logAudit(supabaseAdmin, {
       userId: auth.userId,
       action: 'key.deleted',
       entityType: 'api_key',
