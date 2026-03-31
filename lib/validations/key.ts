@@ -33,7 +33,7 @@ export const addKeySchema = z.object({
   if (data.provider === 'anthropic' && !data.api_key.startsWith('sk-ant-admin')) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Anthropic requires an Admin API key (starts with sk-ant-admin...). Create one at console.anthropic.com → Settings → Admin API Keys.',
+      message: 'Anthropic requires an Admin API key (starts with sk-ant-admin...). Create one at console.anthropic.com → Settings → API Keys.',
       path: ['api_key'],
     });
   }

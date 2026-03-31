@@ -24,7 +24,7 @@ export class AnthropicAdapter extends BaseAdapter {
     if (!apiKey.startsWith('sk-ant-admin')) {
       return {
         valid: false,
-        error: 'Anthropic requires an Admin API key (starts with sk-ant-admin...). Create one at console.anthropic.com → Settings → Admin API Keys. Only organization admins can create these.',
+        error: 'Anthropic requires an Admin API key (starts with sk-ant-admin...). Create one at console.anthropic.com → Settings → API Keys. Only organization admins can create these.',
       };
     }
 

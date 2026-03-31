@@ -318,7 +318,7 @@ export default function KeysPage() {
                   API Lens needs an <strong>Admin API Key</strong> (starts with <code className="text-zinc-300">sk-ant-admin...</code>).
                   Only organization admins can create these.
                 </p>
-                <a href="https://console.anthropic.com/settings/admin-api-keys"
+                <a href="https://console.anthropic.com/settings/api-keys"
                    target="_blank" rel="noopener noreferrer"
                    className="text-[11px] text-orange-400 hover:underline mt-1 inline-block">
                   Create admin key on Anthropic &rarr;

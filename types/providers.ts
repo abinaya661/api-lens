@@ -85,7 +85,7 @@ export const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
         type: 'password',
         placeholder: 'sk-ant-admin-...',
         required: true,
-        helpText: 'Admin API key required (sk-ant-admin...). Go to console.anthropic.com → Settings → Admin API Keys. Only org admins can create these.',
+        helpText: 'Admin API key required (sk-ant-admin...). Go to console.anthropic.com → Settings → API Keys. Only org admins can create these.',
       },
     ],
   },

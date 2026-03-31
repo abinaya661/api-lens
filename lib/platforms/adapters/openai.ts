@@ -35,14 +35,30 @@ export class OpenAIAdapter extends BaseAdapter {
       );
       if (costsRes.ok) return { valid: true, keyType: 'admin' };
 
+      // If geo-restricted, the key itself is valid — Vercel's servers (US) will reach the API fine.
+      // Accept the key so it can be added; sync will work correctly from Vercel.
+      if (costsRes.status === 403) {
+        const body = await costsRes.json().catch(() => ({})) as { error?: { code?: string } };
+        if (body?.error?.code === 'unsupported_country_region_territory') {
+          return { valid: true, keyType: 'admin' };
+        }
+      }
+
       const usageRes = await fetch(
         `https://api.openai.com/v1/organization/usage/completions?start_time=${oneDayAgo}&end_time=${now}&limit=1`,
         { headers: { 'Authorization': `Bearer ${apiKey}` } },
       );
       if (usageRes.ok) return { valid: true, keyType: 'admin' };
 
-      const body = await usageRes.text();
-      return { valid: false, error: `Admin API key validation failed. OpenAI returned ${usageRes.status}: ${body}` };
+      if (usageRes.status === 403) {
+        const body = await usageRes.json().catch(() => ({})) as { error?: { code?: string } };
+        if (body?.error?.code === 'unsupported_country_region_territory') {
+          return { valid: true, keyType: 'admin' };
+        }
+      }
+
+      const errBody = await usageRes.text();
+      return { valid: false, error: `Admin API key validation failed. OpenAI returned ${usageRes.status}: ${errBody}` };
     } catch (e: unknown) {
       return { valid: false, error: e instanceof Error ? e.message : 'Validation failed' };
     }
