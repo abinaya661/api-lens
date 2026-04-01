@@ -141,6 +141,7 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
         provider,
         nickname,
         encrypted_credentials: encrypted,
+        encrypted_key: JSON.stringify(encrypted),
         key_hint: keyHint,
         is_active: true,
         last_validated: validatedAt,
