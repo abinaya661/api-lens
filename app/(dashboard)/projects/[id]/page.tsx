@@ -117,9 +117,7 @@ export default function ProjectDetailPage() {
     enabled: !!id,
   });
 
-  // Fetch all keys and filter by project_id
-  // Note: since project_id is not on the ApiKey type directly, we check via project_keys join
-  // The keys list action returns api_keys, so we rely on what's available
+  // Fetch all keys and filter by direct project assignment.
   const { data: allKeys } = useKeys();
 
   // Fetch budgets to find project-scoped budget
@@ -166,10 +164,7 @@ export default function ProjectDetailPage() {
   // Project-scoped budget
   const projectBudget = budgets?.find((b) => b.scope === 'project' && b.scope_id === id);
 
-  // Keys for this project — because project_id isn't on ApiKey directly,
-  // we cannot filter client-side perfectly without a join. We show all keys
-  // as a fallback when no project_id field is present on the ApiKey type.
-  // If the database returns project_id on the key row (via join), it would be used here.
+  // Keys are assigned directly via api_keys.project_id.
   const projectKeys = (allKeys ?? []).filter((k) => {
     return (k as ApiKey & { project_id?: string }).project_id === id;
   });

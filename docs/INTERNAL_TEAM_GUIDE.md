@@ -10,6 +10,8 @@
 
 API Lens is a **SaaS dashboard for monitoring, managing, and optimizing AI API spending** across multiple providers (OpenAI, Anthropic, Google Gemini, etc.). It aggregates usage data, sets budget alerts, and helps teams optimize costs from a single dashboard.
 
+**Current ownership model:** API Lens uses a **company-owned workspace model** for runtime data and billing. Today that still maps to **one user per company**, so there is no multi-user/team membership layer yet, but keys, projects, budgets, alerts, subscriptions, and forecasts all belong to the company record rather than directly to `auth.users`.
+
 **Key User Flows:**
 1. Sign up -> Onboarding wizard -> Add API keys -> See spending dashboard
 2. Set budgets -> Receive alerts at 50/75/90/100% thresholds
@@ -89,6 +91,7 @@ API Lens is a **SaaS dashboard for monitoring, managing, and optimizing AI API s
 - **Providers without usage APIs:** Gemini, Grok, Azure OpenAI, Moonshot return validation-only (no automated cost sync).
 - **E2E tests:** Playwright config exists but no e2e test files written yet.
 - **Price update cron:** Provider parsing is best-effort. Parse failures soft-fail and require manual review or admin pricing updates.
+- **Workspace model:** Company ownership is canonical, but there is still exactly one user per company. Team/member support remains future roadmap work.
 
 ---
 
@@ -204,6 +207,8 @@ pnpm dev                     # Starts on localhost:3000 with Turbopack
 
 ### Feature Status Summary
 **Live (35+ features):** Auth (email + Google + password reset), onboarding wizard, 9 provider integrations (encrypted storage, health monitoring, auto-detection), spending dashboard (charts, projections), budgets (4-tier alerts), alert feed (waste detection, rotation reminders), projects, Smart Estimator (model compare + spend forecasting), reports + CSV, subscription billing (regional pricing, 50+ countries), promo codes, access passes, Pro plan waitlist (with confirmation email), notification preferences, transactional emails (11 types), pricing admin and price-refresh automation, blog/SEO (5 articles, JSON-LD, sitemap), dark/light theme toggle, collapsible sidebar nav groups
+
+**Workspace semantics:** All operational data is company-scoped even though each company currently has one owner user. Global budgets and company forecasts are intentionally company-level constructs.
 
 **Planned:** Team management, Enterprise SSO, Slack/Discord alerts, public API, monthly PDF reports, audit logs
 

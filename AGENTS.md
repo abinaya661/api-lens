@@ -97,7 +97,6 @@ api_keys:        id(uuid PK) company_id(uuid->companies) project_id(uuid->projec
                  is_active last_synced_at consecutive_failures last_error
                  endpoint_url notes rotation_due last_validated last_failure_reason
                  created_at updated_at
-project_keys:    id(uuid PK) project_id(uuid->projects) key_id(uuid->api_keys) created_at
 usage_records:   id(uuid PK) key_id(uuid->api_keys) provider model date
                  input_tokens output_tokens cost_usd request_count synced_at
                  UNIQUE(key_id, date, model)
@@ -129,6 +128,8 @@ cost_estimates:  id company_id project_id provider model messages_per_day
 - `alert_severity`: info | warning | critical
 - `subscription_status`: trialing | active | past_due | cancelled | grace_period | frozen
 - `plan_type`: monthly | annual
+
+**Ownership model:** Company-owned workspace data with exactly one user per company today. There is no team/member model yet; `companies.owner_id` is the single runtime owner used for auth, billing, alerts, and forecasting.
 
 **RLS summary:** All user-visible data is scoped to the company owned by `auth.uid()`. `price_snapshots` and `access_passes` are read-only for authenticated users. Subscriptions, audit log, notifications, and pricing maintenance rely on service-role writes.
 
@@ -278,7 +279,7 @@ useRegionalPrice()       -> geo_country cookie
 
 **Encryption flow:** `addKey()` encrypts plaintext into `encrypted_credentials`; sync paths decrypt from JSONB just-in-time.
 
-**Webhook pattern:** Instantiate `new Webhook(secret)` inside the handler. Use `webhook_events` for idempotency. Checkout metadata should include both `user_id` and `company_id`.
+**Webhook pattern:** Instantiate `new Webhook(secret)` inside the handler. Use `webhook_events` for idempotency. Checkout metadata should include both `user_id` and `company_id`, and webhook resolution should prefer `company_id` with `user_id` as a compatibility fallback.
 
 **Pricing source of truth:** `price_snapshots` powers the estimator and pricing helpers. Seed baseline data in migration `009_estimator_overhaul`; use `/api/admin/pricing` for manual updates and `/api/cron/price-update` for best-effort refreshes.
 
@@ -325,7 +326,7 @@ UPSTASH_REDIS_REST_TOKEN
 | Layer | Mechanism |
 |-------|-----------|
 | **Auth** | Supabase Auth (JWT tokens, refresh via middleware) |
-| **Data Isolation** | RLS on all tables, scoped to `company_id` owned by `auth.uid()` |
+| **Data Isolation** | RLS on all runtime tables, scoped to the single company owned by `auth.uid()` |
 | **API Key Storage** | AES-256-GCM envelope encryption |
 | **Input Validation** | Zod schemas + private IP blocking on endpoint URLs |
 | **CSRF** | Origin header validation on mutation endpoints |
@@ -341,6 +342,7 @@ UPSTASH_REDIS_REST_TOKEN
 - **Final Polish (Mar 26):** Blog UI redesigned, email templates modernized, dark/light theme toggle added, SEO optimized for "api key manager".
 - **Email & UI updates (Mar 27-28):** Welcome email simplified, pro waitlist confirmation email added, sidebar restructured, preferences split to `settings/preferences`.
 - **Estimator & pricing intelligence (Mar 28):** Estimator replaced with compare + forecast tabs, forecasting module added, `price_snapshots` expanded via migration `009`, pricing admin API and bi-weekly `price-update` cron added, subscriptions/webhooks aligned to `company_id`, live schema alignment captured in migration `010`.
+- **Ownership model (Mar 30):** Company-owned workspace model is the canonical runtime path for keys, projects, budgets, alerts, subscriptions, and forecasts. We still operate as one user per company for now, and legacy `user_id` columns remain compatibility fields only for live-schema migration safety.
 - **Status:** Code verified with `type-check`, `test`, and `build`. Live Supabase project must have migrations `009` and `010` applied before production deploy (`008` too if missing).
 
 **Cron jobs (5 total in `vercel.json`):**

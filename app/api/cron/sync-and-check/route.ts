@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { syncAllKeys, checkBudgets } from '@/lib/platforms/sync-engine';
+import { syncAllKeys, syncManagedKeys, checkBudgets } from '@/lib/platforms/sync-engine';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
     // Step 1: Sync all active keys
     const syncStats = await syncAllKeys();
 
-    // Step 2: Check budgets and create alerts
+    // Step 2: Sync managed keys inventory (admin keys only)
+    const managedKeyStats = await syncManagedKeys();
+
+    // Step 3: Check budgets and create alerts
     const budgetResult = await checkBudgets();
 
     const duration = Date.now() - startTime;
@@ -34,6 +37,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       sync: syncStats,
+      managed_keys: managedKeyStats,
       budgets: budgetResult,
       duration_ms: duration,
       timestamp: new Date().toISOString(),

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProfile, useUpdateProfile } from '@/hooks/use-profile';
 import { useAddKey } from '@/hooks/use-keys';
@@ -58,6 +58,15 @@ export default function OnboardingPage() {
   // Track what was completed
   const [keyAdded, setKeyAdded] = useState(false);
   const [budgetCreated, setBudgetCreated] = useState(false);
+
+  const keyPrefixError = useMemo(() => {
+    if (!apiKey) return null;
+    if (provider === 'openai' && apiKey.length > 5 && !apiKey.startsWith('sk-admin-'))
+      return 'OpenAI keys must start with sk-admin-...';
+    if (provider === 'anthropic' && apiKey.length > 10 && !apiKey.startsWith('sk-ant-admin'))
+      return 'Anthropic keys must start with sk-ant-admin...';
+    return null;
+  }, [provider, apiKey]);
 
   // Redirect if already onboarded
   useEffect(() => {
@@ -253,7 +262,39 @@ export default function OnboardingPage() {
                     )}
                   </button>
                 </div>
+                {keyPrefixError && (
+                  <p className="text-xs text-yellow-400 mt-1.5">{keyPrefixError}</p>
+                )}
               </div>
+
+              {provider === 'openai' && (
+                <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                  <p className="text-xs text-emerald-400 font-medium mb-1">Admin API Key Required</p>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    API Lens needs an <strong>Admin API Key</strong> (starts with <code className="text-zinc-300">sk-admin-...</code>).
+                    Only organization owners can create these.
+                  </p>
+                  <a href="https://platform.openai.com/settings/organization/api-keys"
+                     target="_blank" rel="noopener noreferrer"
+                     className="text-[11px] text-emerald-400 hover:underline mt-1 inline-block">
+                    Create admin key on OpenAI &rarr;
+                  </a>
+                </div>
+              )}
+              {provider === 'anthropic' && (
+                <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/20">
+                  <p className="text-xs text-orange-400 font-medium mb-1">Admin API Key Required</p>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    API Lens needs an <strong>Admin API Key</strong> (starts with <code className="text-zinc-300">sk-ant-admin...</code>).
+                    Only organization admins can create these.
+                  </p>
+                  <a href="https://console.anthropic.com/settings/api-keys"
+                     target="_blank" rel="noopener noreferrer"
+                     className="text-[11px] text-orange-400 hover:underline mt-1 inline-block">
+                    Create admin key on Anthropic &rarr;
+                  </a>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-2">
@@ -267,7 +308,7 @@ export default function OnboardingPage() {
               <button
                 onClick={handleAddKey}
                 disabled={
-                  !nickname.trim() || !apiKey.trim() || addKey.isPending
+                  !nickname.trim() || !apiKey.trim() || addKey.isPending || !!keyPrefixError
                 }
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >

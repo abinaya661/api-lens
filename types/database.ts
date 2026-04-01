@@ -84,6 +84,7 @@ export interface ApiKey {
   has_usage_api?: boolean;
   proxy_enabled?: boolean;
   proxy_key_id?: string | null;
+  key_type?: string;  // 'standard' | 'admin'
 }
 
 export interface UsageRecord {
@@ -107,6 +108,29 @@ export interface UsageRecord {
   end_user_id?: string | null;
   created_at?: string;
   recorded_at?: string;
+  cached_read_tokens?: number;
+  cache_creation_tokens?: number;
+  input_audio_tokens?: number;
+  output_audio_tokens?: number;
+  cost_source?: string;
+  remote_key_id?: string | null;
+}
+
+export interface ManagedKey {
+  id: string;
+  parent_key_id: string;
+  company_id: string;
+  provider: string;
+  remote_key_id: string;
+  remote_key_name: string | null;
+  redacted_value: string | null;
+  remote_project_id: string | null;
+  remote_project_name: string | null;
+  last_used_at: string | null;
+  first_seen_at: string;
+  is_tracked: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export type BudgetScope = 'global' | 'platform' | 'project' | 'key';

@@ -63,6 +63,15 @@ export default function KeysPage() {
     [projects],
   );
 
+  const keyPrefixError = useMemo(() => {
+    if (!formProvider || !formKey) return null;
+    if (formProvider === 'openai' && formKey.length > 5 && !formKey.startsWith('sk-admin-'))
+      return 'OpenAI keys must start with sk-admin-...';
+    if (formProvider === 'anthropic' && formKey.length > 10 && !formKey.startsWith('sk-ant-admin'))
+      return 'Anthropic keys must start with sk-ant-admin...';
+    return null;
+  }, [formProvider, formKey]);
+
   function resetForm() {
     setFormProvider('');
     setFormLabel('');
@@ -155,6 +164,7 @@ export default function KeysPage() {
 
   const isSubmitting = addKeyMutation.isPending || createProjectMutation.isPending;
   const canSubmit = formProvider && formLabel.trim() && formKey.trim() && !isSubmitting
+    && !keyPrefixError
     && (projectMode !== 'new' || newProjectName.trim())
     && (projectMode !== 'existing' || selectedProjectId);
 
@@ -286,6 +296,36 @@ export default function KeysPage() {
               />
             </div>
 
+            {/* Provider admin key guidance */}
+            {formProvider === 'openai' && (
+              <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                <p className="text-xs text-emerald-400 font-medium mb-1">Admin API Key Required</p>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  API Lens needs an <strong>Admin API Key</strong> (starts with <code className="text-zinc-300">sk-admin-...</code>).
+                  Only organization owners can create these.
+                </p>
+                <a href="https://platform.openai.com/settings/organization/api-keys"
+                   target="_blank" rel="noopener noreferrer"
+                   className="text-[11px] text-emerald-400 hover:underline mt-1 inline-block">
+                  Create admin key on OpenAI &rarr;
+                </a>
+              </div>
+            )}
+            {formProvider === 'anthropic' && (
+              <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/20">
+                <p className="text-xs text-orange-400 font-medium mb-1">Admin API Key Required</p>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  API Lens needs an <strong>Admin API Key</strong> (starts with <code className="text-zinc-300">sk-ant-admin...</code>).
+                  Only organization admins can create these.
+                </p>
+                <a href="https://console.anthropic.com/settings/api-keys"
+                   target="_blank" rel="noopener noreferrer"
+                   className="text-[11px] text-orange-400 hover:underline mt-1 inline-block">
+                  Create admin key on Anthropic &rarr;
+                </a>
+              </div>
+            )}
+
             {/* API Key */}
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-1.5">API Key</label>
@@ -305,6 +345,10 @@ export default function KeysPage() {
                   {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+
+              {keyPrefixError && (
+                <p className="text-xs text-yellow-400 mt-1.5">{keyPrefixError}</p>
+              )}
 
               {/* Masked key preview + privacy message */}
               {formKey.length > 0 && (

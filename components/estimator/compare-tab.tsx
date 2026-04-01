@@ -1,17 +1,41 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import {
+  startTransition,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ErrorState, SkeletonCard } from '@/components/shared';
 import { usePriceSnapshots } from '@/hooks/use-estimator';
 import { calculateCost, calculateCostWithBatch, calculateCostWithCache } from '@/lib/pricing';
 import { formatCurrency } from '@/lib/utils';
 import type { ImagePricingTier, PriceSnapshot } from '@/types/database';
 import type { UseCaseCategory } from '@/types/api';
-import { ComparisonInputPanel, defaultComparisonInputState, type ComparisonInputState } from './comparison-input-panel';
+import {
+  ComparisonInputPanel,
+  defaultComparisonInputState,
+  type ComparisonInputState,
+} from './comparison-input-panel';
 import { ModelComparisonGrid } from './model-comparison-grid';
 import { UseCaseSelector } from './use-case-selector';
 
 type SortMode = 'cheapest' | 'capable' | 'value';
+
+const DEFAULT_CATEGORY: UseCaseCategory = 'text';
+const DEFAULT_PROVIDER = 'all';
+const DEFAULT_SORT_MODE: SortMode = 'cheapest';
+const USE_CASE_CATEGORIES: readonly UseCaseCategory[] = [
+  'text',
+  'reasoning',
+  'image',
+  'audio',
+  'video',
+  'code',
+  'embedding',
+];
 
 const PROVIDER_LABELS: Record<string, string> = {
   openai: 'OpenAI',
@@ -21,11 +45,29 @@ const PROVIDER_LABELS: Record<string, string> = {
   deepseek: 'DeepSeek',
   moonshot: 'Moonshot',
   elevenlabs: 'ElevenLabs',
+  openrouter: 'OpenRouter',
+  azure_openai: 'Azure OpenAI',
 };
 
 function parseNumber(value: string) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getSelectedCategory(value: string | null): UseCaseCategory {
+  if (value && USE_CASE_CATEGORIES.includes(value as UseCaseCategory)) {
+    return value as UseCaseCategory;
+  }
+
+  return DEFAULT_CATEGORY;
+}
+
+function getSortMode(value: string | null): SortMode {
+  if (value === 'capable' || value === 'value') {
+    return value;
+  }
+
+  return DEFAULT_SORT_MODE;
 }
 
 function getTokenVolume(state: ComparisonInputState, category: UseCaseCategory) {
@@ -69,7 +111,7 @@ function normalizeImageTiers(snapshot: PriceSnapshot): ImagePricingTier[] {
 
 function getPricingSummary(snapshot: PriceSnapshot) {
   if (snapshot.unit_type === 'tokens') {
-    return `$${Number(snapshot.input_per_mtok).toFixed(3)}/1M in · $${Number(snapshot.output_per_mtok).toFixed(3)}/1M out`;
+    return `$${Number(snapshot.input_per_mtok).toFixed(3)}/1M in | $${Number(snapshot.output_per_mtok).toFixed(3)}/1M out`;
   }
 
   if (snapshot.unit_type === 'characters') {
@@ -188,19 +230,46 @@ function calculateModelCost(
 }
 
 export function CompareTab() {
-  const [selectedCategory, setSelectedCategory] = useState<UseCaseCategory>('text');
-  const [activeProvider, setActiveProvider] = useState('all');
-  const [sortMode, setSortMode] = useState<SortMode>('cheapest');
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [pinnedModels, setPinnedModels] = useState<string[]>([]);
   const [inputState, setInputState] = useState<ComparisonInputState>(defaultComparisonInputState);
+
+  const selectedCategory = getSelectedCategory(searchParams.get('category'));
+  const sortMode = getSortMode(searchParams.get('sort'));
+  const rawProvider = searchParams.get('provider') ?? DEFAULT_PROVIDER;
 
   const { data: snapshots, isLoading, error, refetch } = usePriceSnapshots(
     selectedCategory,
     inputState.includeDeprecated,
   );
 
+  const deferredSnapshots = useDeferredValue(snapshots ?? []);
+
+  function updateSearchState(updates: Record<string, string | null>) {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (!value) {
+        nextParams.delete(key);
+      } else {
+        nextParams.set(key, value);
+      }
+    }
+
+    const nextQuery = nextParams.toString();
+
+    startTransition(() => {
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+        scroll: false,
+      });
+    });
+  }
+
   const availableImageTiers = useMemo(() => {
-    const tiers = (snapshots ?? []).flatMap((snapshot) => normalizeImageTiers(snapshot));
+    const tiers = deferredSnapshots.flatMap((snapshot) => normalizeImageTiers(snapshot));
     const unique = new Map<string, ImagePricingTier>();
 
     for (const tier of tiers) {
@@ -208,11 +277,7 @@ export function CompareTab() {
     }
 
     return Array.from(unique.values());
-  }, [snapshots]);
-
-  useEffect(() => {
-    setActiveProvider('all');
-  }, [selectedCategory]);
+  }, [deferredSnapshots]);
 
   useEffect(() => {
     if (selectedCategory !== 'image' || availableImageTiers.length === 0) return;
@@ -222,7 +287,9 @@ export function CompareTab() {
     );
 
     if (!hasCurrentTier) {
-      const firstTier = availableImageTiers[0]!;
+      const firstTier = availableImageTiers[0];
+      if (!firstTier) return;
+
       setInputState((current) => ({
         ...current,
         imageQuality: firstTier.quality,
@@ -232,13 +299,15 @@ export function CompareTab() {
   }, [availableImageTiers, inputState.imageQuality, inputState.imageResolution, selectedCategory]);
 
   const providers = useMemo(() => {
-    const uniqueProviders = Array.from(new Set((snapshots ?? []).map((snapshot) => snapshot.provider)));
-    return ['all', ...uniqueProviders];
-  }, [snapshots]);
+    const uniqueProviders = Array.from(new Set(deferredSnapshots.map((snapshot) => snapshot.provider)));
+    return [DEFAULT_PROVIDER, ...uniqueProviders];
+  }, [deferredSnapshots]);
+
+  const activeProvider = providers.includes(rawProvider) ? rawProvider : DEFAULT_PROVIDER;
 
   const results = useMemo(() => {
-    const filtered = (snapshots ?? []).filter(
-      (snapshot) => activeProvider === 'all' || snapshot.provider === activeProvider,
+    const filtered = deferredSnapshots.filter(
+      (snapshot) => activeProvider === DEFAULT_PROVIDER || snapshot.provider === activeProvider,
     );
 
     const mapped = filtered.map((snapshot) => {
@@ -273,8 +342,8 @@ export function CompareTab() {
         return left.estimatedMonthlyCost - right.estimatedMonthlyCost;
       }
 
-      if (sortMode === 'value') {
-        if (right.sortValue !== left.sortValue) return right.sortValue - left.sortValue;
+      if (sortMode === 'value' && right.sortValue !== left.sortValue) {
+        return right.sortValue - left.sortValue;
       }
 
       if (left.estimatedMonthlyCost == null) return 1;
@@ -283,21 +352,40 @@ export function CompareTab() {
     });
 
     return withPinned.map(({ sortValue: _sortValue, ...model }) => model);
-  }, [activeProvider, inputState, pinnedModels, selectedCategory, snapshots, sortMode]);
+  }, [activeProvider, deferredSnapshots, inputState, pinnedModels, selectedCategory, sortMode]);
 
   const bestRecommendation = results.find((result) => result.estimatedMonthlyCost != null) ?? null;
 
-  const updateInputState = (patch: Partial<ComparisonInputState>) => {
+  function updateInputState(patch: Partial<ComparisonInputState>) {
     setInputState((current) => ({ ...current, ...patch }));
-  };
+  }
 
-  const togglePin = (modelId: string) => {
+  function togglePin(modelId: string) {
     setPinnedModels((current) => (
       current.includes(modelId)
         ? current.filter((id) => id !== modelId)
         : [...current, modelId]
     ));
-  };
+  }
+
+  function handleCategoryChange(nextCategory: UseCaseCategory) {
+    updateSearchState({
+      category: nextCategory === DEFAULT_CATEGORY ? null : nextCategory,
+      provider: null,
+    });
+  }
+
+  function handleProviderChange(nextProvider: string) {
+    updateSearchState({
+      provider: nextProvider === DEFAULT_PROVIDER ? null : nextProvider,
+    });
+  }
+
+  function handleSortChange(nextSort: SortMode) {
+    updateSearchState({
+      sort: nextSort === DEFAULT_SORT_MODE ? null : nextSort,
+    });
+  }
 
   if (error) {
     return <ErrorState message={error.message} onRetry={() => refetch()} />;
@@ -305,12 +393,12 @@ export function CompareTab() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-4">
           <SkeletonCard />
           <SkeletonCard />
         </div>
-        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:col-span-2">
           {Array.from({ length: 4 }).map((_, index) => <SkeletonCard key={index} />)}
         </div>
       </div>
@@ -318,10 +406,10 @@ export function CompareTab() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div className="space-y-4">
-        <div className="glass-card p-6 space-y-5">
-          <UseCaseSelector selected={selectedCategory} onSelect={setSelectedCategory} />
+        <div className="glass-card space-y-5 p-6">
+          <UseCaseSelector selected={selectedCategory} onSelect={handleCategoryChange} />
           <ComparisonInputPanel
             selected={selectedCategory}
             state={inputState}
@@ -330,16 +418,15 @@ export function CompareTab() {
           />
         </div>
 
-        <div className="glass-card p-4 space-y-3">
-          <div>
-            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Sort By</p>
-          </div>
+        <div className="glass-card space-y-3 p-4">
+          <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Sort By</p>
           <div className="flex gap-1 rounded-lg border border-zinc-800 bg-zinc-900/60 p-1">
             {(['cheapest', 'capable', 'value'] as const).map((mode) => (
               <button
                 key={mode}
                 type="button"
-                onClick={() => setSortMode(mode)}
+                aria-pressed={sortMode === mode}
+                onClick={() => handleSortChange(mode)}
                 className={[
                   'flex-1 rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-colors',
                   sortMode === mode ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-200',
@@ -357,7 +444,7 @@ export function CompareTab() {
               Best Match
             </p>
             <h4 className="mt-2 text-lg font-semibold text-white">{bestRecommendation.name}</h4>
-            <p className="text-sm text-zinc-500 mt-1">
+            <p className="mt-1 text-sm text-zinc-500">
               {PROVIDER_LABELS[bestRecommendation.provider] ?? bestRecommendation.provider}
             </p>
             <p className="mt-3 text-3xl font-bold tracking-tight text-white">
@@ -369,14 +456,15 @@ export function CompareTab() {
         )}
       </div>
 
-      <div className="lg:col-span-2 space-y-4">
+      <div className="space-y-4 lg:col-span-2">
         <div className="overflow-x-auto">
-          <div className="flex gap-1 rounded-lg border border-zinc-800 bg-zinc-900/60 p-1 w-fit">
+          <div className="flex w-fit gap-1 rounded-lg border border-zinc-800 bg-zinc-900/60 p-1">
             {providers.map((provider) => (
               <button
                 key={provider}
                 type="button"
-                onClick={() => setActiveProvider(provider)}
+                aria-pressed={activeProvider === provider}
+                onClick={() => handleProviderChange(provider)}
                 className={[
                   'whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
                   activeProvider === provider
@@ -384,7 +472,7 @@ export function CompareTab() {
                     : 'text-zinc-500 hover:text-zinc-200',
                 ].join(' ')}
               >
-                {provider === 'all' ? 'All Providers' : (PROVIDER_LABELS[provider] ?? provider)}
+                {provider === DEFAULT_PROVIDER ? 'All Providers' : (PROVIDER_LABELS[provider] ?? provider)}
               </button>
             ))}
           </div>
