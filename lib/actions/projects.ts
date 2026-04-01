@@ -61,6 +61,7 @@ export async function createProject(input: CreateProjectInput): Promise<ActionRe
     const { data, error } = await supabase
       .from('projects')
       .insert({
+        user_id: auth.userId!,
         company_id: auth.companyId,
         name: parsed.data.name,
         description: parsed.data.description ?? null,

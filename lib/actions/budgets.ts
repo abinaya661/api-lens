@@ -41,6 +41,7 @@ export async function createBudget(input: CreateBudgetInput): Promise<ActionResu
     const { data, error } = await supabase
       .from('budgets')
       .insert({
+        user_id: auth.userId!,
         company_id: auth.companyId,
         ...parsed.data,
         scope_id: parsed.data.scope_id ?? null,
