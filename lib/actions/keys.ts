@@ -136,6 +136,7 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
       .from('api_keys')
       .insert({
         company_id: auth.companyId,
+        user_id: auth.userId,
         project_id: project_id ?? null,
         provider,
         nickname,
