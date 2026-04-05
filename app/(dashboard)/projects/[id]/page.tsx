@@ -347,9 +347,9 @@ export default function ProjectDetailPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <KeyHealthBadge apiKey={k} />
-                  {k.last_used && (
+                  {k.last_synced_at && (
                     <span className="text-xs text-zinc-600 hidden sm:block">
-                      {timeAgo(k.last_used)}
+                      {timeAgo(k.last_synced_at)}
                     </span>
                   )}
                 </div>

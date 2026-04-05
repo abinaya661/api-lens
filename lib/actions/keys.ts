@@ -5,10 +5,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { addKeySchema, updateKeySchema, type AddKeyInput, type UpdateKeyInput } from '@/lib/validations/key';
 import { decryptCredentials, encryptCredentials, extractKeyHint, type EncryptedPayload } from '@/lib/encryption';
 import { logAudit } from '@/lib/utils/audit';
-import { checkRateLimit, apiRateLimit } from '@/lib/ratelimit';
+import { checkRateLimit, apiRateLimit, dailySyncRateLimit } from '@/lib/ratelimit';
 import { getAdapter } from '@/lib/platforms/registry';
 import { getAuthenticatedCompany } from '@/lib/actions/_helpers';
-import type { ApiKey } from '@/types/database';
+import type { ApiKey, ManagedKey } from '@/types/database';
+import type { UsageRow } from '@/lib/platforms/types';
 
 interface ActionResult<T = unknown> {
   data: T | null;
@@ -188,17 +189,7 @@ export async function updateKey(input: UpdateKeyInput): Promise<ActionResult<Api
       return { data: null, error: projectCheck.error };
     }
 
-    // Verify the key belongs to this company before writing
-    const { data: existing } = await supabase
-      .from('api_keys')
-      .select('id')
-      .eq('id', id)
-      .eq('company_id', auth.companyId)
-      .single();
-
-    if (!existing) return { data: null, error: 'Key not found' };
-
-    // Admin client — write
+    // Admin client — write (company_id filter ensures ownership)
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
       .from('api_keys')
@@ -208,7 +199,10 @@ export async function updateKey(input: UpdateKeyInput): Promise<ActionResult<Api
       .select()
       .single();
 
-    if (error) return { data: null, error: error.message };
+    if (error) {
+      if (error.code === 'PGRST116') return { data: null, error: 'Key not found' };
+      return { data: null, error: error.message };
+    }
 
     await logAudit(supabaseAdmin, {
       userId: auth.userId,
@@ -231,6 +225,12 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
     const auth = await getAuthenticatedCompany(supabase);
     if (auth.error || !auth.companyId || !auth.userId) {
       return { data: null, error: auth.error ?? 'Not authenticated' };
+    }
+
+    // Daily rate limit: 3 manual syncs per day per user
+    const rl = await checkRateLimit(dailySyncRateLimit, `daily_sync:${auth.userId}`);
+    if (!rl.success) {
+      return { data: null, error: 'Daily sync limit reached (3 per day). Try again tomorrow.' };
     }
 
     const { data: key, error: keyError } = await supabase
@@ -331,12 +331,37 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
       return { data: data as ApiKey, error: null };
     }
 
+    // Upsert usage records from the sync check
+    if (syncCheck.rows.length > 0) {
+      const records = syncCheck.rows.map((row: UsageRow) => ({
+        key_id: key.id,
+        date: row.date,
+        provider: key.provider,
+        model: row.model,
+        input_tokens: row.input_tokens,
+        output_tokens: row.output_tokens,
+        cost_usd: row.cost_usd,
+        request_count: row.request_count,
+        cached_read_tokens: row.cached_read_tokens ?? 0,
+        cache_creation_tokens: row.cache_creation_tokens ?? 0,
+        input_audio_tokens: row.input_audio_tokens ?? 0,
+        output_audio_tokens: row.output_audio_tokens ?? 0,
+        cost_source: row.cost_source ?? 'api',
+        remote_key_id: row.remote_key_id ?? null,
+      }));
+
+      await supabaseAdmin
+        .from('usage_records')
+        .upsert(records, { onConflict: 'key_id,date,model' });
+    }
+
     const shouldReactivate = !key.is_active && !!key.last_failure_reason;
     const { data, error } = await supabaseAdmin
       .from('api_keys')
       .update({
         is_active: key.is_active || shouldReactivate,
         last_validated: validatedAt,
+        last_synced_at: validatedAt,
         last_failure_reason: null,
         consecutive_failures: 0,
         key_type: validation.keyType ?? key.key_type ?? 'standard',
@@ -350,10 +375,10 @@ export async function refreshKeyStatus(id: string): Promise<ActionResult<ApiKey>
 
     await logAudit(supabaseAdmin, {
       userId: auth.userId,
-      action: 'key.updated',
+      action: 'key.synced',
       entityType: 'api_key',
       entityId: id,
-      metadata: { refresh: true, result: 'healthy' },
+      metadata: { refresh: true, result: 'healthy', rows_synced: syncCheck.rows.length },
     });
 
     return { data: data as ApiKey, error: null };
@@ -398,6 +423,73 @@ export async function deleteKey(id: string): Promise<ActionResult<null>> {
     });
 
     return { data: null, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
+export async function listManagedKeys(parentKeyId: string): Promise<ActionResult<ManagedKey[]>> {
+  try {
+    const supabase = await createClient();
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
+
+    const { data, error } = await supabase
+      .from('managed_keys')
+      .select('*')
+      .eq('parent_key_id', parentKeyId)
+      .eq('company_id', auth.companyId)
+      .order('remote_project_name', { ascending: true, nullsFirst: false })
+      .order('remote_key_name', { ascending: true, nullsFirst: false });
+
+    if (error) return { data: null, error: error.message };
+    return { data: data as ManagedKey[], error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
+export async function updateManagedKeyTracking(
+  id: string,
+  isTracked: boolean,
+): Promise<ActionResult<ManagedKey>> {
+  try {
+    const supabase = await createClient();
+    const auth = await getAuthenticatedCompany(supabase);
+    if (auth.error || !auth.companyId || !auth.userId) {
+      return { data: null, error: auth.error ?? 'Not authenticated' };
+    }
+
+    // Verify ownership via user client
+    const { data: mk } = await supabase
+      .from('managed_keys')
+      .select('id')
+      .eq('id', id)
+      .eq('company_id', auth.companyId)
+      .single();
+
+    if (!mk) return { data: null, error: 'Managed key not found' };
+
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin
+      .from('managed_keys')
+      .update({ is_tracked: isTracked, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('company_id', auth.companyId)
+      .select()
+      .single();
+
+    if (error) return { data: null, error: error.message };
+
+    await logAudit(supabaseAdmin, {
+      userId: auth.userId,
+      action: 'managed_key.updated',
+      entityType: 'managed_key',
+      entityId: id,
+      metadata: { is_tracked: isTracked },
+    });
+
+    return { data: data as ManagedKey, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }

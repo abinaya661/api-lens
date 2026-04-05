@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { PageHeader, EmptyState, ErrorState, SkeletonTable } from '@/components/shared';
-import { useKeys, useAddKey, useUpdateKey, useDeleteKey } from '@/hooks/use-keys';
+import { useKeys, useAddKey, useUpdateKey, useDeleteKey, useRefreshKeyStatus } from '@/hooks/use-keys';
 import { useProjects, useCreateProject } from '@/hooks/use-projects';
 import { timeAgo } from '@/lib/utils';
 import type { Provider } from '@/types/providers';
@@ -21,6 +21,7 @@ import {
   Loader2,
   ShieldCheck,
   ChevronDown,
+  RefreshCw,
 } from 'lucide-react';
 import { PROVIDER_NAMES, PROVIDER_COLORS, ADD_KEY_PROVIDERS } from '@/lib/utils/provider-config';
 import { getHealthConfig } from '@/lib/utils/key-health';
@@ -44,6 +45,7 @@ export default function KeysPage() {
   const addKeyMutation = useAddKey();
   const updateKeyMutation = useUpdateKey();
   const deleteKeyMutation = useDeleteKey();
+  const refreshMutation = useRefreshKeyStatus();
 
   const [showModal, setShowModal] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'revoked'>('all');
@@ -514,9 +516,16 @@ export default function KeysPage() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${PROVIDER_COLORS[key.provider] || 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'}`}>
-                        {PROVIDER_NAMES[key.provider] || key.provider}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${PROVIDER_COLORS[key.provider] || 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'}`}>
+                          {PROVIDER_NAMES[key.provider] || key.provider}
+                        </span>
+                        {key.key_type === 'admin' && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-violet-500/10 text-violet-400 border border-violet-500/20">
+                            Admin
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 hidden lg:table-cell">
                       <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${health.bg} ${health.color}`}>
@@ -526,11 +535,25 @@ export default function KeysPage() {
                     </td>
                     <td className="py-3 px-4 text-right hidden sm:table-cell">
                       <span className="text-xs text-zinc-500">
-                        {key.last_used ? timeAgo(key.last_used) : 'Never'}
+                        {key.last_synced_at ? timeAgo(key.last_synced_at) : 'Never'}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {key.is_active && (
+                          <button
+                            title="Sync usage now"
+                            disabled={refreshMutation.isPending}
+                            onClick={(e) => { e.stopPropagation(); refreshMutation.mutate(key.id); }}
+                            className="p-1.5 rounded-md text-zinc-500 hover:text-brand-400 hover:bg-brand-500/10 transition-colors disabled:opacity-50"
+                          >
+                            {refreshMutation.isPending && refreshMutation.variables === key.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        )}
                         {key.is_active && (
                           <button
                             title="Revoke key"
