@@ -36,12 +36,12 @@ export async function createBudget(input: CreateBudgetInput): Promise<ActionResu
 
     const supabase = await createClient();
     const auth = await getAuthenticatedCompany(supabase);
-    if (auth.error || !auth.companyId) return { data: null, error: auth.error ?? 'Not authenticated' };
+    if (auth.error || !auth.companyId || !auth.userId) return { data: null, error: auth.error ?? 'Not authenticated' };
 
     const { data, error } = await supabase
       .from('budgets')
       .insert({
-        user_id: auth.userId!,
+        user_id: auth.userId,
         company_id: auth.companyId,
         ...parsed.data,
         scope_id: parsed.data.scope_id ?? null,

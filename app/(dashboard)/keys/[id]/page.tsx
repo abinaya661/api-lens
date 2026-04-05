@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { getKey } from '@/lib/actions/keys';
 import { listBudgets } from '@/lib/actions/budgets';
-import { useUpdateKey, useDeleteKey, useRefreshKeyStatus } from '@/hooks/use-keys';
+import { useUpdateKey, useDeleteKey, useRefreshKeyStatus, useManagedKeys, useUpdateManagedKeyTracking } from '@/hooks/use-keys';
 import { useProjects } from '@/hooks/use-projects';
 import { SkeletonCard, ErrorState } from '@/components/shared';
 import { timeAgo, formatCurrency } from '@/lib/utils';
@@ -19,6 +19,9 @@ import {
   Edit2,
   XCircle,
   X,
+  RefreshCw,
+  Loader2,
+  Users,
 } from 'lucide-react';
 import { PROVIDER_NAMES, PROVIDER_COLORS } from '@/lib/utils/provider-config';
 import { getHealthConfig } from '@/lib/utils/key-health';
@@ -30,7 +33,8 @@ export default function KeyDetailPage() {
 
   const updateKeyMutation = useUpdateKey();
   const deleteKeyMutation = useDeleteKey();
-  useRefreshKeyStatus();
+  const refreshMutation = useRefreshKeyStatus();
+  const trackingMutation = useUpdateManagedKeyTracking();
   useProjects();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -52,6 +56,9 @@ export default function KeyDetailPage() {
     },
     enabled: !!id,
   });
+
+  // Fetch managed keys for admin keys
+  const { data: managedKeys } = useManagedKeys(id);
 
   // Fetch budgets to find any key-scoped budget
   const { data: budgets } = useQuery({
@@ -158,6 +165,11 @@ export default function KeyDetailPage() {
                 <code className="text-xs text-zinc-500 font-mono bg-zinc-800/60 px-2 py-0.5 rounded">
                   ...{apiKey.key_hint}
                 </code>
+                {apiKey.key_type === 'admin' && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-violet-500/10 text-violet-400 border border-violet-500/20">
+                    Admin
+                  </span>
+                )}
                 <span
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${health.bg} ${health.color}`}
                 >
@@ -170,6 +182,20 @@ export default function KeyDetailPage() {
 
           {/* Action buttons */}
           <div className="flex items-center gap-2 shrink-0">
+            {apiKey.is_active && (
+              <button
+                onClick={() => refreshMutation.mutate(id)}
+                disabled={refreshMutation.isPending}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-brand-600/10 text-brand-400 border border-brand-500/20 hover:bg-brand-600/20 transition-colors disabled:opacity-50"
+              >
+                {refreshMutation.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                {refreshMutation.isPending ? 'Syncing...' : 'Sync Now'}
+              </button>
+            )}
             <button
               onClick={openEditModal}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
@@ -213,16 +239,16 @@ export default function KeyDetailPage() {
             <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Last Synced</span>
           </div>
           <p className="text-sm font-medium text-zinc-200 mt-2">
-            {apiKey.last_used
-              ? new Date(apiKey.last_used).toLocaleDateString('en-US', {
+            {apiKey.last_synced_at
+              ? new Date(apiKey.last_synced_at).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
                 })
               : 'Never synced'}
           </p>
-          {apiKey.last_used && (
-            <p className="text-xs text-zinc-500 mt-0.5">{timeAgo(apiKey.last_used)}</p>
+          {apiKey.last_synced_at && (
+            <p className="text-xs text-zinc-500 mt-0.5">{timeAgo(apiKey.last_synced_at)}</p>
           )}
         </div>
       </div>
@@ -308,6 +334,84 @@ export default function KeyDetailPage() {
             />
           </div>
           <p className="text-xs text-zinc-600 mt-2">Usage data synced via provider API.</p>
+        </div>
+      )}
+
+      {/* Managed / Tracked keys (admin keys only) */}
+      {apiKey.key_type === 'admin' && (
+        <div className="glass-card p-6 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-violet-400" />
+              <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+                Tracked Keys
+              </h2>
+              {managedKeys && managedKeys.length > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-semibold bg-violet-500/10 text-violet-400">
+                  {managedKeys.length}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {!managedKeys || managedKeys.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
+              <p className="text-sm text-zinc-500">No child keys discovered yet.</p>
+              <p className="text-xs text-zinc-600 mt-1">
+                Keys are discovered automatically every 6 hours, or click Sync Now above.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-800">
+                    <th className="text-left py-2 px-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Name</th>
+                    <th className="text-left py-2 px-3 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden sm:table-cell">Project</th>
+                    <th className="text-left py-2 px-3 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden md:table-cell">Key</th>
+                    <th className="text-right py-2 px-3 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden sm:table-cell">Last Used</th>
+                    <th className="text-right py-2 px-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Tracked</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/50">
+                  {managedKeys.map((mk) => (
+                    <tr key={mk.id} className="hover:bg-zinc-800/30 transition-colors">
+                      <td className="py-2.5 px-3">
+                        <span className="text-sm text-zinc-200">{mk.remote_key_name || 'Unnamed'}</span>
+                      </td>
+                      <td className="py-2.5 px-3 hidden sm:table-cell">
+                        <span className="text-xs text-zinc-500">{mk.remote_project_name || '-'}</span>
+                      </td>
+                      <td className="py-2.5 px-3 hidden md:table-cell">
+                        <code className="text-xs text-zinc-600 font-mono">{mk.redacted_value || '-'}</code>
+                      </td>
+                      <td className="py-2.5 px-3 text-right hidden sm:table-cell">
+                        <span className="text-xs text-zinc-500">
+                          {mk.last_used_at ? timeAgo(mk.last_used_at) : 'Never'}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-right">
+                        <button
+                          onClick={() => trackingMutation.mutate({ id: mk.id, isTracked: !mk.is_tracked })}
+                          disabled={trackingMutation.isPending}
+                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
+                            mk.is_tracked ? 'bg-brand-600' : 'bg-zinc-700'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              mk.is_tracked ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

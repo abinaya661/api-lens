@@ -50,6 +50,18 @@ export const syncRateLimit = redis
     })
   : null;
 
+/**
+ * Rate limiter for manual sync: 3 requests per day
+ */
+export const dailySyncRateLimit = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(3, '24 h'),
+      analytics: true,
+      prefix: 'api_lens:daily_sync',
+    })
+  : null;
+
 // In-memory fallback when Redis is unavailable
 const memoryStore = new Map<string, { count: number; resetAt: number }>();
 const MEMORY_WINDOW_MS = 60_000;

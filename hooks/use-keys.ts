@@ -1,7 +1,15 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { listKeys, addKey, updateKey, deleteKey, refreshKeyStatus } from '@/lib/actions/keys';
+import {
+  listKeys,
+  addKey,
+  updateKey,
+  deleteKey,
+  refreshKeyStatus,
+  listManagedKeys,
+  updateManagedKeyTracking,
+} from '@/lib/actions/keys';
 import type { AddKeyInput, UpdateKeyInput } from '@/lib/validations/key';
 import { toast } from 'sonner';
 
@@ -78,14 +86,42 @@ export function useRefreshKeyStatus() {
       queryClient.invalidateQueries({ queryKey: ['keys', key.id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
 
-      if (key.is_valid && key.is_active) {
-        toast.success('Key is healthy and active');
+      if (key.is_active) {
+        toast.success('Key synced successfully');
         return;
       }
 
       toast.error('Key is inactive', {
-        description: key.last_failure_reason ?? 'The provider rejected the key during refresh.',
+        description: key.last_failure_reason ?? 'The provider rejected the key during sync.',
       });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useManagedKeys(parentKeyId: string) {
+  return useQuery({
+    queryKey: ['managed-keys', parentKeyId],
+    queryFn: async () => {
+      const result = await listManagedKeys(parentKeyId);
+      if (result.error) throw new Error(result.error);
+      return result.data!;
+    },
+    enabled: !!parentKeyId,
+  });
+}
+
+export function useUpdateManagedKeyTracking() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, isTracked }: { id: string; isTracked: boolean }) => {
+      const result = await updateManagedKeyTracking(id, isTracked);
+      if (result.error) throw new Error(result.error);
+      return result.data!;
+    },
+    onSuccess: (mk) => {
+      queryClient.invalidateQueries({ queryKey: ['managed-keys'] });
+      toast.success(mk.is_tracked ? 'Key tracking enabled' : 'Key tracking disabled');
     },
     onError: (error: Error) => toast.error(error.message),
   });
