@@ -1,13 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { OpenAIAdapter } from '../lib/platforms/adapters/openai';
 import { AnthropicAdapter } from '../lib/platforms/adapters/anthropic';
-import { DeepSeekAdapter } from '../lib/platforms/adapters/deepseek';
 import { GrokAdapter } from '../lib/platforms/adapters/grok';
 import { GeminiAdapter } from '../lib/platforms/adapters/gemini';
 import { OpenRouterAdapter } from '../lib/platforms/adapters/openrouter';
 import { ElevenLabsAdapter } from '../lib/platforms/adapters/elevenlabs';
-import { AzureOpenAIAdapter } from '../lib/platforms/adapters/azure-openai';
-import { MoonshotAdapter } from '../lib/platforms/adapters/moonshot';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -57,17 +54,6 @@ describe('provider adapter validation', () => {
 
     expect(result.valid).toBe(true);
     expect(result.keyType).toBe('admin');
-  });
-
-  test('DeepSeek rejects keys without billing balance access', async () => {
-    fetchMock
-      .mockResolvedValueOnce(jsonResponse({ error: 'unavailable' }, 500))
-      .mockResolvedValueOnce(jsonResponse({ data: [] }, 200));
-
-    const result = await new DeepSeekAdapter().validateKey('sk-deepseek');
-
-    expect(result.valid).toBe(false);
-    expect(result.error).toContain('balance API');
   });
 
   test('Gemini accepts valid API keys for validation-only', async () => {
@@ -249,28 +235,10 @@ describe('provider capabilities', () => {
     expect(caps.requiresAdminKey).toBe(false);
   });
 
-  test('DeepSeek declares aggregate usage', () => {
-    const caps = new DeepSeekAdapter().getCapabilities();
-    expect(caps.canFetchUsage).toBe(true);
-    expect(caps.canPerModelBreakdown).toBe(false);
-  });
-
   test('ElevenLabs declares aggregate usage', () => {
     const caps = new ElevenLabsAdapter().getCapabilities();
     expect(caps.canFetchUsage).toBe(true);
     expect(caps.canFetchCost).toBe(false);
     expect(caps.canPerModelBreakdown).toBe(false);
-  });
-
-  test('Azure OpenAI declares validation-only', () => {
-    const caps = new AzureOpenAIAdapter().getCapabilities();
-    expect(caps.canFetchUsage).toBe(false);
-    expect(caps.canValidateKey).toBe(true);
-  });
-
-  test('Moonshot declares validation-only', () => {
-    const caps = new MoonshotAdapter().getCapabilities();
-    expect(caps.canFetchUsage).toBe(false);
-    expect(caps.canValidateKey).toBe(true);
   });
 });

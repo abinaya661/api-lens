@@ -11,8 +11,7 @@ const PROVIDER_SOURCES = [
   { provider: 'anthropic', url: 'https://platform.claude.com/docs/en/about-claude/pricing' },
   { provider: 'gemini', url: 'https://ai.google.dev/gemini-api/docs/pricing' },
   { provider: 'grok', url: 'https://docs.x.ai/docs/models' },
-  { provider: 'deepseek', url: 'https://api-docs.deepseek.com/quick_start/pricing' },
-  { provider: 'moonshot', url: 'https://platform.moonshot.ai/docs/pricing/chat' },
+  { provider: 'openrouter', url: 'https://openrouter.ai/docs#models' },
   { provider: 'elevenlabs', url: 'https://elevenlabs.io/pricing/api' },
 ] as const;
 

@@ -19,19 +19,8 @@ const PROVIDER_COLORS: Record<string, string> = {
   anthropic: 'bg-[#d97757]',
   gemini: 'bg-[#1a73e8]',
   grok: 'bg-[#f97316]',
-  deepseek: 'bg-[#2563eb]',
-  moonshot: 'bg-[#facc15]',
-  mistral: 'bg-[#f54e42]',
-  cohere: 'bg-[#39594d]',
-  bedrock: 'bg-[#ff9900]',
-  azure_openai: 'bg-[#0078d4]',
   elevenlabs: 'bg-[#000000]',
-  deepgram: 'bg-[#13EF93]',
-  assemblyai: 'bg-[#4A90D9]',
-  replicate: 'bg-[#000000]',
-  fal: 'bg-[#7C3AED]',
   openrouter: 'bg-[#6366f1]',
-  vertex_ai: 'bg-[#4285f4]',
 };
 
 const PROVIDER_NAMES: Record<string, string> = {
@@ -39,19 +28,8 @@ const PROVIDER_NAMES: Record<string, string> = {
   anthropic: 'Anthropic',
   gemini: 'Google Gemini',
   grok: 'Grok (xAI)',
-  deepseek: 'DeepSeek',
-  moonshot: 'Moonshot',
-  mistral: 'Mistral AI',
-  cohere: 'Cohere',
-  bedrock: 'AWS Bedrock',
-  azure_openai: 'Azure OpenAI',
   elevenlabs: 'ElevenLabs',
-  deepgram: 'Deepgram',
-  assemblyai: 'AssemblyAI',
-  replicate: 'Replicate',
-  fal: 'Fal AI',
   openrouter: 'OpenRouter',
-  vertex_ai: 'Vertex AI',
 };
 
 export const ProviderBreakdownList = memo(function ProviderBreakdownList({ data }: ProviderBreakdownProps) {

@@ -83,15 +83,6 @@ describe('addKeySchema', () => {
     expect(result.success).toBe(true);
   });
 
-  test('accepts valid deepseek key (no prefix check)', () => {
-    const result = addKeySchema.safeParse({
-      provider: 'deepseek',
-      nickname: 'My DS Key',
-      api_key: 'sk-1234567890',
-    });
-    expect(result.success).toBe(true);
-  });
-
   test('rejects empty provider', () => {
     const result = addKeySchema.safeParse({
       provider: '',

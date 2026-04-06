@@ -23,9 +23,6 @@ const PROVIDERS = [
   { value: 'anthropic', label: 'Anthropic' },
   { value: 'gemini', label: 'Gemini' },
   { value: 'grok', label: 'Grok' },
-  { value: 'azure_openai', label: 'Microsoft Azure' },
-  { value: 'moonshot', label: 'Moonshot' },
-  { value: 'deepseek', label: 'DeepSeek' },
   { value: 'elevenlabs', label: 'ElevenLabs' },
   { value: 'openrouter', label: 'OpenRouter' },
 ];
@@ -325,14 +322,6 @@ export default function OnboardingPage() {
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
                     OpenRouter provides per-model cost and token breakdown via generation history.
                     Your standard API key is all that&apos;s needed.
-                  </p>
-                </div>
-              )}
-              {provider === 'deepseek' && (
-                <div className="p-3 rounded-lg bg-teal-500/5 border border-teal-500/20">
-                  <p className="text-xs text-teal-400 font-medium mb-1">Balance Tracking</p>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    DeepSeek provides aggregate balance data. Per-model breakdown is not available.
                   </p>
                 </div>
               )}

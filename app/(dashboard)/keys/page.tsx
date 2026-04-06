@@ -212,11 +212,6 @@ export default function KeysPage() {
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
               </div>
-              {formProvider === 'azure_openai' && (
-                <p className="text-xs text-zinc-500 mt-1.5">
-                  Azure keys should be in format: <code className="text-zinc-400">endpoint|api-key</code>
-                </p>
-              )}
             </div>
 
             {/* Project Selection */}
@@ -360,11 +355,11 @@ export default function KeysPage() {
                 </p>
               </div>
             )}
-            {formProvider === 'deepseek' && (
-              <div className="p-3 rounded-lg bg-teal-500/5 border border-teal-500/20">
-                <p className="text-xs text-teal-400 font-medium mb-1">Balance Tracking</p>
+            {formProvider === 'elevenlabs' && (
+              <div className="p-3 rounded-lg bg-zinc-500/5 border border-zinc-500/20">
+                <p className="text-xs text-zinc-400 font-medium mb-1">Subscription Tracking</p>
                 <p className="text-[11px] text-zinc-400 leading-relaxed">
-                  DeepSeek provides aggregate balance data. Per-model breakdown is not available.
+                  ElevenLabs provides aggregate character-quota data from your subscription.
                 </p>
               </div>
             )}
