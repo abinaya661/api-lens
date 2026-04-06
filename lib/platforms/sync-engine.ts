@@ -19,7 +19,7 @@ export async function syncAllKeys(): Promise<SyncStats> {
   // Fetch all active keys
   const { data: keys, error } = await supabase
     .from('api_keys')
-    .select('id, company_id, provider, encrypted_credentials, encrypted_key, nickname, consecutive_failures')
+    .select('id, company_id, provider, encrypted_credentials, encrypted_key, nickname, consecutive_failures, usage_capability')
     .eq('is_active', true);
 
   if (error || !keys) {
@@ -33,6 +33,18 @@ export async function syncAllKeys(): Promise<SyncStats> {
     if (!adapter) {
       stats.errors.push(`No adapter for provider: ${key.provider} (key: ${key.nickname})`);
       stats.keys_failed++;
+      continue;
+    }
+
+    // Skip keys that are validation-only — no usage data to fetch
+    if (key.usage_capability === 'validation_only') {
+      await supabase.from('api_keys').update({
+        last_synced_at: new Date().toISOString(),
+        consecutive_failures: 0,
+        last_failure_reason: null,
+        updated_at: new Date().toISOString(),
+      }).eq('id', key.id);
+      stats.keys_succeeded++;
       continue;
     }
 

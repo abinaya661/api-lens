@@ -37,6 +37,13 @@ export const addKeySchema = z.object({
       path: ['api_key'],
     });
   }
+  if (data.provider === 'openrouter' && data.api_key.length > 5 && !data.api_key.startsWith('sk-or-')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'OpenRouter keys typically start with sk-or-...',
+      path: ['api_key'],
+    });
+  }
 });
 
 export const updateKeySchema = z.object({

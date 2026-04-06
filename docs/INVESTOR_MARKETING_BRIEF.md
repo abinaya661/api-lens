@@ -1,6 +1,6 @@
 # API Lens - Product & Investment Brief
 
-**Version:** 2.1 | **Date:** March 28, 2026 | **Classification:** External - Investors & Marketing
+**Version:** 2.2 | **Date:** April 6, 2026 | **Classification:** External - Investors & Marketing
 
 ---
 
@@ -45,17 +45,19 @@
 
 ## Supported AI Providers
 
-| Provider | Sync Type |
-|----------|-----------|
-| **OpenAI** (GPT-4, GPT-4o, GPT-5 family, DALL-E) | Full automated cost sync |
-| **Anthropic** (Claude 3, Claude 4) | Full automated cost sync |
-| **Google Gemini** (Flash, Pro, Imagen, Veo) | Key validation (billing API unavailable) |
-| **xAI / Grok** (Grok-2, Grok-4) | Key validation |
-| **DeepSeek** (V3, R1) | Balance-based sync |
-| **ElevenLabs** (Voice AI, TTS) | Character-based usage sync |
-| **OpenRouter** (Multi-model router) | Credit-based sync |
-| **Azure OpenAI** (Enterprise GPT) | Key validation |
-| **Moonshot AI** (Kimi models) | Key validation |
+| Provider | Sync Type | Key Type | Detail |
+|----------|-----------|----------|--------|
+| **OpenAI** (GPT-4, GPT-4o, GPT-5 family, DALL-E) | Full per-model cost sync | Admin key (`sk-admin-`) | Organization costs API + managed key discovery |
+| **Anthropic** (Claude 3, Claude 4) | Full per-model cost sync | Admin key (`sk-ant-admin`) | Usage report + cost report APIs + managed key discovery |
+| **OpenRouter** (Multi-model router) | Per-model cost breakdown | Standard key | Generation history API with per-model tokens and cost |
+| **DeepSeek** (V3, R1) | Balance-based sync | Standard key | Account balance tracking |
+| **ElevenLabs** (Voice AI, TTS) | Character-based usage sync | Standard key | Character usage stats |
+| **Google Gemini** (Flash, Pro, Imagen, Veo) | Key validation + storage | Standard key | Google AI Studio lacks billing API — key stored for project organization |
+| **xAI / Grok** (Grok-2, Grok-4) | Key validation + storage | Standard key | xAI lacks public billing API — key stored for project organization |
+| **Azure OpenAI** (Enterprise GPT) | Key validation + storage | Standard key | Azure billing requires Cost Management integration |
+| **Moonshot AI** (Kimi models) | Key validation + storage | Standard key | No public usage API |
+
+All 9 providers now accept valid keys. Providers without usage APIs are clearly flagged as "Validation Only" in the UI with honest messaging. The sync engine intelligently skips these keys to avoid false failure counts.
 
 *Roadmap: AWS Bedrock, Cohere, Mistral, Replicate*
 
@@ -85,7 +87,7 @@ Regional pricing auto-adjusts based on user location - **50+ countries** with lo
 |--------|--------|
 | **Modern Stack** | Next.js 15, TypeScript, Supabase, Vercel - fast iteration, low infra cost, auto-scaling |
 | **Security-First** | AES-256-GCM encryption, RLS, CSRF, CSP headers, rate limiting |
-| **Adapter Pattern** | Pluggable provider integrations - adding a new AI provider takes days, not months |
+| **Adapter Pattern** | Pluggable provider integrations with structured `ProviderCapabilities` system - adding a new AI provider takes days, not months. Each adapter self-declares what it can do (validation, usage sync, cost tracking, managed keys) |
 | **Pricing Intelligence** | Centralized model catalog with category-aware pricing, batch/cache math, and refresh automation |
 | **Global Payments** | Dodo Payments (MoR) - no tax/compliance headaches in 50+ countries |
 | **CI/CD** | GitHub Actions pipeline with lint, type-check, build, test |
@@ -109,13 +111,15 @@ Regional pricing auto-adjusts based on user location - **50+ countries** with lo
 
 ### What's Built (Launch-Ready Product)
 - Complete authentication (email + Google OAuth + password reset) with 7-day free trial
-- 9 AI provider integrations with AES-256-GCM encrypted key storage and health monitoring
+- 9 AI provider integrations with AES-256-GCM encrypted key storage and health monitoring — all providers now accept keys with honest capability messaging
+- Structured `ProviderCapabilities` system: full per-model tracking (OpenAI, Anthropic), aggregate tracking (OpenRouter, DeepSeek, ElevenLabs), and validation-only storage (Gemini, Grok, Azure, Moonshot)
+- OpenRouter per-model cost breakdown via generation history API (paginated, date-filtered)
 - Real-time spending dashboard with charts, projections, and provider breakdown
 - Budget alert system (4 tiers), waste detection (unused keys), rotation reminders
-- Project organization, reports with CSV export, and a Smart Estimator for model comparison plus usage-based month-end forecasting
+- Project organization with per-provider key assignment, reports with CSV export, and a Smart Estimator for model comparison plus usage-based month-end forecasting
 - Subscription billing with regional pricing (50+ countries), promo codes, access passes
 - Pricing catalog operations with refresh automation for estimator accuracy
-- Full email system (11 transactional templates), rate limiting, comprehensive security audit (21 fixes, 64 tests)
+- Full email system (11 transactional templates), rate limiting, comprehensive security audit (21 fixes, 64+ tests)
 - SEO-optimized blog (5 articles, JSON-LD structured data, dynamic sitemap), dark/light theme toggle
 
 ### What's Next
@@ -201,4 +205,4 @@ Pricing ops hardening   Performance tuning        White-label option
 
 ---
 
-*Prepared March 28, 2026. For questions, contact the API Lens team.*
+*Prepared April 6, 2026. For questions, contact the API Lens team.*

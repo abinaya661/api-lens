@@ -1,5 +1,5 @@
 import { BaseAdapter } from './base';
-import type { SyncResult, UsageRow, ManagedKeyInfo } from '../types';
+import type { SyncResult, UsageRow, ManagedKeyInfo, ProviderCapabilities } from '../types';
 import { getModelPricing, calculateCost, calculateCostWithCache } from '@/lib/pricing';
 
 interface AnthropicUsageResult {
@@ -308,5 +308,19 @@ export class AnthropicAdapter extends BaseAdapter {
     }
 
     return managedKeys;
+  }
+
+  override getCapabilities(): ProviderCapabilities {
+    return {
+      canValidateKey: true,
+      canFetchUsage: true,
+      canFetchCost: true,
+      canListManagedKeys: true,
+      canPerModelBreakdown: true,
+      canPerKeyBreakdown: true,
+      requiresAdminKey: true,
+      adminKeyPrefix: 'sk-ant-admin',
+      keyPlaceholder: 'sk-ant-admin-...',
+    };
   }
 }

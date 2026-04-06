@@ -1,5 +1,5 @@
 import { BaseAdapter } from './base';
-import type { SyncResult } from '../types';
+import type { SyncResult, ProviderCapabilities } from '../types';
 
 export class MoonshotAdapter extends BaseAdapter {
   provider = 'moonshot';
@@ -30,5 +30,18 @@ export class MoonshotAdapter extends BaseAdapter {
     } catch (e: unknown) {
       return { valid: false, error: e instanceof Error ? e.message : 'Validation failed' };
     }
+  }
+
+  override getCapabilities(): ProviderCapabilities {
+    return {
+      canValidateKey: true,
+      canFetchUsage: false,
+      canFetchCost: false,
+      canListManagedKeys: false,
+      canPerModelBreakdown: false,
+      canPerKeyBreakdown: false,
+      requiresAdminKey: false,
+      usageNote: 'Moonshot does not expose a public usage or billing API.',
+    };
   }
 }

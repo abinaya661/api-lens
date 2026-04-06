@@ -1,8 +1,10 @@
 import {
   AlertTriangle,
+  BarChart3,
   Ban,
   CheckCircle2,
   Clock3,
+  Info,
   Shield,
   ShieldX,
   XCircle,
@@ -103,6 +105,35 @@ export function getVerificationConfig(key: ApiKey): StatusConfig {
 }
 
 export function getTrackabilityConfig(key: ApiKey): StatusConfig {
+  // Use usage_capability if available (set from adapter capabilities)
+  if (key.usage_capability === 'full') {
+    return {
+      icon: CheckCircle2,
+      color: 'text-cyan-400',
+      bg: 'bg-cyan-500/10 border-cyan-500/20',
+      label: 'Full Tracking',
+    };
+  }
+
+  if (key.usage_capability === 'aggregate') {
+    return {
+      icon: BarChart3,
+      color: 'text-indigo-400',
+      bg: 'bg-indigo-500/10 border-indigo-500/20',
+      label: 'Aggregate Only',
+    };
+  }
+
+  if (key.usage_capability === 'validation_only') {
+    return {
+      icon: Info,
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/10 border-blue-500/20',
+      label: 'Validation Only',
+    };
+  }
+
+  // Fallback to legacy detection for keys without usage_capability set
   if (key.has_usage_api) {
     return {
       icon: CheckCircle2,

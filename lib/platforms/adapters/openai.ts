@@ -1,5 +1,5 @@
 import { BaseAdapter } from './base';
-import type { SyncResult, UsageRow, ManagedKeyInfo } from '../types';
+import type { SyncResult, UsageRow, ManagedKeyInfo, ProviderCapabilities } from '../types';
 import { getModelPricing, calculateCost } from '@/lib/pricing';
 
 interface UsageApiRow {
@@ -286,5 +286,19 @@ export class OpenAIAdapter extends BaseAdapter {
     }
 
     return managedKeys;
+  }
+
+  override getCapabilities(): ProviderCapabilities {
+    return {
+      canValidateKey: true,
+      canFetchUsage: true,
+      canFetchCost: true,
+      canListManagedKeys: true,
+      canPerModelBreakdown: true,
+      canPerKeyBreakdown: true,
+      requiresAdminKey: true,
+      adminKeyPrefix: 'sk-admin-',
+      keyPlaceholder: 'sk-admin-...',
+    };
   }
 }

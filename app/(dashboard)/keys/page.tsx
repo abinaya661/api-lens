@@ -71,6 +71,12 @@ export default function KeysPage() {
       return 'OpenAI keys must start with sk-admin-...';
     if (formProvider === 'anthropic' && formKey.length > 10 && !formKey.startsWith('sk-ant-admin'))
       return 'Anthropic keys must start with sk-ant-admin...';
+    if (formProvider === 'gemini' && formKey.length > 4 && !formKey.startsWith('AIza'))
+      return 'Gemini keys typically start with AIza...';
+    if (formProvider === 'grok' && formKey.length > 4 && !formKey.startsWith('xai-'))
+      return 'Grok keys typically start with xai-...';
+    if (formProvider === 'openrouter' && formKey.length > 5 && !formKey.startsWith('sk-or-'))
+      return 'OpenRouter keys typically start with sk-or-...';
     return null;
   }, [formProvider, formKey]);
 
@@ -327,6 +333,41 @@ export default function KeysPage() {
                 </a>
               </div>
             )}
+            {formProvider === 'gemini' && (
+              <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                <p className="text-xs text-blue-400 font-medium mb-1">Validation Only</p>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Google AI Studio does not expose a usage or billing API.
+                  This key will be validated and stored, but automated usage tracking is not available.
+                </p>
+              </div>
+            )}
+            {formProvider === 'grok' && (
+              <div className="p-3 rounded-lg bg-slate-500/5 border border-slate-500/20">
+                <p className="text-xs text-slate-400 font-medium mb-1">Validation Only</p>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  xAI does not yet offer a public usage or billing API.
+                  This key will be validated and stored, but automated usage tracking is not available.
+                </p>
+              </div>
+            )}
+            {formProvider === 'openrouter' && (
+              <div className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/20">
+                <p className="text-xs text-indigo-400 font-medium mb-1">Usage Tracking Available</p>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  OpenRouter provides per-model cost and token breakdown via generation history.
+                  Your standard API key is all that&apos;s needed.
+                </p>
+              </div>
+            )}
+            {formProvider === 'deepseek' && (
+              <div className="p-3 rounded-lg bg-teal-500/5 border border-teal-500/20">
+                <p className="text-xs text-teal-400 font-medium mb-1">Balance Tracking</p>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  DeepSeek provides aggregate balance data. Per-model breakdown is not available.
+                </p>
+              </div>
+            )}
 
             {/* API Key */}
             <div>
@@ -523,6 +564,16 @@ export default function KeysPage() {
                         {key.key_type === 'admin' && (
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-violet-500/10 text-violet-400 border border-violet-500/20">
                             Admin
+                          </span>
+                        )}
+                        {key.usage_capability === 'validation_only' && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            Validation Only
+                          </span>
+                        )}
+                        {key.usage_capability === 'aggregate' && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                            Aggregate
                           </span>
                         )}
                       </div>
