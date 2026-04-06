@@ -1,11 +1,10 @@
-export function getSafeRedirect(next: string | null): string {
-  if (!next) return '/dashboard';
-  if (!next.startsWith('/') || next.startsWith('//')) return '/dashboard';
+export function getSafeRedirect(redirectTo: unknown): string {
+  if (typeof redirectTo !== 'string') return '/';
   try {
-    const url = new URL(next, 'http://dummy');
-    if (url.hostname !== 'dummy') return '/dashboard';
+    const url = new URL(redirectTo, 'http://localhost');
+    if (url.origin !== 'http://localhost') return '/';
+    return url.pathname + url.search + url.hash;
   } catch {
-    return '/dashboard';
+    return '/';
   }
-  return next;
 }

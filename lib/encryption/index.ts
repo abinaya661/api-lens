@@ -57,10 +57,21 @@ function wrapDEK(dek: Buffer): string {
 function unwrapDEK(wrapped: string): Buffer {
   const masterKey = getMasterKey();
   const buf = Buffer.from(wrapped, 'base64');
+
+  const MIN_CIPHERTEXT_LENGTH = IV_LENGTH + 16; // IV (12) + auth tag (16) minimum for AES-256-GCM
+  if (buf.length < MIN_CIPHERTEXT_LENGTH) {
+    throw new Error('DEK ciphertext is too short — data may be corrupted or truncated');
+  }
+
   const iv = buf.subarray(0, IV_LENGTH);
   const tag = buf.subarray(IV_LENGTH, IV_LENGTH + 16);
   const ciphertext = buf.subarray(IV_LENGTH + 16);
-  return aesDecrypt(ciphertext, masterKey, iv, tag);
+
+  try {
+    return aesDecrypt(ciphertext, masterKey, iv, tag);
+  } catch (err) {
+    throw new Error('Decryption failed — credentials may be corrupted or tampered with');
+  }
 }
 
 export interface EncryptedPayload {
@@ -101,7 +112,11 @@ export function decryptCredentials(payload: EncryptedPayload): string {
   const tag = Buffer.from(payload.tag, 'base64');
   const dek = unwrapDEK(payload.dek);
 
-  return aesDecrypt(ciphertext, dek, iv, tag).toString('utf8');
+  try {
+    return aesDecrypt(ciphertext, dek, iv, tag).toString('utf8');
+  } catch (err) {
+    throw new Error('Decryption failed — credentials may be corrupted or tampered with');
+  }
 }
 
 /**

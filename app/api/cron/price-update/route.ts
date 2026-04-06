@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';
+import { verifyCronAuth } from '@/lib/api/verify-cron-auth';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -15,15 +16,6 @@ const PROVIDER_SOURCES = [
   { provider: 'moonshot', url: 'https://platform.moonshot.ai/docs/pricing/chat' },
   { provider: 'elevenlabs', url: 'https://elevenlabs.io/pricing/api' },
 ] as const;
-
-function verifyCronSecret(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || cronSecret.length < 32) {
-    return false;
-  }
-  return authHeader === `Bearer ${cronSecret}`;
-}
 
 function escapeForRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -107,7 +99,7 @@ function buildSummaryHtml(summary: {
 }
 
 export async function GET(request: NextRequest) {
-  if (!verifyCronSecret(request)) {
+  if (!verifyCronAuth(request.headers.get('authorization'), process.env.CRON_SECRET ?? '')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

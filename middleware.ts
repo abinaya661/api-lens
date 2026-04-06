@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { CookieOptions } from '@supabase/ssr';
+import { getSafeRedirect } from './lib/utils/safe-redirect';
 
 // Routes that don't require authentication
 const publicRoutes = [
@@ -94,7 +95,8 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       // Honour the redirect param so users land where they intended
       const redirectTo = request.nextUrl.searchParams.get('redirect');
-      url.pathname = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : '/dashboard';
+      const safePath = getSafeRedirect(redirectTo);
+      url.pathname = safePath !== '/' ? safePath : '/dashboard';
       url.search = '';
       return NextResponse.redirect(url);
     }

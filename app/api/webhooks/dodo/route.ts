@@ -128,6 +128,11 @@ export async function POST(request: Request) {
     }
   }
 
+  const VALID_PLANS = ['monthly', 'annual'] as const;
+  type ValidPlan = typeof VALID_PLANS[number];
+  const plan = event.data.metadata?.plan;
+  const validatedPlan = VALID_PLANS.includes(plan as ValidPlan) ? plan as ValidPlan : null;
+
   const now = new Date().toISOString();
 
   switch (event.type) {
@@ -149,7 +154,7 @@ export async function POST(request: Request) {
           status: 'active',
           dodo_subscription_id: event.data.subscription_id,
           dodo_customer_id: event.data.customer?.customer_id,
-          plan: event.data.metadata?.plan ?? 'monthly',
+          plan: validatedPlan ?? 'monthly',
           period_end: event.data.current_period_end,
           last_payment_at: now,
           updated_at: now,
@@ -169,7 +174,7 @@ export async function POST(request: Request) {
           html: getTransactionEmailHtml({
             title: 'Your Subscription is Active!',
             message: 'You have successfully subscribed. Your payment was processed and your account is now fully active.',
-            plan: event.data.metadata?.plan ?? 'monthly',
+            plan: validatedPlan ?? 'monthly',
           }),
         }).catch((err: unknown) => console.error('[Webhook Email]', err));
       }
@@ -299,7 +304,7 @@ export async function POST(request: Request) {
       const { error } = await adminSupabase
         .from('subscriptions')
         .update({
-          plan: event.data.metadata?.plan,
+          plan: validatedPlan,
           updated_at: now,
         })
         .eq('dodo_subscription_id', event.data.subscription_id);

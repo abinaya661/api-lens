@@ -38,9 +38,15 @@ export async function cancelSubscription(): Promise<ActionResult<null>> {
 
     const { data: sub } = await supabase
       .from('subscriptions')
-      .select('dodo_subscription_id')
+      .select('dodo_subscription_id, company_id')
       .eq('company_id', auth.companyId)
       .single();
+
+    // Authorization: ensure the subscription belongs to the authenticated company
+    // before any mutating operations (admin client bypasses RLS).
+    if (sub?.company_id !== auth.companyId) {
+      return { data: null, error: 'Unauthorized: subscription does not belong to your company.' };
+    }
 
     if (sub?.dodo_subscription_id) {
       try {
@@ -57,14 +63,25 @@ export async function cancelSubscription(): Promise<ActionResult<null>> {
     }
 
     const adminSupabase = createAdminClient();
-    const { error: dbError } = await adminSupabase
-      .from('subscriptions')
-      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-      .eq('company_id', auth.companyId);
+    try {
+      const { error: dbError } = await adminSupabase
+        .from('subscriptions')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('company_id', auth.companyId);
 
-    if (dbError) {
-      console.error('[cancel] DB update failed:', dbError);
-      return { data: null, error: 'Subscription cancelled but failed to update local records. Please refresh.' };
+      if (dbError) throw dbError;
+    } catch (dbError) {
+      console.error(
+        '[CRITICAL] Subscription cancelled at Dodo but DB update failed. Manual reconciliation required.',
+        {
+          dodoSubscriptionId: sub?.dodo_subscription_id,
+          error: dbError,
+        },
+      );
+      return {
+        data: null,
+        error: 'Subscription cancelled but our records could not be updated. Please contact support.',
+      };
     }
 
     return { data: null, error: null };

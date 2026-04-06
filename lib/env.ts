@@ -56,7 +56,33 @@ function getEnv(): Env {
 
     if (isBuild) {
       console.warn(`[BUILD] Missing non-public env vars (expected during build): ${missing}`);
-      return process.env as unknown as Env;
+      // Build-time stub — real validation runs in production.
+      // All required string fields get an empty-string fallback so that
+      // downstream code that destructures `env` never sees `undefined`.
+      return {
+        NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
+        ENCRYPTION_KEY: process.env.ENCRYPTION_KEY ?? '',
+        CRON_SECRET: process.env.CRON_SECRET ?? '',
+        NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+        DODO_API_KEY: process.env.DODO_API_KEY ?? '',
+        DODO_WEBHOOK_SECRET: process.env.DODO_WEBHOOK_SECRET ?? '',
+        DODO_PRODUCT_MONTHLY_IN: process.env.DODO_PRODUCT_MONTHLY_IN ?? '',
+        DODO_PRODUCT_ANNUAL_IN: process.env.DODO_PRODUCT_ANNUAL_IN ?? '',
+        DODO_PRODUCT_MONTHLY_US: process.env.DODO_PRODUCT_MONTHLY_US ?? '',
+        DODO_PRODUCT_ANNUAL_US: process.env.DODO_PRODUCT_ANNUAL_US ?? '',
+        DODO_PRODUCT_MONTHLY_CA: process.env.DODO_PRODUCT_MONTHLY_CA ?? '',
+        DODO_PRODUCT_ANNUAL_CA: process.env.DODO_PRODUCT_ANNUAL_CA ?? '',
+        DODO_PRODUCT_MONTHLY_EU: process.env.DODO_PRODUCT_MONTHLY_EU ?? '',
+        DODO_PRODUCT_ANNUAL_EU: process.env.DODO_PRODUCT_ANNUAL_EU ?? '',
+        DODO_PRODUCT_MONTHLY_ROW: process.env.DODO_PRODUCT_MONTHLY_ROW ?? '',
+        DODO_PRODUCT_ANNUAL_ROW: process.env.DODO_PRODUCT_ANNUAL_ROW ?? '',
+        RESEND_API_KEY: process.env.RESEND_API_KEY,
+        RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
+        UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+        UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+      } as Env;
     }
 
     throw new Error(
@@ -64,7 +90,30 @@ function getEnv(): Env {
       'Application cannot start without these configured.'
     );
   }
-  return parsed.data;
+  // Paired-key validation: both must be set together or both absent.
+  const data = parsed.data;
+
+  const hasResendKey = !!data.RESEND_API_KEY;
+  const hasResendEmail = !!data.RESEND_FROM_EMAIL;
+  if (hasResendKey !== hasResendEmail) {
+    throw new Error(
+      'RESEND_API_KEY and RESEND_FROM_EMAIL must both be set or both be absent. ' +
+      `Currently: RESEND_API_KEY=${hasResendKey ? 'set' : 'missing'}, ` +
+      `RESEND_FROM_EMAIL=${hasResendEmail ? 'set' : 'missing'}.`
+    );
+  }
+
+  const hasRedisUrl = !!data.UPSTASH_REDIS_REST_URL;
+  const hasRedisToken = !!data.UPSTASH_REDIS_REST_TOKEN;
+  if (hasRedisUrl !== hasRedisToken) {
+    throw new Error(
+      'UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must both be set or both be absent. ' +
+      `Currently: UPSTASH_REDIS_REST_URL=${hasRedisUrl ? 'set' : 'missing'}, ` +
+      `UPSTASH_REDIS_REST_TOKEN=${hasRedisToken ? 'set' : 'missing'}.`
+    );
+  }
+
+  return data;
 }
 
 export const env = getEnv();

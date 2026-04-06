@@ -199,8 +199,8 @@ export async function syncManagedKeys(): Promise<{ keys_discovered: number }> {
 
         if (!error) keysDiscovered++;
       }
-    } catch {
-      // Continue with next key on error
+    } catch (error) {
+      console.error('[sync-engine] syncManagedKeys failed:', error);
     }
   }
 
@@ -290,18 +290,6 @@ export async function checkBudgets(): Promise<{ alerts_created: number }> {
     for (const t of thresholds) {
       if (!t.enabled || pct < t.pct || lastAlerted >= t.pct) continue;
 
-      // Prevent race-condition duplicates
-      const { data: existingAlert } = await supabase
-        .from('alerts')
-        .select('id')
-        .eq('company_id', budget.company_id)
-        .eq('type', 'budget_threshold')
-        .eq('title', `Budget ${t.pct}% reached`)
-        .eq('related_budget_id', budget.id)
-        .maybeSingle();
-
-      if (existingAlert) continue;
-
       // Build a human-readable scope label for the email
       let scopeLabel = 'global';
       if (budget.scope === 'platform') {
@@ -327,14 +315,27 @@ export async function checkBudgets(): Promise<{ alerts_created: number }> {
         `Your ${scopeLabel} budget of $${Number(budget.amount_usd).toFixed(2)} is ` +
         `${Math.round(pct)}% used ($${totalSpend.toFixed(2)} spent).`;
 
-      await supabase.from('alerts').insert({
+      // NOTE: The alerts table has no unique DB constraint, so onConflict cannot
+      // guarantee deduplication at the database level. ignoreDuplicates: true reduces
+      // (but does not eliminate) duplicates from concurrent syncs. To fully prevent
+      // races, add a unique index on (company_id, type, related_budget_id, title).
+      const alertData = {
         company_id: budget.company_id,
         type: 'budget_threshold',
         severity: t.severity,
         title: alertTitle,
         message: alertMessage,
         related_budget_id: budget.id,
-      });
+      };
+      const { error: alertError } = await supabase
+        .from('alerts')
+        .upsert(alertData, {
+          onConflict: 'company_id,type,related_budget_id',
+          ignoreDuplicates: true,
+        });
+      if (alertError) {
+        console.error('[sync-engine] checkBudgets alert upsert failed:', alertError);
+      }
 
       await supabase
         .from('budgets')

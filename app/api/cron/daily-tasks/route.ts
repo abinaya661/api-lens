@@ -1,23 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail, getAlertEmailHtml, getTrialWarningEmailHtml, getWeeklyDigestEmailHtml } from '@/lib/email/resend';
+import { verifyCronAuth } from '@/lib/api/verify-cron-auth';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
-function verifyCronSecret(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || cronSecret.length < 32) {
-    console.error('CRON_SECRET not configured or too short');
-    return false;
-  }
-  return authHeader === `Bearer ${cronSecret}`;
-}
-
 export async function GET(request: NextRequest) {
-  if (!verifyCronSecret(request)) {
+  if (!verifyCronAuth(request.headers.get('authorization'), process.env.CRON_SECRET ?? '')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
