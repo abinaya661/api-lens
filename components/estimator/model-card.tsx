@@ -28,9 +28,8 @@ const PROVIDER_LABELS: Record<string, string> = {
   anthropic: 'Anthropic',
   gemini: 'Gemini',
   grok: 'Grok',
-  deepseek: 'DeepSeek',
-  moonshot: 'Moonshot',
   elevenlabs: 'ElevenLabs',
+  openrouter: 'OpenRouter',
 };
 
 export function ModelCard({ model, onTogglePin }: ModelCardProps) {

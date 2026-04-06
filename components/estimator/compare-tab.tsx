@@ -42,11 +42,8 @@ const PROVIDER_LABELS: Record<string, string> = {
   anthropic: 'Anthropic',
   gemini: 'Gemini',
   grok: 'Grok',
-  deepseek: 'DeepSeek',
-  moonshot: 'Moonshot',
   elevenlabs: 'ElevenLabs',
   openrouter: 'OpenRouter',
-  azure_openai: 'Azure OpenAI',
 };
 
 function parseNumber(value: string) {

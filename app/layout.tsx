@@ -19,12 +19,12 @@ export const metadata: Metadata = {
     default: 'API Lens - Track Your AI API Spending',
     template: '%s | API Lens',
   },
-  description: 'The ultimate AI API key manager. Monitor and optimize your AI API costs across OpenAI, Anthropic, Gemini, Mistral, and 14+ providers. Real-time spending dashboards, budget alerts, and usage analytics.',
+  description: 'The ultimate AI API key manager. Monitor and optimize your AI API costs across OpenAI, Anthropic, Gemini, Grok, OpenRouter, and ElevenLabs. Real-time spending dashboards, budget alerts, and usage analytics.',
   keywords: ['API key manager', 'AI API management', 'cost tracking', 'API spending', 'OpenAI costs', 'Anthropic billing', 'AI budget', 'API monitoring'],
   authors: [{ name: 'API Lens' }],
   openGraph: {
     title: 'API Lens - Track Your AI API Spending',
-    description: 'Monitor and optimize your AI API costs across 14+ providers.',
+    description: 'Monitor and optimize your AI API costs across 6 providers.',
     url: 'https://apilens.tech',
     siteName: 'API Lens',
     type: 'website',
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'API Lens - Track Your AI API Spending',
-    description: 'Monitor and optimize your AI API costs across 14+ providers.',
+    description: 'Monitor and optimize your AI API costs across 6 providers.',
     images: ['https://apilens.tech/logo.jpg'],
   },
   icons: {

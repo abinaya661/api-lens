@@ -14,7 +14,7 @@ const KEY_PATTERNS: { provider: string; regex: RegExp; confidence: 'high' | 'med
   { provider: 'anthropic', regex: /^sk-ant-[a-zA-Z0-9_-]+$/, confidence: 'high' },
   { provider: 'openrouter', regex: /^sk-or-[a-zA-Z0-9_-]+$/, confidence: 'high' },
   { provider: 'grok', regex: /^xai-[a-zA-Z0-9_-]+$/, confidence: 'high' },
-  { provider: 'deepseek', regex: /^sk-[a-f0-9]{48,}$/, confidence: 'medium' },
+  { provider: 'gemini', regex: /^AIza[a-zA-Z0-9_-]{20,}$/, confidence: 'high' },
   { provider: 'elevenlabs', regex: /^[a-f0-9]{32}$/, confidence: 'medium' },
 ];
 

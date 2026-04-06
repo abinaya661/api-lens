@@ -7,9 +7,6 @@ import { validateOpenAIKey, fetchOpenAIUsage } from './openai';
 import { validateAnthropicKey, fetchAnthropicUsage } from './anthropic';
 import { validateGemini, fetchGeminiUsage } from './gemini';
 import { validateGrokKey, fetchGrokUsage } from './grok';
-import { validateAzureOpenAI, fetchAzureOpenAIUsage } from './azure_openai';
-import { validateMoonshotKey, fetchMoonshotUsage } from './moonshot';
-import { validateDeepSeekKey, fetchDeepSeekUsage } from './deepseek';
 import { validateElevenLabsKey, fetchElevenLabsUsage } from './elevenlabs';
 import { validateOpenRouterKey, fetchOpenRouterUsage } from './openrouter';
 
@@ -34,18 +31,6 @@ const providers: Partial<Record<Provider, ProviderModule>> = {
   grok: {
     validate: (creds) => validateGrokKey(creds.api_key ?? ''),
     fetchUsage: (creds, keyId, since) => fetchGrokUsage(creds.api_key ?? '', keyId, since),
-  },
-  azure_openai: {
-    validate: (creds) => validateAzureOpenAI(creds.api_key ?? '', creds.endpoint ?? '', creds.subscription_id ?? ''),
-    fetchUsage: (creds, keyId, since) => fetchAzureOpenAIUsage(creds.api_key ?? '', creds.endpoint ?? '', creds.subscription_id ?? '', keyId, since),
-  },
-  moonshot: {
-    validate: (creds) => validateMoonshotKey(creds.api_key ?? ''),
-    fetchUsage: (creds, keyId, since) => fetchMoonshotUsage(creds.api_key ?? '', keyId, since),
-  },
-  deepseek: {
-    validate: (creds) => validateDeepSeekKey(creds.api_key ?? ''),
-    fetchUsage: (creds, keyId, since) => fetchDeepSeekUsage(creds.api_key ?? '', keyId, since),
   },
   elevenlabs: {
     validate: (creds) => validateElevenLabsKey(creds.api_key ?? ''),
@@ -77,7 +62,6 @@ export function isProviderSupported(provider: Provider): boolean {
 export function getProviderStatus(): Array<{ provider: Provider; implemented: boolean }> {
   const allProviders: Provider[] = [
     'openai', 'anthropic', 'gemini', 'grok',
-    'azure_openai', 'moonshot', 'deepseek',
     'elevenlabs', 'openrouter',
   ];
   return allProviders.map((p) => ({

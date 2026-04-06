@@ -7,9 +7,6 @@ const PROVIDERS = [
   { name: 'Anthropic', type: 'serif', color: 'text-[#d97757]' },
   { name: 'Google Gemini', type: 'gradient', from: 'from-blue-400', to: 'to-indigo-400' },
   { name: 'Grok', type: 'heavy', color: 'text-zinc-100' },
-  { name: 'Microsoft Azure', type: 'bold', color: 'text-[#0078D4]' },
-  { name: 'Moonshot', type: 'mono', color: 'text-zinc-400' },
-  { name: 'DeepSeek', type: 'bold', color: 'text-[#306CFA]' },
   { name: 'ElevenLabs', type: 'clean', color: 'text-zinc-300' },
   { name: 'OpenRouter', type: 'gradient', from: 'from-[#6366f1]', to: 'to-[#a855f7]' },
 ];
