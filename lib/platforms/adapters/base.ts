@@ -1,4 +1,4 @@
-import type { PlatformAdapter, SyncResult, UsageRow } from '../types';
+import type { PlatformAdapter, ProviderCapabilities, SyncResult, UsageRow } from '../types';
 
 export abstract class BaseAdapter implements PlatformAdapter {
   abstract provider: string;
@@ -16,6 +16,18 @@ export abstract class BaseAdapter implements PlatformAdapter {
     } catch (e: unknown) {
       return { valid: false, error: e instanceof Error ? e.message : 'Validation failed' };
     }
+  }
+
+  getCapabilities(): ProviderCapabilities {
+    return {
+      canValidateKey: true,
+      canFetchUsage: false,
+      canFetchCost: false,
+      canListManagedKeys: false,
+      canPerModelBreakdown: false,
+      canPerKeyBreakdown: false,
+      requiresAdminKey: false,
+    };
   }
 
   protected makeSyncResult(provider: string, rows: UsageRow[], error?: string): SyncResult {

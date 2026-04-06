@@ -1,5 +1,5 @@
 import { BaseAdapter } from './base';
-import type { SyncResult, UsageRow } from '../types';
+import type { SyncResult, UsageRow, ProviderCapabilities } from '../types';
 
 export class ElevenLabsAdapter extends BaseAdapter {
   provider = 'elevenlabs';
@@ -98,5 +98,18 @@ export class ElevenLabsAdapter extends BaseAdapter {
     } catch (e: unknown) {
       return { valid: false, error: e instanceof Error ? e.message : 'Validation failed' };
     }
+  }
+
+  override getCapabilities(): ProviderCapabilities {
+    return {
+      canValidateKey: true,
+      canFetchUsage: true,
+      canFetchCost: false,
+      canListManagedKeys: false,
+      canPerModelBreakdown: false,
+      canPerKeyBreakdown: false,
+      requiresAdminKey: false,
+      usageNote: 'ElevenLabs provides character-based usage stats. Cost estimation uses your plan tier.',
+    };
   }
 }

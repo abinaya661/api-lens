@@ -1,5 +1,5 @@
 import { BaseAdapter } from './base';
-import type { SyncResult } from '../types';
+import type { SyncResult, ProviderCapabilities } from '../types';
 
 export class AzureOpenAIAdapter extends BaseAdapter {
   provider = 'azure_openai';
@@ -42,5 +42,18 @@ export class AzureOpenAIAdapter extends BaseAdapter {
     } catch (e: unknown) {
       return { valid: false, error: e instanceof Error ? e.message : 'Validation failed' };
     }
+  }
+
+  override getCapabilities(): ProviderCapabilities {
+    return {
+      canValidateKey: true,
+      canFetchUsage: false,
+      canFetchCost: false,
+      canListManagedKeys: false,
+      canPerModelBreakdown: false,
+      canPerKeyBreakdown: false,
+      requiresAdminKey: false,
+      usageNote: 'Azure OpenAI requires Azure Monitor or Cost Management integration for usage tracking.',
+    };
   }
 }

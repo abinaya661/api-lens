@@ -34,9 +34,23 @@ export interface ManagedKeyInfo {
   last_used_at: string | null;
 }
 
+export interface ProviderCapabilities {
+  canValidateKey: boolean;
+  canFetchUsage: boolean;
+  canFetchCost: boolean;
+  canListManagedKeys: boolean;
+  canPerModelBreakdown: boolean;
+  canPerKeyBreakdown: boolean;
+  requiresAdminKey: boolean;
+  adminKeyPrefix?: string;
+  keyPlaceholder?: string;
+  usageNote?: string;
+}
+
 export interface PlatformAdapter {
   provider: string;
   fetchUsage(apiKey: string, dateFrom: string, dateTo: string): Promise<SyncResult>;
   validateKey(apiKey: string): Promise<{ valid: boolean; error?: string; keyType?: string }>;
   listManagedKeys?(apiKey: string): Promise<ManagedKeyInfo[]>;
+  getCapabilities(): ProviderCapabilities;
 }

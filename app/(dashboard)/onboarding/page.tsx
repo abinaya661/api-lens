@@ -65,6 +65,12 @@ export default function OnboardingPage() {
       return 'OpenAI keys must start with sk-admin-...';
     if (provider === 'anthropic' && apiKey.length > 10 && !apiKey.startsWith('sk-ant-admin'))
       return 'Anthropic keys must start with sk-ant-admin...';
+    if (provider === 'gemini' && apiKey.length > 4 && !apiKey.startsWith('AIza'))
+      return 'Gemini keys typically start with AIza...';
+    if (provider === 'grok' && apiKey.length > 4 && !apiKey.startsWith('xai-'))
+      return 'Grok keys typically start with xai-...';
+    if (provider === 'openrouter' && apiKey.length > 5 && !apiKey.startsWith('sk-or-'))
+      return 'OpenRouter keys typically start with sk-or-...';
     return null;
   }, [provider, apiKey]);
 
@@ -293,6 +299,41 @@ export default function OnboardingPage() {
                      className="text-[11px] text-orange-400 hover:underline mt-1 inline-block">
                     Create admin key on Anthropic &rarr;
                   </a>
+                </div>
+              )}
+              {provider === 'gemini' && (
+                <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                  <p className="text-xs text-blue-400 font-medium mb-1">Validation Only</p>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Google AI Studio does not expose a usage or billing API.
+                    This key will be validated and stored, but automated usage tracking is not available.
+                  </p>
+                </div>
+              )}
+              {provider === 'grok' && (
+                <div className="p-3 rounded-lg bg-slate-500/5 border border-slate-500/20">
+                  <p className="text-xs text-slate-400 font-medium mb-1">Validation Only</p>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    xAI does not yet offer a public usage or billing API.
+                    This key will be validated and stored, but automated usage tracking is not available.
+                  </p>
+                </div>
+              )}
+              {provider === 'openrouter' && (
+                <div className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/20">
+                  <p className="text-xs text-indigo-400 font-medium mb-1">Usage Tracking Available</p>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    OpenRouter provides per-model cost and token breakdown via generation history.
+                    Your standard API key is all that&apos;s needed.
+                  </p>
+                </div>
+              )}
+              {provider === 'deepseek' && (
+                <div className="p-3 rounded-lg bg-teal-500/5 border border-teal-500/20">
+                  <p className="text-xs text-teal-400 font-medium mb-1">Balance Tracking</p>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    DeepSeek provides aggregate balance data. Per-model breakdown is not available.
+                  </p>
                 </div>
               )}
             </div>

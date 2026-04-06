@@ -85,6 +85,7 @@ export interface ApiKey {
   proxy_enabled?: boolean;
   proxy_key_id?: string | null;
   key_type?: string;  // 'standard' | 'admin'
+  usage_capability?: 'full' | 'aggregate' | 'validation_only';
 }
 
 export interface UsageRecord {

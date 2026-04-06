@@ -54,7 +54,8 @@ supabase/
   migrations/      001_initial_schema, 002_handle_new_user, 003_fix_rls,
                    004_access_passes, 005_dodo_payments, 006_price_snapshots,
                    007_webhook_events, 008_notification_prefs,
-                   009_estimator_overhaul, 010_live_schema_alignment
+                   009_estimator_overhaul, 010_live_schema_alignment,
+                   011_managed_keys, 012_provider_capabilities
 tests/             9 Vitest unit test files including forecasting
 vercel.json        Cron schedule config (5 jobs)
 ```
@@ -96,6 +97,7 @@ api_keys:        id(uuid PK) company_id(uuid->companies) project_id(uuid->projec
                  provider nickname encrypted_credentials(jsonb) key_hint
                  is_active last_synced_at consecutive_failures last_error
                  endpoint_url notes rotation_due last_validated last_failure_reason
+                 usage_capability(text='full': full|aggregate|validation_only)
                  created_at updated_at
 usage_records:   id(uuid PK) key_id(uuid->api_keys) provider model date
                  input_tokens output_tokens cost_usd request_count synced_at
@@ -122,7 +124,7 @@ cost_estimates:  id company_id project_id provider model messages_per_day
 ```
 
 **Enums:**
-- `provider_type`: openai | anthropic | gemini | grok | azure_openai | moonshot | deepseek | elevenlabs | openrouter
+- `provider_type`: openai | anthropic | gemini | bedrock | mistral | cohere | azure_openai | custom | grok | moonshot | deepseek | elevenlabs | openrouter
 - `budget_scope`: global | platform | project | key
 - `alert_type`: budget_threshold | spend_spike | key_inactive | key_rotation_due | custom_cost_reminder
 - `alert_severity`: info | warning | critical
@@ -147,6 +149,7 @@ interface ApiKey {
   consecutive_failures: number; last_error: string | null;
   endpoint_url: string | null; notes: string | null;
   rotation_due: string | null; last_failure_reason: string | null;
+  usage_capability?: 'full' | 'aggregate' | 'validation_only';
 }
 interface PriceSnapshot {
   provider: string; model: string; model_display: string | null;
@@ -338,12 +341,11 @@ UPSTASH_REDIS_REST_TOKEN
 
 ---
 
-**Active context (2026-03-28):**
-- **Final Polish (Mar 26):** Blog UI redesigned, email templates modernized, dark/light theme toggle added, SEO optimized for "api key manager".
-- **Email & UI updates (Mar 27-28):** Welcome email simplified, pro waitlist confirmation email added, sidebar restructured, preferences split to `settings/preferences`.
-- **Estimator & pricing intelligence (Mar 28):** Estimator replaced with compare + forecast tabs, forecasting module added, `price_snapshots` expanded via migration `009`, pricing admin API and bi-weekly `price-update` cron added, subscriptions/webhooks aligned to `company_id`, live schema alignment captured in migration `010`.
-- **Ownership model (Mar 30):** Company-owned workspace model is the canonical runtime path for keys, projects, budgets, alerts, subscriptions, and forecasts. We still operate as one user per company for now, and legacy `user_id` columns remain compatibility fields only for live-schema migration safety.
-- **Status:** Code verified with `type-check`, `test`, and `build`. Live Supabase project must have migrations `009` and `010` applied before production deploy (`008` too if missing).
+**Active context (2026-04-06):**
+- **Multi-provider adapter expansion (Apr 6):** `ProviderCapabilities` interface added to all 9 adapters. Gemini/Grok flipped to accept valid keys (validation-only). OpenRouter rewritten with per-model generation history via `/api/v1/activity` (paginated, date-filtered, aggregate fallback). Sync engine skips `validation_only` keys. `usage_capability` column added to `api_keys`. Frontend guidance boxes + capability badges for all providers. Migration 012 applied to live Supabase (enum expansion + column addition).
+- **Provider capability tiers:** `full` (OpenAI, Anthropic), `aggregate` (OpenRouter, DeepSeek, ElevenLabs), `validation_only` (Gemini, Grok, Azure OpenAI, Moonshot).
+- **Ownership model (Mar 30):** Company-owned workspace model is the canonical runtime path. One user per company for now.
+- **Status:** Code verified with `type-check`, `test`, and `build`. Migrations 001-012 applied to live Supabase.
 
 **Cron jobs (5 total in `vercel.json`):**
 - `sync-and-check` - every 6h
@@ -352,4 +354,4 @@ UPSTASH_REDIS_REST_TOKEN
 - `weekly-report` - Mon 08:00 UTC
 - `price-update` - 1st and 15th 09:00 UTC
 
-**DB migrations in repo:** `001-010`. Latest: `010_live_schema_alignment`.
+**DB migrations in repo:** `001-012`. Latest: `012_provider_capabilities`.

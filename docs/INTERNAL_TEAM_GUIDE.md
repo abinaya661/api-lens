@@ -1,6 +1,6 @@
 # API Lens - Internal Team Guide
 
-**Version:** 2.2 | **Date:** March 28, 2026 | **Classification:** Internal - Engineering & Product
+**Version:** 2.3 | **Date:** April 6, 2026 | **Classification:** Internal - Engineering & Product
 
 > **Companion doc:** For code-level details (tech stack, folder structure, DB schema, server actions, hooks, API routes, patterns, env vars, security architecture), see **AGENTS.md** in the repo root.
 
@@ -71,6 +71,7 @@ API Lens is a **SaaS dashboard for monitoring, managing, and optimizing AI API s
 | **8 - Bug Fixes** | Polish | Schema field name fixes (sync engine, crons), alert insert fixes, weekly-report cron fix, webhook_events table (migration 007), notification_prefs (migration 008), middleware public routes fix, blog deps, pricing corrections, 5 cron jobs in vercel.json |
 | **9 - Final UI & Email** | Polish | Blog redesign (glassmorphism index + post pages), email templates modernized (all 11 transactional, centered logos), dark/light theme toggle (`next-themes`), SEO optimization ("api key manager" meta + JSON-LD), welcome email simplified (clean warm message), pro waitlist confirmation email added, sidebar restructured to collapsible nav groups (Projects + Settings), preferences split to own page (`settings/preferences`) |
 | **10 - Smart Estimator & Pricing Intelligence** | Expansion | Compare + forecast estimator tabs, weighted moving average forecasting, expanded `price_snapshots` catalog (categories, batch/cache/image/unit pricing, deprecation flags), admin pricing API, bi-weekly price-update cron, company-scoped subscription/webhook alignment, live schema alignment migration (010) |
+| **11 - Multi-Provider Adapter Expansion** | Platform | `ProviderCapabilities` interface on all 9 adapters, Gemini/Grok flipped to accept valid keys (validation-only), OpenRouter rewritten with per-model generation history via `/api/v1/activity` (paginated, date-filtered, aggregate fallback), sync engine skips validation-only keys, `usage_capability` column on `api_keys`, frontend guidance boxes + capability badges for all providers on keys page and onboarding, Zod prefix validation for OpenRouter, migration 012 (enum expansion + capability column), 50 unit tests across provider adapters and key validation |
 
 ---
 
@@ -79,7 +80,7 @@ API Lens is a **SaaS dashboard for monitoring, managing, and optimizing AI API s
 ### Immediate Blockers (Must Do Before Launch)
 | # | Task | Owner | Status |
 |---|------|-------|--------|
-| 1 | Apply live Supabase migrations for estimator rollout: `009_estimator_overhaul` and `010_live_schema_alignment` (`008_notification_prefs` too if the target project never received it) | DevOps | Pending |
+| 1 | ~~Apply live Supabase migrations~~ — Migrations 001-012 all applied to live Supabase as of Apr 6, 2026 | DevOps | Done |
 | 2 | Create Dodo per-region products -> set all `DODO_PRODUCT_*` env vars (10 vars: IN, US, CA, EU, ROW x monthly/annual) | Product/Backend | Blocked |
 | 3 | Set up Dodo webhook endpoint -> set `DODO_WEBHOOK_SECRET` | Backend | Blocked |
 | 4 | Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL=API Lens <noreply@apilens.tech>` in Vercel | DevOps | Blocked |
@@ -88,7 +89,7 @@ API Lens is a **SaaS dashboard for monitoring, managing, and optimizing AI API s
 
 ### Known Gaps
 - **Sync frequency:** Vercel cron runs every 6h. For real-time, need Pro plan or external scheduler.
-- **Providers without usage APIs:** Gemini, Grok, Azure OpenAI, Moonshot return validation-only (no automated cost sync).
+- **Providers without usage APIs:** Gemini, Grok, Azure OpenAI, Moonshot are accepted as `validation_only` keys — stored and validated but no automated cost sync. The sync engine skips these keys automatically.
 - **E2E tests:** Playwright config exists but no e2e test files written yet.
 - **Price update cron:** Provider parsing is best-effort. Parse failures soft-fail and require manual review or admin pricing updates.
 - **Workspace model:** Company ownership is canonical, but there is still exactly one user per company. Team/member support remains future roadmap work.
@@ -195,7 +196,7 @@ pnpm dev                     # Starts on localhost:3000 with Turbopack
 | `supabase/migrations/` | Database schema |
 
 ### Common Tasks
-- **Add a new provider:** Create adapter in `lib/platforms/adapters/`, register in `registry.ts`, add to `PROVIDER_CONFIGS` in `types/providers.ts`
+- **Add a new provider:** Create adapter in `lib/platforms/adapters/` (implement `validateKey`, `fetchUsage`, `getCapabilities()`), register in `registry.ts`, add to `PROVIDER_CONFIGS` in `types/providers.ts`, add prefix check in `lib/validations/key.ts` if needed, add `provider_type` enum value in migration
 - **Add a new API route:** Create `app/api/your-route/route.ts`, export `GET`/`POST`/etc.
 - **Add a new server action:** Add function to `lib/actions/*.ts`, create corresponding hook in `hooks/`
 - **Modify DB schema:** New migration in `supabase/migrations/`, update `types/database.ts`
@@ -213,17 +214,17 @@ pnpm dev                     # Starts on localhost:3000 with Turbopack
 **Planned:** Team management, Enterprise SSO, Slack/Discord alerts, public API, monthly PDF reports, audit logs
 
 ### Provider Sync Support
-| Provider | Key Validation | Automated Cost Sync | Notes |
-|----------|---------------|-------------------|-------|
-| OpenAI | Yes | Yes | Full sync via `/v1/organization/costs` |
-| Anthropic | Yes | Yes | Full sync via usage report API |
-| DeepSeek | Yes | Partial | Balance-based (not per-model) |
-| ElevenLabs | Yes | Yes | Character-based usage |
-| OpenRouter | Yes | Partial | Aggregate credit usage |
-| Gemini | Yes | No | Google has no billing API |
-| Grok (xAI) | Yes | No | Needs Management API key |
-| Azure OpenAI | Yes | No | Needs Azure Cost Management |
-| Moonshot | Yes | No | No public usage API |
+| Provider | Key Validation | Usage Sync | Capability Tier | Notes |
+|----------|---------------|------------|-----------------|-------|
+| OpenAI | Admin key (`sk-admin-`) | Full per-model + per-key | `full` | `/v1/organization/costs`, managed key discovery |
+| Anthropic | Admin key (`sk-ant-admin`) | Full per-model + per-key | `full` | Usage report + cost report APIs, managed key discovery |
+| OpenRouter | Standard key (`sk-or-`) | Per-model breakdown | `aggregate` | Generation history via `/api/v1/activity` with aggregate fallback |
+| DeepSeek | Standard key | Balance-based | `aggregate` | `/user/balance` — account-level, not per-model |
+| ElevenLabs | Standard key | Character-based | `aggregate` | `/v1/usage/character-stats` — not per-model dollar billing |
+| Gemini | Standard key (`AIza...`) | None | `validation_only` | Google AI Studio has no billing API |
+| Grok (xAI) | Standard key (`xai-`) | None | `validation_only` | xAI has no public usage/billing API |
+| Azure OpenAI | Standard key | None | `validation_only` | Billing requires Azure Cost Management |
+| Moonshot | Standard key | None | `validation_only` | No public usage API |
 
 ### Key Metrics to Track (via PostHog)
 - Signup -> Onboarding completion rate, Keys added per user (first week)
@@ -271,8 +272,8 @@ pnpm dev                      # -> http://localhost:3000
 > **Full env var reference (required vs optional, generation hints):** See AGENTS.md S9
 
 ### Pre-Production Checklist
-- [ ] Supabase: Run all migrations (`supabase db push`) - 10 migrations total in repo
-- [ ] Supabase: For an existing hosted project, verify live apply of `009_estimator_overhaul` and `010_live_schema_alignment` (`008_notification_prefs` too if missing)
+- [x] Supabase: Run all migrations (`supabase db push`) - 12 migrations total in repo (001-012)
+- [x] Supabase: Migrations 001-012 applied to live project as of Apr 6, 2026
 - [ ] Supabase: Verify RLS policies are active
 - [ ] Dodo: Create per-region monthly + annual products (IN, US, CA, EU, ROW) -> set all 10 `DODO_PRODUCT_*` env vars
 - [ ] Dodo: Set up webhook URL pointing to `/api/webhooks/dodo` -> set `DODO_WEBHOOK_SECRET`
@@ -284,4 +285,4 @@ pnpm dev                      # -> http://localhost:3000
 
 ---
 
-*Last updated: March 28, 2026 (v2.2). For code-level details, see AGENTS.md.*
+*Last updated: April 6, 2026 (v2.3). For code-level details, see AGENTS.md.*

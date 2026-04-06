@@ -127,6 +127,10 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
     }
 
     const keyType = validation.keyType ?? 'standard';
+    const capabilities = adapter.getCapabilities();
+    const usageCapability = capabilities.canPerModelBreakdown ? 'full'
+      : capabilities.canFetchUsage ? 'aggregate'
+      : 'validation_only';
     const encrypted = encryptCredentials(api_key);
     const keyHint = extractKeyHint(api_key);
     const validatedAt = new Date().toISOString();
@@ -151,6 +155,7 @@ export async function addKey(input: AddKeyInput): Promise<ActionResult<ApiKey>> 
         endpoint_url: endpoint_url || null,
         notes: notes ?? null,
         key_type: keyType,
+        usage_capability: usageCapability,
       })
       .select()
       .single();
